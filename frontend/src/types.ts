@@ -5,6 +5,9 @@ export enum Screen {
   QUIZ = 'QUIZ',
   PROGRESS = 'PROGRESS',
   ADMIN_USERS = 'ADMIN_USERS',
+  ADMIN_REPORTS = 'ADMIN_REPORTS',
+  ADMIN_REPORTS_LIST = 'ADMIN_REPORTS_LIST',
+  MY_REPORTS = 'MY_REPORTS',
 }
 
 export interface AuditQuestion {
@@ -12,6 +15,8 @@ export interface AuditQuestion {
   answer: string;
   isCorrect: boolean;
   comment?: string;
+  score?: number;
+  isImportant?: boolean;
 }
 
 export interface AuditSection {
@@ -20,13 +25,21 @@ export interface AuditSection {
   maxScore: number;
   feedback: string;
   questions: AuditQuestion[];
+  maxScores?: number[];
 }
 
 export interface AuditResult {
-  id: string;
+  _id?: string;
+  id?: string;
+  auditId?: string;
+  location?: string;
+  store?: string;
   date: string;
   totalScore: number;
   sections: AuditSection[];
+  fileName?: string;
+  userId?: string;
+  createdAt?: string;
 }
 
 export interface DailyTask {

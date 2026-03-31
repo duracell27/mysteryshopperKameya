@@ -10,15 +10,17 @@ interface LayoutProps {
 }
 
 const ADMIN_NAV = [
-  { id: Screen.DASHBOARD,   label: 'Дашборд',      icon: 'fa-house' },
-  { id: Screen.ADMIN_USERS, label: 'Користувачі',  icon: 'fa-users' },
+  { id: Screen.DASHBOARD,           label: 'Дашборд',             icon: 'fa-house' },
+  { id: Screen.ADMIN_USERS,         label: 'Користувачі',         icon: 'fa-users' },
+  { id: Screen.ADMIN_REPORTS,       label: 'Завантаження звітів', icon: 'fa-file-arrow-up' },
+  { id: Screen.ADMIN_REPORTS_LIST,  label: 'Всі звіти',           icon: 'fa-list-check' },
 ];
 
 const EMPLOYEE_NAV = [
-  { id: Screen.DASHBOARD,     label: 'Дашборд',              icon: 'fa-house' },
-  { id: Screen.AUDIT_DETAILS, label: 'Результати перевірок', icon: 'fa-magnifying-glass' },
-  { id: Screen.TRAINING_PLAN, label: 'План розвитку',        icon: 'fa-graduation-cap' },
-  { id: Screen.PROGRESS,      label: 'Мій прогрес',          icon: 'fa-trophy' },
+  { id: Screen.DASHBOARD,     label: 'Дашборд',         icon: 'fa-house' },
+  { id: Screen.MY_REPORTS,    label: 'Мої звіти',       icon: 'fa-magnifying-glass' },
+  { id: Screen.TRAINING_PLAN, label: 'План розвитку',   icon: 'fa-graduation-cap' },
+  { id: Screen.PROGRESS,      label: 'Мій прогрес',     icon: 'fa-trophy' },
 ];
 
 export const Layout: React.FC<LayoutProps> = ({ children, activeScreen, onNavigate, user, onLogout }) => {

@@ -7,8 +7,11 @@ const EMPTY_CREATE: CreateUserPayload = {
   phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '',
 };
 
-// 380XXXXXXXXX → 0XXXXXXXXX
-const toDisplay = (phone: string) => phone.slice(2);
+// 380XXXXXXXXX → 050 809 81 82
+const toDisplay = (phone: string) => {
+  const p = phone.slice(2); // 0XXXXXXXXX
+  return `${p.slice(0,3)} ${p.slice(3,6)} ${p.slice(6,8)} ${p.slice(8,10)}`;
+};
 
 // ─── Модалка через Portal (рендериться в document.body) ───────────────────────
 interface ModalProps { children: React.ReactNode }
@@ -33,7 +36,7 @@ export const UsersView: React.FC = () => {
 
   // Edit
   const [editUser, setEditUser]     = useState<UserListItem | null>(null);
-  const [editForm, setEditForm]     = useState<UpdateUserPayload & { position: string; store: string }>({ name: '', position: '', store: '', password: '' });
+  const [editForm, setEditForm]     = useState<UpdateUserPayload & { position: string; store: string }>({ name: '', role: 'EMPLOYEE', position: '', store: '', password: '' });
   const [isEditing, setIsEditing]   = useState(false);
   const [editError, setEditError]   = useState('');
 
@@ -72,7 +75,7 @@ export const UsersView: React.FC = () => {
   // ── Редагування ──
   const openEdit = (u: UserListItem) => {
     setEditUser(u);
-    setEditForm({ name: u.name, position: u.position ?? '', store: u.store ?? '', password: '' });
+    setEditForm({ name: u.name, role: u.role, position: u.position ?? '', store: u.store ?? '', password: '' });
     setEditError('');
   };
 
@@ -84,8 +87,9 @@ export const UsersView: React.FC = () => {
     try {
       const payload: UpdateUserPayload = {
         name:     editForm.name,
-        position: editUser.role === 'EMPLOYEE' ? editForm.position : undefined,
-        store:    editUser.role === 'EMPLOYEE' ? editForm.store    : undefined,
+        role:     editForm.role,
+        position: editForm.role === 'EMPLOYEE' ? editForm.position : undefined,
+        store:    editForm.role === 'EMPLOYEE' ? editForm.store    : undefined,
         password: editForm.password || undefined,
       };
       const updated = await updateUser(editUser._id, payload);
@@ -166,7 +170,7 @@ export const UsersView: React.FC = () => {
                         {u.role === 'ADMIN' ? 'Адмін' : 'Працівник'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{u.position || '—'}</td>
+                    <td className="px-6 py-4 text-slate-600">{u.role === 'ADMIN' ? 'Адміністратор' : (u.position || '—')}</td>
                     <td className="px-6 py-4 text-slate-600">{u.store || '—'}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-3">
@@ -282,7 +286,22 @@ export const UsersView: React.FC = () => {
                   className={inputCls} />
               </FormField>
 
-              {editUser.role === 'EMPLOYEE' && (
+              <FormField label="Роль">
+                <div className="grid grid-cols-2 gap-2">
+                  {(['EMPLOYEE', 'ADMIN'] as const).map((r) => (
+                    <button key={r} type="button"
+                      onClick={() => setEditForm((f) => ({ ...f, role: r, position: '', store: '' }))}
+                      className={`py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
+                        editForm.role === r ? 'border-kameya-burgundy bg-kameya-burgundy/5 text-kameya-burgundy' : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      {r === 'EMPLOYEE' ? 'Працівник' : 'Адмін'}
+                    </button>
+                  ))}
+                </div>
+              </FormField>
+
+              {editForm.role === 'EMPLOYEE' && (
                 <>
                   <FormField label="Посада">
                     <select value={editForm.position}

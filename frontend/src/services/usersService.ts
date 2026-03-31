@@ -35,6 +35,7 @@ export const createUser = async (data: CreateUserPayload): Promise<UserListItem>
 
 export interface UpdateUserPayload {
   name?: string;
+  role?: 'ADMIN' | 'EMPLOYEE';
   position?: string;
   store?: string;
   password?: string;

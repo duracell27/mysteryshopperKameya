@@ -1,5 +1,6 @@
 import React from 'react';
 import { AuditResult } from '../types';
+import { formatDate } from '../utils/dateFormatter';
 
 interface AuditViewProps {
   audit: AuditResult;
@@ -12,8 +13,8 @@ export const AuditView: React.FC<AuditViewProps> = ({ audit, onStartAnalysis, is
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Результати перевірки №{audit.id}</h2>
-          <p className="text-slate-500">Дата проведення: {audit.date}</p>
+          <h2 className="text-2xl font-bold text-slate-800">Звіт перевірки</h2>
+          <p className="text-slate-500">Дата: {formatDate(audit.date)}{audit.store ? ` · ${audit.store}` : ''}</p>
         </div>
         <button
           onClick={onStartAnalysis}

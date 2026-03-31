@@ -91,15 +91,19 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 // PATCH /api/users/:id
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, position, store, password } = req.body;
+    const { name, position, store, password, role } = req.body;
     const update: Record<string, unknown> = {};
 
     if (name     !== undefined) update.name     = name;
+    if (role     !== undefined) update.role     = role;
     if (position !== undefined) update.position = position;
     if (store    !== undefined) update.store    = store;
     if (password) update.password = await bcrypt.hash(String(password), 12);
 
-    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true, select: '-password' });
+    const query: Record<string, unknown> = { $set: update };
+    if (role === 'ADMIN') query.$unset = { position: '', store: '' };
+
+    const user = await User.findByIdAndUpdate(req.params.id, query, { new: true, select: '-password' });
     if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
 
     return res.json(user);
