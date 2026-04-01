@@ -3,8 +3,8 @@ import { AuditResult, AuditSection, STORES } from '../../types';
 import { getAllReports, deleteReport } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 
-interface ReportWithUser extends AuditResult {
-  userId: { _id: string; name: string; phone: string } | string;
+interface ReportWithUser extends Omit<AuditResult, 'userId'> {
+  userId: { _id: string; name: string; phone: string; store?: string } | string;
 }
 
 const toDisplay = (phone: string) => {
