@@ -22,6 +22,7 @@ export const ReportsUploadView: React.FC = () => {
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showDetailedPreview, setShowDetailedPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -133,6 +134,74 @@ export const ReportsUploadView: React.FC = () => {
           className="mt-4 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors"
         >
           Завантажити ще один звіт
+        </button>
+      </div>
+    );
+  }
+
+  // ── Detailed preview ──
+  if (showDetailedPreview && parsed) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowDetailedPreview(false)}
+            className="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+          >
+            <i className="fas fa-arrow-left text-slate-500 text-sm"></i>
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">Детальний звіт</h1>
+            <p className="text-xs text-slate-400">{formatDate(parsed.date)}{selectedEmployee?.store ? ` · ${selectedEmployee.store}` : ''}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          {parsed.sections.map((section: AuditSection, idx: number) => (
+            <div key={idx} className="bg-white border rounded-xl overflow-hidden shadow-sm">
+              <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
+                <h3 className="font-bold text-slate-700">{section.title}</h3>
+                <span className={`text-sm font-semibold ${section.score < section.maxScore * 0.7 ? 'text-red-600' : 'text-green-600'}`}>
+                  {section.score} / {section.maxScore}
+                </span>
+              </div>
+              <div className="p-4 space-y-4">
+                {section.feedback && <p className="text-sm italic text-slate-600">"{section.feedback}"</p>}
+                <div className="divide-y divide-slate-100">
+                  {section.questions.map((q, qIdx) => (
+                    <div key={qIdx} className="py-3 flex items-start space-x-3">
+                      <i className={`fas ${q.isCorrect ? 'fa-check text-green-500' : 'fa-xmark text-red-500'} mt-0.5`}></i>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-800">{q.question}</p>
+                        <p className="text-xs text-slate-500">Відповідь: {q.answer}</p>
+                        {q.comment && (
+                          <p className="text-xs text-kameya-burgundy mt-1 font-medium italic">— {q.comment}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={handleConfirm}
+          disabled={step === 'saving'}
+          className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+        >
+          {step === 'saving' ? (
+            <>
+              <i className="fas fa-spinner fa-spin"></i>
+              Збереження...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-circle-check"></i>
+              Підтвердити та зберегти
+            </>
+          )}
         </button>
       </div>
     );
@@ -360,6 +429,14 @@ export const ReportsUploadView: React.FC = () => {
             >
               <i className="fas fa-arrow-left mr-2"></i>
               Назад
+            </button>
+            <button
+              onClick={() => setShowDetailedPreview(true)}
+              disabled={step === 'saving'}
+              className="flex-1 py-3 border border-kameya-burgundy text-kameya-burgundy rounded-xl font-semibold hover:bg-red-50 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+            >
+              <i className="fas fa-eye"></i>
+              Детальний звіт
             </button>
             <button
               onClick={handleConfirm}
