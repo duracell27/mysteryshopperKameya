@@ -407,7 +407,7 @@ export const ReportsUploadView: React.FC = () => {
               </div>
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-xs text-slate-500 mb-1">Загальний результат</p>
-                <p className={`font-bold text-2xl ${scoreTextClass(parsed.totalScore)}`}>{Math.round(parsed.totalScore)}%</p>
+                <p className="font-bold text-2xl text-slate-800">{Math.round(parsed.totalScore)}%</p>
               </div>
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-xs text-slate-500 mb-1">Файл</p>
@@ -428,7 +428,7 @@ export const ReportsUploadView: React.FC = () => {
                       <span className="text-sm font-medium text-slate-700">{section.title}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-bold ${scoreTextClass(Math.round((section.score / section.maxScore) * 100))}`}>
+                      <span className="text-sm font-bold text-slate-700">
                         {section.score}/{section.maxScore}
                       </span>
                     </div>
