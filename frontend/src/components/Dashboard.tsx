@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getMyReports } from '../services/reportsService';
 import { getTodayTip, TipOfDay } from '../services/tipsService';
 import { formatDate } from '../utils/dateFormatter';
+import { ScoreChart } from './employee/ScoreChart';
 
 interface DashboardProps {
   onNavigate: (screen: Screen) => void;
@@ -14,6 +15,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
   const { user } = useAuth();
   const fullName = user?.name ?? 'Вітаємо';
   const [lastAudit, setLastAudit] = useState<AuditResult | undefined>();
+  const [allReports, setAllReports] = useState<AuditResult[]>([]);
   const [tip, setTip] = useState<TipOfDay | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +28,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
         if (reports.length > 0) {
           setLastAudit(reports[0]);
         }
+        setAllReports(reports);
         setTip(tipData);
       })
       .catch(() => console.error('Помилка завантаження даних'))
@@ -112,6 +115,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
           </button>
         </div>
       </div>
+
+      {/* Score Chart */}
+      {allReports.length > 0 && (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <h3 className="font-bold text-slate-800 mb-1">Динаміка оцінок {new Date().getFullYear()}</h3>
+          <p className="text-xs text-slate-400 mb-4">Результати таємного покупця по кварталах</p>
+          <ScoreChart reports={allReports} />
+        </div>
+      )}
 
       {/* Daily Tip */}
       <div className="bg-kameya-burgundy p-8 rounded-2xl text-white shadow-lg relative overflow-hidden">
