@@ -14,6 +14,9 @@ export const MyReportsView: React.FC = () => {
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [showDetailedView, setShowDetailedView] = useState(false);
 
+  const periodLabel = (report: AuditResult) =>
+    report.quarter && report.year ? `${report.quarter} ${report.year}` : formatDate(report.date);
+
   useEffect(() => {
     getMyReports()
       .then(setReports)
@@ -106,7 +109,7 @@ export const MyReportsView: React.FC = () => {
           <div>
             <h1 className="text-xl font-bold text-slate-800">Звіт перевірки</h1>
             <p className="text-xs text-slate-400">
-              {formatDate(selected.date)}
+              {periodLabel(selected)}
               {selected.store && ` · ${selected.store}`}
             </p>
           </div>
@@ -116,10 +119,19 @@ export const MyReportsView: React.FC = () => {
           <p className="text-sm text-slate-500 mb-1">Загальний результат</p>
           <p className={`text-5xl font-bold ${scoreTextClass(selected.totalScore)}`}>{formatScore(selected.totalScore)}</p>
           <div className="w-full mt-4 bg-slate-200 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all ${selected.totalScore >= 80 ? 'bg-green-500' : selected.totalScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
-              style={{ width: `${selected.totalScore}%` }}
-            />
+            {(() => {
+              const barColor = Math.floor(selected.totalScore) >= 95
+                ? 'bg-green-500'
+                : Math.floor(selected.totalScore) >= 80
+                ? 'bg-yellow-500'
+                : 'bg-red-500';
+              return (
+                <div
+                  className={`h-2 rounded-full transition-all ${barColor}`}
+                  style={{ width: `${selected.totalScore}%` }}
+                />
+              );
+            })()}
           </div>
         </div>
 
@@ -212,6 +224,7 @@ export const MyReportsView: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-800">{user?.name}</p>
+                    <p className="font-semibold text-slate-700 text-sm">{periodLabel(report)}</p>
                     <p className="text-xs text-slate-400">{formatDate(report.date)}</p>
                     {report.store && <p className="text-xs text-slate-400">{report.store}</p>}
                   </div>
