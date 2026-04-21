@@ -63,6 +63,15 @@ export const MyReportsView: React.FC = () => {
             </div>
           </div>
 
+          {selected.quarter && selected.year && (
+            <div className="flex">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-kameya-burgundy/10 text-kameya-burgundy rounded-full text-sm font-semibold">
+                <i className="fas fa-calendar-check text-xs"></i>
+                {selected.quarter} {selected.year}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4">
             {selected.sections.map((section, idx) => (
               <div key={idx} className="bg-white border rounded-xl overflow-hidden shadow-sm">
@@ -114,6 +123,15 @@ export const MyReportsView: React.FC = () => {
             </p>
           </div>
         </div>
+
+        {selected.quarter && selected.year && (
+          <div className="flex">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-kameya-burgundy/10 text-kameya-burgundy rounded-full text-sm font-semibold">
+              <i className="fas fa-calendar-check text-xs"></i>
+              {selected.quarter} {selected.year}
+            </div>
+          </div>
+        )}
 
         <div className={`rounded-2xl border p-6 flex flex-col items-center ${scoreBgBorderClass(selected.totalScore)}`}>
           <p className="text-sm text-slate-500 mb-1">Загальний результат</p>
