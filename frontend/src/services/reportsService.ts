@@ -1,4 +1,4 @@
-import { AuditResult } from '../types';
+import { AuditResult, PointsTransaction } from '../types';
 
 const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}`,
@@ -106,5 +106,11 @@ export interface UserRank {
 export const getMyRank = async (): Promise<UserRank> => {
   const res = await fetch('/api/reports/my/rank', { headers: getAuthHeaders() });
   if (!res.ok) throw new Error('Помилка завантаження рейтингу');
+  return res.json();
+};
+
+export const getMyPointsHistory = async (): Promise<PointsTransaction[]> => {
+  const res = await fetch("/api/reports/my/transactions", { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error("Помилка завантаження балів");
   return res.json();
 };

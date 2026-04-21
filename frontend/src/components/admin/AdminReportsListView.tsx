@@ -310,7 +310,7 @@ export const AdminReportsListView: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <i className="fas fa-circle-check text-green-500"></i>
                   <span className="text-sm text-green-700 font-semibold">Отримана вчасно</span>
-                  <span className="text-xs text-slate-400">· +20 балів</span>
+                  <span className="text-xs text-slate-400">· +10 балів</span>
                 </div>
                 <button
                   onClick={() => setReflectionReport(selected)}
@@ -386,7 +386,7 @@ export const AdminReportsListView: React.FC = () => {
                     })}
                   </span>
                   <span className={`text-sm font-semibold ${reflectionReport.reflection.bonusPointsAwarded ? 'text-green-600' : 'text-slate-400'}`}>
-                    {reflectionReport.reflection.bonusPointsAwarded ? '+20 балів' : '0 балів'}
+                    {reflectionReport.reflection.bonusPointsAwarded ? '+10 балів' : '0 балів'}
                   </span>
                 </div>
                 <div>
@@ -502,7 +502,16 @@ export const AdminReportsListView: React.FC = () => {
                                 <p className="text-xs text-slate-400">{formatDate(report.date)}{getStoreFromReport(report) ? ` · ${getStoreFromReport(report)}` : ''}</p>
                               </div>
                             </div>
-                            <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {(() => {
+                                const rs = getReflectionStatus(report);
+                                if (rs === 'on-time') return <span className="text-xs text-green-600 flex items-center gap-1"><i className="fas fa-circle-check"></i> Вчасно</span>;
+                                if (rs === 'late') return <span className="text-xs text-orange-500 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Не вчасно</span>;
+                                if (rs === 'missed') return <span className="text-xs text-red-400 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Прострочено</span>;
+                                return <span className="text-xs text-slate-400 flex items-center gap-1"><i className="fas fa-clock"></i> Очікується</span>;
+                              })()}
+                              <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
+                            </div>
                           </button>
                         );
                       })}

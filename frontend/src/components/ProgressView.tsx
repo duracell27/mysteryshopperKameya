@@ -1,34 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { AuditResult } from '../types';
-import { getMyReports, getMyRank, UserRank } from '../services/reportsService';
+import ReactDOM from 'react-dom';
+import { PointsTransaction } from '../types';
+import { getMyRank, UserRank, getMyPointsHistory } from '../services/reportsService';
+import { useAuth } from '../context/AuthContext';
 
-interface ProgressViewProps {
-  audit?: AuditResult;
-}
-
-export const ProgressView: React.FC<ProgressViewProps> = ({ audit }) => {
-  const [reports, setReports] = useState<AuditResult[]>([]);
+export const ProgressView: React.FC = () => {
+  const { user } = useAuth();
   const [rank, setRank] = useState<UserRank | null>(null);
+  const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      getMyReports(),
-      getMyRank(),
-    ])
-      .then(([reportsData, rankData]) => {
-        setReports(reportsData);
+    Promise.all([getMyRank(), getMyPointsHistory()])
+      .then(([rankData, txData]) => {
         setRank(rankData);
+        setTransactions(txData);
       })
       .catch(() => console.error('Помилка завантаження даних'))
       .finally(() => setLoading(false));
   }, []);
 
-  // Обчислюємо загальні баали
-  const totalPoints = reports.reduce((sum, r) => sum + (r.totalScore || 0), 0);
-  const totalReports = reports.length;
-  const hasFirstAudit = totalReports > 0;
+  const totalPoints = user?.points ?? 0;
+  const lastThree = transactions.slice(0, 3);
 
+  const txLabel = (tx: PointsTransaction) =>
+    tx.scorePercent === 0
+      ? `Рефлексія ${tx.quarter} ${tx.year}`
+      : `${tx.quarter} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
 
   return (
     <div className="space-y-8">
@@ -38,46 +37,73 @@ export const ProgressView: React.FC<ProgressViewProps> = ({ audit }) => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white p-10 rounded-3xl shadow-lg border border-slate-100 flex flex-col items-center justify-center text-center relative overflow-hidden group">
-          <div className="w-24 h-24 bg-kameya-burgundy/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-            <i className="fas fa-gem text-kameya-burgundy text-4xl"></i>
+        {/* Points card */}
+        <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 flex flex-col relative overflow-hidden group">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 bg-kameya-burgundy/10 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
+              <i className="fas fa-gem text-kameya-burgundy text-2xl"></i>
+            </div>
+            <div>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Накопичено балів</p>
+              <h3 className="text-5xl font-bold text-kameya-burgundy tracking-tighter">
+                {loading ? '...' : totalPoints}
+              </h3>
+            </div>
           </div>
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-2">Накопичено балів</p>
-          <h3 className="text-6xl font-bold text-kameya-burgundy tracking-tighter">
-            {loading ? '...' : Math.round(totalPoints)}
-          </h3>
-          <p className="mt-4 text-slate-500 text-sm max-w-[200px]">
-            З {totalReports} перевірок · {(totalPoints / Math.max(totalReports, 1)).toFixed(0)}% в середньому
-          </p>
+
+          {/* Last transactions */}
+          {lastThree.length > 0 && (
+            <div className="space-y-2 mt-2">
+              {lastThree.map((tx) => (
+                <div key={tx._id} className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 truncate">{txLabel(tx)}</span>
+                  <span className={`font-semibold flex-shrink-0 ml-2 ${tx.pointsAwarded > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                    {tx.pointsAwarded > 0 ? `+${tx.pointsAwarded}` : '0'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {transactions.length > 0 && (
+            <button
+              onClick={() => setShowHistory(true)}
+              className="mt-4 text-xs text-kameya-burgundy font-semibold hover:opacity-75 self-start"
+            >
+              Детальніше →
+            </button>
+          )}
+
           <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-100/50 rounded-full blur-2xl"></div>
         </div>
 
+        {/* Badges card */}
         <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100">
           <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
             <i className="fas fa-medal text-amber-500"></i>
             Ваші значки
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            {hasFirstAudit ? (
-              <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center border-2 border-kameya-burgundy transition-all hover:bg-white hover:border-kameya-burgundy">
+            {transactions.length > 0 ? (
+              <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center border-2 border-kameya-burgundy hover:bg-white transition-all">
                 <i className="fas fa-star text-3xl mb-2 text-amber-400"></i>
                 <p className="text-[10px] font-bold text-slate-800 uppercase">Перша перевірка</p>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center transition-all hover:bg-slate-100">
+              <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center hover:bg-slate-100 transition-all">
                 <i className="fas fa-star text-3xl mb-2 text-slate-300"></i>
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Перша перевірка</p>
               </div>
             )}
-            <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center transition-all hover:bg-slate-100">
+            <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center hover:bg-slate-100 transition-all">
               <i className="fas fa-medal text-3xl mb-2 text-slate-300"></i>
               <p className="text-[10px] font-bold text-slate-400 uppercase">Срібний Гід</p>
             </div>
-            <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center transition-all hover:bg-slate-100">
+            <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center hover:bg-slate-100 transition-all">
               <i className="fas fa-book text-3xl mb-2 text-slate-300"></i>
               <p className="text-[10px] font-bold text-slate-400 uppercase">Студент Року</p>
             </div>
-            <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center transition-all hover:bg-slate-100">
+            <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center hover:bg-slate-100 transition-all">
               <i className="fas fa-crown text-3xl mb-2 text-slate-300"></i>
               <p className="text-[10px] font-bold text-slate-400 uppercase">Експерт Сервісу</p>
             </div>
@@ -85,7 +111,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({ audit }) => {
         </div>
       </div>
 
-      {totalReports > 0 && rank && (
+      {rank && (
         <div className="bg-slate-800 p-8 rounded-3xl text-white shadow-xl">
           <div className="mb-4">
             <h4 className="text-xl font-bold italic text-amber-400">Ви в {rank.tier} мережі!</h4>
@@ -94,6 +120,42 @@ export const ProgressView: React.FC<ProgressViewProps> = ({ audit }) => {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Points history modal */}
+      {showHistory && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
+              <h3 className="text-lg font-bold text-slate-800">Історія балів</h3>
+              <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-slate-600">
+                <i className="fas fa-xmark text-xl"></i>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 space-y-2">
+              {transactions.length === 0 ? (
+                <p className="text-center text-slate-400 py-8">Транзакцій ще немає</p>
+              ) : (
+                transactions.map((tx) => (
+                  <div key={tx._id} className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-xl">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{txLabel(tx)}</p>
+                      <p className="text-xs text-slate-400">
+                        {new Date(tx.createdAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <span className={`text-sm font-bold px-3 py-1 rounded-full ${
+                      tx.pointsAwarded > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {tx.pointsAwarded > 0 ? `+${tx.pointsAwarded}` : '0'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -89,14 +89,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
           )}
         </div>
 
-        {/* Points Balance Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
-          <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Мої бали</p>
-          <div className="flex items-center justify-center gap-3">
-            <i className="fas fa-star text-yellow-400 text-3xl"></i>
-            <span className="text-5xl font-bold text-slate-800">{user?.points ?? 0}</span>
-          </div>
-          <p className="mt-6 text-xs text-slate-400">Накопичені бали за перевірки таємного покупця</p>
+        {/* Points Balance Card — placeholder */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center min-h-[160px]">
+          <i className="fas fa-star text-slate-200 text-4xl mb-3"></i>
+          <p className="text-slate-400 text-sm">Незабаром</p>
         </div>
       </div>
 

@@ -67,6 +67,9 @@ export const ScoreChart: React.FC<ScoreChartProps> = ({ reports }) => {
 
   if (data.length === 0) return null;
 
+  const minScore = Math.min(...data.map((d) => d.score));
+  const yMin = Math.max(0, minScore - 5);
+
   return (
     <ResponsiveContainer width="100%" height={200}>
       <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -84,7 +87,7 @@ export const ScoreChart: React.FC<ScoreChartProps> = ({ reports }) => {
           tickLine={false}
         />
         <YAxis
-          domain={[0, 100]}
+          domain={[yMin, 100]}
           tick={{ fontSize: 12, fill: '#94a3b8' }}
           axisLine={false}
           tickLine={false}

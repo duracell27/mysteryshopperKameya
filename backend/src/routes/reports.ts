@@ -295,6 +295,18 @@ router.get('/my', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /api/reports/my/transactions — історія балів поточного працівника
+router.get('/my/transactions', async (req: AuthRequest, res: Response) => {
+  try {
+    const transactions = await PointsTransaction.find({ userId: req.user?.userId })
+      .sort({ createdAt: -1 });
+    return res.json(transactions);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 // GET /api/reports — всі звіти (адмін)
 router.get('/', async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== 'ADMIN') {
@@ -344,14 +356,14 @@ router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
     await report.save();
 
     if (isOnTime) {
-      await User.findByIdAndUpdate(report.userId, { $inc: { points: 20 } });
+      await User.findByIdAndUpdate(report.userId, { $inc: { points: 10 } });
       await PointsTransaction.create({
         userId: report.userId,
         reportId: report._id,
         quarter: report.quarter,
         year: report.year,
         scorePercent: 0,
-        pointsAwarded: 20,
+        pointsAwarded: 10,
       });
     }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { AuditResult, AuditSection, Reflection } from '../../types';
 import { getMyReports, submitReflection } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
@@ -175,7 +176,7 @@ export const MyReportsView: React.FC = () => {
               <p className="text-sm font-semibold text-green-700">Рефлексію подано</p>
               <p className="text-xs text-green-600">
                 {new Date(reflection.submittedAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                {reflection.bonusPointsAwarded && ' · +20 балів нараховано'}
+                {reflection.bonusPointsAwarded && ' · +10 балів нараховано'}
               </p>
             </div>
           </div>
@@ -185,23 +186,18 @@ export const MyReportsView: React.FC = () => {
             <p className="text-sm text-slate-500">Термін рефлексії минув</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            <button
-              onClick={() => setShowReflection(true)}
-              className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
-            >
-              <i className="fas fa-pen-to-square"></i>
-              Ознайомився
-            </button>
-            <p className="text-center text-xs text-slate-400">
-              Залишилось {Math.max(0, Math.floor(72 - elapsed))} год для подання рефлексії
-            </p>
-          </div>
+          <button
+            onClick={() => setShowReflection(true)}
+            className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+          >
+            <i className="fas fa-pen-to-square"></i>
+            Ознайомився
+          </button>
         )}
 
         {/* Reflection modal */}
-        {showReflection && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        {showReflection && ReactDOM.createPortal(
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg">
               <div className="flex items-center justify-between p-6 border-b border-slate-100">
                 <h3 className="text-lg font-bold text-slate-800">Рефлексія</h3>
@@ -261,7 +257,8 @@ export const MyReportsView: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     );
@@ -287,24 +284,42 @@ export const MyReportsView: React.FC = () => {
         <div className="space-y-3">
           {reports.map((report) => {
             const id = report._id ?? report.id ?? '';
+            const refl = getReflection(report);
             return (
               <button
                 key={id}
                 onClick={() => { setSelected(report); setExpandedSection(null); }}
-                className="w-full bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all text-left flex items-center justify-between"
+                className="w-full bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-all text-left overflow-hidden"
               >
-                <div className="flex items-center gap-4">
-                  <div className={`w-16 h-14 rounded-xl flex items-center justify-center border ${scoreBgBorderClass(report.totalScore)}`}>
-                    <span className={`text-sm font-bold ${scoreTextClass(report.totalScore)}`}>{Math.round(report.totalScore)}%</span>
+                {report.quarter && report.year && (
+                  <div className="px-4 pt-3 pb-1">
+                    <span className="text-base font-bold text-kameya-burgundy">{periodLabel(report)}</span>
                   </div>
-                  <div>
-                    <p className="font-semibold text-slate-800">{user?.name}</p>
-                    <p className="font-semibold text-slate-700 text-sm">{periodLabel(report)}</p>
-                    <p className="text-xs text-slate-400">{formatDate(report.date)}</p>
-                    {report.store && <p className="text-xs text-slate-400">{report.store}</p>}
+                )}
+                <div className="px-4 pb-4 pt-2 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-16 h-14 rounded-xl flex items-center justify-center border flex-shrink-0 ${scoreBgBorderClass(report.totalScore)}`}>
+                      <span className={`text-sm font-bold ${scoreTextClass(report.totalScore)}`}>{Math.round(report.totalScore)}%</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">{user?.name}</p>
+                      <p className="text-xs text-slate-400">{formatDate(report.date)}</p>
+                      {report.store && <p className="text-xs text-slate-400">{report.store}</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {refl ? (
+                      <span className="text-xs text-green-600 flex items-center gap-1">
+                        <i className="fas fa-circle-check"></i> Заповнено
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <i className="fas fa-circle"></i> Не заповнено
+                      </span>
+                    )}
+                    <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
                   </div>
                 </div>
-                <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
               </button>
             );
           })}
