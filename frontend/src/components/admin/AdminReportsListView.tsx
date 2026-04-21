@@ -505,10 +505,10 @@ export const AdminReportsListView: React.FC = () => {
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {(() => {
                                 const rs = getReflectionStatus(report);
-                                if (rs === 'on-time') return <span className="text-xs text-green-600 flex items-center gap-1"><i className="fas fa-circle-check"></i> Вчасно</span>;
-                                if (rs === 'late') return <span className="text-xs text-orange-500 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Не вчасно</span>;
-                                if (rs === 'missed') return <span className="text-xs text-red-400 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Прострочено</span>;
-                                return <span className="text-xs text-slate-400 flex items-center gap-1"><i className="fas fa-clock"></i> Очікується</span>;
+                                if (rs === 'on-time') return <span className="text-xs text-green-600 flex items-center gap-1"><i className="fas fa-circle-check"></i> Рефлексія: вчасно</span>;
+                                if (rs === 'late') return <span className="text-xs text-orange-500 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Рефлексія: не вчасно</span>;
+                                if (rs === 'missed') return <span className="text-xs text-red-400 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Рефлексія: прострочено</span>;
+                                return <span className="text-xs text-slate-400 flex items-center gap-1"><i className="fas fa-clock"></i> Рефлексія: очікується</span>;
                               })()}
                               <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
                             </div>

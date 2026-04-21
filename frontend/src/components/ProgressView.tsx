@@ -21,7 +21,7 @@ export const ProgressView: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const totalPoints = user?.points ?? 0;
+  const totalPoints = loading ? 0 : transactions.reduce((sum, tx) => sum + tx.pointsAwarded, 0);
   const lastThree = transactions.slice(0, 3);
 
   const txLabel = (tx: PointsTransaction) =>
