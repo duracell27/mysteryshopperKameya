@@ -24,6 +24,11 @@ export const ReportsUploadView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [showDetailedPreview, setShowDetailedPreview] = useState(false);
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [currentYear - 1, currentYear, currentYear + 1];
+  const [selectedQuarter, setSelectedQuarter] = useState<'Q1' | 'Q2' | 'Q3' | 'Q4'>('Q1');
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [awardedPoints, setAwardedPoints] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +73,7 @@ export const ReportsUploadView: React.FC = () => {
     setError(null);
     setStep('saving');
     try {
-      await confirmReport({
+      const result = await confirmReport({
         userId: selectedUserId,
         auditId: parsed.auditId ?? '',
         location: parsed.location ?? '',
@@ -76,7 +81,10 @@ export const ReportsUploadView: React.FC = () => {
         totalScore: parsed.totalScore,
         sections: parsed.sections,
         fileName: parsed.fileName,
+        quarter: selectedQuarter,
+        year: selectedYear,
       });
+      setAwardedPoints(result.pointsAwarded);
       setStep('done');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Помилка збереження');
@@ -94,6 +102,9 @@ export const ReportsUploadView: React.FC = () => {
     setShowDropdown(false);
     setError(null);
     setExpandedSection(null);
+    setSelectedQuarter('Q1');
+    setSelectedYear(currentYear);
+    setAwardedPoints(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -122,8 +133,20 @@ export const ReportsUploadView: React.FC = () => {
         </div>
         <h2 className="text-2xl font-bold text-slate-800">Звіт збережено!</h2>
         <p className="text-slate-500">
-          Звіт успішно прив'язано до <span className="font-semibold text-slate-700">{selectedEmployee?.name}</span>
+          Звіт <span className="font-semibold text-slate-700">{selectedQuarter} {selectedYear}</span> прив'язано до{' '}
+          <span className="font-semibold text-slate-700">{selectedEmployee?.name}</span>
         </p>
+        {awardedPoints !== null && (
+          <div className={`px-6 py-3 rounded-xl text-sm font-semibold ${
+            awardedPoints > 0
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-slate-50 text-slate-600 border border-slate-200'
+          }`}>
+            {awardedPoints > 0
+              ? `+${awardedPoints} балів нараховано`
+              : 'Бали не нараховано (результат < 80%)'}
+          </div>
+        )}
         <button
           onClick={handleReset}
           className="mt-4 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors"
@@ -278,6 +301,36 @@ export const ReportsUploadView: React.FC = () => {
                     )}
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Рік</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  disabled={step === 'parsing'}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy disabled:opacity-50"
+                >
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Квартал</label>
+                <select
+                  value={selectedQuarter}
+                  onChange={(e) => setSelectedQuarter(e.target.value as 'Q1' | 'Q2' | 'Q3' | 'Q4')}
+                  disabled={step === 'parsing'}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy disabled:opacity-50"
+                >
+                  <option value="Q1">Q1</option>
+                  <option value="Q2">Q2</option>
+                  <option value="Q3">Q3</option>
+                  <option value="Q4">Q4</option>
+                </select>
               </div>
             </div>
 
