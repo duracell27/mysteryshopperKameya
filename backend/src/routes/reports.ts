@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Report } from '../models/Report';
 import { User } from '../models/User';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { awardPoints } from '../services/pointsService';
 
 const router = Router();
 router.use(authMiddleware);
@@ -205,18 +206,30 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const { userId, auditId, location, date, totalScore, sections, fileName } = req.body;
+    const { userId, auditId, location, date, totalScore, sections, fileName, quarter, year } = req.body;
 
-    if (!userId || !date || totalScore === undefined) {
+    if (!userId || !date || totalScore === undefined || !quarter || !year) {
       return res.status(400).json({ message: 'Не вистачає обов\'язкових полів' });
     }
 
-    // Отримати магазин користувача
     const user = await User.findById(userId);
     const store = user?.store || '';
 
-    const report = await Report.create({ userId, auditId, location, store, date, totalScore, sections, fileName });
-    return res.status(201).json(report);
+    const report = await Report.create({
+      userId, auditId, location, store, date,
+      quarter, year: Number(year),
+      totalScore, sections, fileName,
+    });
+
+    const { pointsAwarded, totalPoints } = await awardPoints({
+      userId,
+      reportId: report._id as import('mongoose').Types.ObjectId,
+      quarter,
+      year: Number(year),
+      totalScore,
+    });
+
+    return res.status(201).json({ ...report.toObject(), pointsAwarded, totalPoints });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Помилка збереження' });

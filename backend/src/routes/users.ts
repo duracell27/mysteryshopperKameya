@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { User } from '../models/User';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sendSms } from '../services/sms';
+import { PointsTransaction } from '../models/PointsTransaction';
 
 const router = Router();
 
@@ -119,6 +120,19 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     const deleted = await User.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: 'Користувача не знайдено' });
     return res.json({ message: 'Видалено' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// GET /api/users/:id/points — history of points transactions for a user (admin only)
+router.get('/:id/points', async (req: AuthRequest, res: Response) => {
+  try {
+    const transactions = await PointsTransaction.find({ userId: req.params.id })
+      .populate('reportId', 'fileName date')
+      .sort({ createdAt: -1 });
+    return res.json(transactions);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Помилка сервера' });

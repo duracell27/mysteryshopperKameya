@@ -45,7 +45,9 @@ router.post('/login', async (req: Request, res: Response) => {
         phone: user.phone,
         name: user.name,
         position: user.position ?? null,
+        store: user.store ?? null,
         role: user.role,
+        points: user.points ?? 0,
       },
     });
   } catch (error) {
