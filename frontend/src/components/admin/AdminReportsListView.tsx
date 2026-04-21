@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AuditResult, AuditSection, STORES } from '../../types';
 import { getAllReports, deleteReport } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
+import { scoreTextClass, scoreBgBorderClass, formatScore } from '../../utils/scoreColor';
 
 interface ReportWithUser extends Omit<AuditResult, 'userId'> {
   userId: { _id: string; name: string; phone: string; store?: string } | string;
@@ -12,17 +13,6 @@ const toDisplay = (phone: string) => {
   return `${p.slice(0, 3)} ${p.slice(3, 6)} ${p.slice(6, 8)} ${p.slice(8, 10)}`;
 };
 
-const scoreColor = (score: number) => {
-  if (score >= 80) return 'text-green-600';
-  if (score >= 60) return 'text-yellow-600';
-  return 'text-red-600';
-};
-
-const scoreBg = (score: number) => {
-  if (score >= 80) return 'bg-green-50 border-green-200';
-  if (score >= 60) return 'bg-yellow-50 border-yellow-200';
-  return 'bg-red-50 border-red-200';
-};
 
 export const AdminReportsListView: React.FC = () => {
   const [reports, setReports] = useState<ReportWithUser[]>([]);
@@ -183,9 +173,9 @@ export const AdminReportsListView: React.FC = () => {
           </button>
         </div>
 
-        <div className={`rounded-2xl border p-6 flex flex-col items-center ${scoreBg(selected.totalScore)}`}>
+        <div className={`rounded-2xl border p-6 flex flex-col items-center ${scoreBgBorderClass(selected.totalScore)}`}>
           <p className="text-sm text-slate-500 mb-1">Загальний результат</p>
-          <p className={`text-5xl font-bold ${scoreColor(selected.totalScore)}`}>{Math.round(selected.totalScore)}%</p>
+          <p className={`text-5xl font-bold ${scoreTextClass(selected.totalScore)}`}>{formatScore(selected.totalScore)}</p>
           <div className="w-full mt-4 bg-slate-200 rounded-full h-2">
             <div
               className={`h-2 rounded-full ${selected.totalScore >= 80 ? 'bg-green-500' : selected.totalScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
@@ -223,7 +213,7 @@ export const AdminReportsListView: React.FC = () => {
                     <span className="text-sm font-medium text-slate-700">{section.title}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm font-bold ${scoreColor(pct)}`}>{section.score}/{section.maxScore}</span>
+                    <span className={`text-sm font-bold ${scoreTextClass(pct)}`}>{section.score}/{section.maxScore}</span>
                     <span className="text-xs text-slate-400">({pct}%)</span>
                   </div>
                 </button>
@@ -322,8 +312,8 @@ export const AdminReportsListView: React.FC = () => {
                   className="w-full bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all text-left flex items-center justify-between"
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`w-16 h-14 rounded-xl flex items-center justify-center border flex-shrink-0 ${scoreBg(report.totalScore)}`}>
-                      <span className={`text-sm font-bold ${scoreColor(report.totalScore)}`}>{Math.round(report.totalScore)}%</span>
+                    <div className={`w-16 h-14 rounded-xl flex items-center justify-center border flex-shrink-0 ${scoreBgBorderClass(report.totalScore)}`}>
+                      <span className={`text-sm font-bold ${scoreTextClass(report.totalScore)}`}>{Math.round(report.totalScore)}%</span>
                     </div>
                     <div>
                       <p className="font-semibold text-slate-800">{getUserName(report)}</p>

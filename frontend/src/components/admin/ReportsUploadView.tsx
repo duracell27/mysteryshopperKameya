@@ -3,6 +3,7 @@ import { UserListItem, AuditSection } from '../../types';
 import { fetchUsers } from '../../services/usersService';
 import { parseReport, confirmReport, ParsedReport } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
+import { scoreTextClass } from '../../utils/scoreColor';
 
 type Step = 'select' | 'parsing' | 'preview' | 'saving' | 'done';
 
@@ -110,12 +111,6 @@ export const ReportsUploadView: React.FC = () => {
     setSelectedEmployee(employee);
     setShowDropdown(false);
     setSearchQuery('');
-  };
-
-  const scoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
   };
 
   // ── Step: done ──
@@ -359,7 +354,7 @@ export const ReportsUploadView: React.FC = () => {
               </div>
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-xs text-slate-500 mb-1">Загальний результат</p>
-                <p className={`font-bold text-2xl ${scoreColor(parsed.totalScore)}`}>{Math.round(parsed.totalScore)}%</p>
+                <p className={`font-bold text-2xl ${scoreTextClass(parsed.totalScore)}`}>{Math.round(parsed.totalScore)}%</p>
               </div>
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-xs text-slate-500 mb-1">Файл</p>
@@ -380,7 +375,7 @@ export const ReportsUploadView: React.FC = () => {
                       <span className="text-sm font-medium text-slate-700">{section.title}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-bold ${scoreColor(Math.round((section.score / section.maxScore) * 100))}`}>
+                      <span className={`text-sm font-bold ${scoreTextClass(Math.round((section.score / section.maxScore) * 100))}`}>
                         {section.score}/{section.maxScore}
                       </span>
                     </div>
