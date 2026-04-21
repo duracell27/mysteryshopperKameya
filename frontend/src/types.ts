@@ -42,6 +42,7 @@ export interface AuditResult {
   fileName?: string;
   userId?: string;
   createdAt?: string;
+  reflection?: Reflection;
 }
 
 export interface DailyTask {
@@ -95,6 +96,14 @@ export interface PointsTransaction {
   scorePercent: number;
   pointsAwarded: number;
   createdAt: string;
+}
+
+export interface Reflection {
+  answer1: string;
+  answer2: string;
+  submittedAt: string;
+  isOnTime: boolean;
+  bonusPointsAwarded: boolean;
 }
 
 export const STORES = [

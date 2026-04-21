@@ -79,6 +79,23 @@ export const deleteReport = async (reportId: string): Promise<void> => {
   }
 };
 
+export const submitReflection = async (
+  reportId: string,
+  answer1: string,
+  answer2: string,
+): Promise<AuditResult> => {
+  const res = await fetch(`/api/reports/${reportId}/reflection`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answer1, answer2 }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Помилка збереження рефлексії');
+  }
+  return res.json();
+};
+
 export interface UserRank {
   rank: number;
   totalUsers: number;
