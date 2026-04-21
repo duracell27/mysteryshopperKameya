@@ -47,7 +47,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
         <p className="text-slate-500 mt-1">Ось огляд ваших останніх результатів та завдань на сьогодні.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Score Card */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
           <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Остання оцінка</p>
@@ -66,6 +66,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
               {lastAudit.store && (
                 <p className="text-sm text-slate-500 font-medium">Магазин: {lastAudit.store}</p>
               )}
+              {lastAudit.quarter && lastAudit.year && (
+                <p className="text-sm text-slate-500 font-medium">{lastAudit.quarter} {lastAudit.year}</p>
+              )}
               <button
                 onClick={() => lastAudit && onNavigateToAuditDetails?.(lastAudit)}
                 className="mt-4 text-kameya-burgundy font-bold text-sm hover:text-red-900 transition-colors flex items-center space-x-1"
@@ -83,20 +86,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
           )}
         </div>
 
-        {/* Training Progress */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 col-span-1 md:col-span-2 flex flex-col">
-          <h3 className="font-bold text-lg text-slate-800 mb-6">Ваш план навчання</h3>
-          <div className="flex flex-col items-center justify-center py-12 flex-1">
-            <i className="fas fa-book text-5xl text-slate-200 mb-4"></i>
-            <p className="text-slate-500 font-medium">План навчання не обрано</p>
-            <p className="text-xs text-slate-400 mt-2 text-center">Обберіть план навчання, щоб почати</p>
-            <button
-              onClick={() => onNavigate(Screen.TRAINING_PLAN)}
-              className="mt-6 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-bold hover:bg-red-900 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
-            >
-              Обрати план навчання
-            </button>
+        {/* Points Balance Card */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+          <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Мої бали</p>
+          <div className="flex items-center justify-center gap-3">
+            <i className="fas fa-star text-yellow-400 text-3xl"></i>
+            <span className="text-5xl font-bold text-slate-800">{user?.points ?? 0}</span>
           </div>
+          <p className="mt-6 text-xs text-slate-400">Накопичені бали за перевірки таємного покупця</p>
+        </div>
+      </div>
+
+      {/* Training Progress — full width below */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+        <h3 className="font-bold text-lg text-slate-800 mb-6">Ваш план навчання</h3>
+        <div className="flex flex-col items-center justify-center py-12 flex-1">
+          <i className="fas fa-book text-5xl text-slate-200 mb-4"></i>
+          <p className="text-slate-500 font-medium">План навчання не обрано</p>
+          <p className="text-xs text-slate-400 mt-2 text-center">Обберіть план навчання, щоб почати</p>
+          <button
+            onClick={() => onNavigate(Screen.TRAINING_PLAN)}
+            className="mt-6 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-bold hover:bg-red-900 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+          >
+            Обрати план навчання
+          </button>
         </div>
       </div>
 
