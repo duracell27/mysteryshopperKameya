@@ -1,4 +1,4 @@
-import { UserListItem } from '../types';
+import { UserListItem, PointsTransaction } from '../types';
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -60,4 +60,12 @@ export const deleteUser = async (id: string): Promise<void> => {
     headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Помилка видалення');
+};
+
+export const getUserPointsHistory = async (userId: string): Promise<PointsTransaction[]> => {
+  const res = await fetch(`/api/users/${userId}/points`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}` },
+  });
+  if (!res.ok) throw new Error('Помилка завантаження історії балів');
+  return res.json();
 };

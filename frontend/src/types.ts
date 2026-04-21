@@ -35,6 +35,8 @@ export interface AuditResult {
   location?: string;
   store?: string;
   date: string;
+  quarter?: string;
+  year?: number;
   totalScore: number;
   sections: AuditSection[];
   fileName?: string;
@@ -70,6 +72,7 @@ export interface AuthUser {
   position: string | null;
   store: string | null;
   role: string;
+  points: number;
 }
 
 export interface UserListItem {
@@ -79,6 +82,18 @@ export interface UserListItem {
   position?: string;
   store?: string;
   role: 'ADMIN' | 'EMPLOYEE';
+  points?: number;
+  createdAt: string;
+}
+
+export interface PointsTransaction {
+  _id: string;
+  userId: string;
+  reportId: { _id: string; fileName: string; date: string } | string;
+  quarter: string;
+  year: number;
+  scorePercent: number;
+  pointsAwarded: number;
   createdAt: string;
 }
 

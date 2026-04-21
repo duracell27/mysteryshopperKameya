@@ -33,9 +33,16 @@ export interface ConfirmReportPayload {
   totalScore: number;
   sections: AuditResult['sections'];
   fileName: string;
+  quarter: string;
+  year: number;
 }
 
-export const confirmReport = async (data: ConfirmReportPayload): Promise<AuditResult> => {
+export interface ConfirmReportResponse extends AuditResult {
+  pointsAwarded: number;
+  totalPoints: number;
+}
+
+export const confirmReport = async (data: ConfirmReportPayload): Promise<ConfirmReportResponse> => {
   const res = await fetch('/api/reports/confirm', {
     method: 'POST',
     headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
