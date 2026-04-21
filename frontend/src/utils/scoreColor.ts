@@ -8,9 +8,9 @@ export interface ScoreStyle {
 export function getScoreStyle(totalScore: number): ScoreStyle {
   const s = Math.floor(totalScore);
   if (s === 100) return {
-    textClass: 'text-yellow-600',
-    bgClass: 'bg-yellow-50',
-    borderClass: 'border-yellow-200',
+    textClass: 'text-amber-600',
+    bgClass: 'bg-amber-100',
+    borderClass: 'border-amber-400',
     icon: '🏆',
   };
   if (s >= 95) return {

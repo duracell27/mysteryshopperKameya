@@ -47,6 +47,29 @@ export const UsersView: React.FC = () => {
   const [pointsHistory, setPointsHistory] = useState<PointsTransaction[]>([]);
   const [pointsLoading, setPointsLoading] = useState(false);
 
+  // Sorting
+  type SortKey = 'name' | 'role' | 'position' | 'store' | 'points';
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const sortedUsers = [...users].sort((a, b) => {
+    let av: string | number = '';
+    let bv: string | number = '';
+    if (sortKey === 'name')     { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+    if (sortKey === 'role')     { av = a.role; bv = b.role; }
+    if (sortKey === 'position') { av = (a.position ?? '').toLowerCase(); bv = (b.position ?? '').toLowerCase(); }
+    if (sortKey === 'store')    { av = (a.store ?? '').toLowerCase(); bv = (b.store ?? '').toLowerCase(); }
+    if (sortKey === 'points')   { av = a.points ?? 0; bv = b.points ?? 0; }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   const loadUsers = async () => {
     try {
       setUsers(await fetchUsers());
@@ -168,16 +191,29 @@ export const UsersView: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">Ім'я / Телефон</th>
-                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">Роль</th>
-                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">Посада</th>
-                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">Магазин</th>
-                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">Бали</th>
+                  {([
+                    { key: 'name',     label: "Ім'я / Телефон" },
+                    { key: 'role',     label: 'Роль' },
+                    { key: 'position', label: 'Посада' },
+                    { key: 'store',    label: 'Магазин' },
+                    { key: 'points',   label: 'Бали' },
+                  ] as { key: SortKey; label: string }[]).map(({ key, label }) => (
+                    <th
+                      key={key}
+                      onClick={() => handleSort(key)}
+                      className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs cursor-pointer select-none hover:text-slate-800 transition-colors"
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {label}
+                        <i className={`fas fa-sort${sortKey === key ? (sortDir === 'asc' ? '-up text-kameya-burgundy' : '-down text-kameya-burgundy') : ' text-slate-300'} text-xs`}></i>
+                      </span>
+                    </th>
+                  ))}
                   <th className="px-6 py-4"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {users.map((u) => (
+                {sortedUsers.map((u) => (
                   <tr key={u._id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                       <p className="font-medium text-slate-800">{u.name || '—'}</p>
