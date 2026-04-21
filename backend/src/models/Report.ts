@@ -27,6 +27,8 @@ export interface IReport extends Document {
   totalScore: number;
   sections: ISection[];
   fileName: string;
+  quarter: string;
+  year: number;
   createdAt: Date;
 }
 
@@ -57,6 +59,8 @@ const ReportSchema = new Schema<IReport>({
   totalScore: { type: Number, required: true },
   sections:   [SectionSchema],
   fileName:   { type: String, default: '' },
+  quarter:    { type: String, enum: ['Q1', 'Q2', 'Q3', 'Q4'], default: 'Q1' },
+  year:       { type: Number, default: () => new Date().getFullYear() },
 }, { timestamps: true });
 
 export const Report = mongoose.model<IReport>('Report', ReportSchema);
