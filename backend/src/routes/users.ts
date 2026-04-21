@@ -157,4 +157,24 @@ router.get('/:id/points', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// POST /api/users/migrate-points — одноразово ініціалізує points для всіх юзерів з транзакцій
+router.post('/migrate-points', async (_req, res: Response) => {
+  try {
+    const users = await User.find({});
+    let updated = 0;
+    for (const user of users) {
+      const transactions = await PointsTransaction.find({ userId: user._id });
+      const total = transactions.reduce((sum, tx) => sum + tx.pointsAwarded, 0);
+      if (user.points !== total) {
+        await User.findByIdAndUpdate(user._id, { points: total });
+        updated++;
+      }
+    }
+    return res.json({ message: `Оновлено ${updated} користувачів`, updated });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка міграції' });
+  }
+});
+
 export default router;
