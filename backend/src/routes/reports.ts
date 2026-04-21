@@ -5,6 +5,7 @@ import { Report } from '../models/Report';
 import { User } from '../models/User';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { awardPoints } from '../services/pointsService';
+import { PointsTransaction } from '../models/PointsTransaction';
 
 const router = Router();
 router.use(authMiddleware);
@@ -302,6 +303,59 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const reports = await Report.find().populate('userId', 'name phone store').sort({ createdAt: -1 });
     return res.json(reports);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// POST /api/reports/:id/reflection — employee submits reflection
+router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
+  try {
+    const { answer1, answer2 } = req.body;
+
+    if (!answer1?.trim() || !answer2?.trim()) {
+      return res.status(400).json({ message: 'Обидві відповіді обов\'язкові' });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report) {
+      return res.status(404).json({ message: 'Звіт не знайдено' });
+    }
+
+    if (report.userId.toString() !== req.user?.userId?.toString()) {
+      return res.status(403).json({ message: 'Доступ заборонено' });
+    }
+
+    if (report.reflection) {
+      return res.status(409).json({ message: 'Рефлексію вже подано' });
+    }
+
+    const MS_72H = 72 * 60 * 60 * 1000;
+    const isOnTime = Date.now() - report.createdAt.getTime() <= MS_72H;
+
+    report.reflection = {
+      answer1: answer1.trim(),
+      answer2: answer2.trim(),
+      submittedAt: new Date(),
+      isOnTime,
+      bonusPointsAwarded: isOnTime,
+    };
+    await report.save();
+
+    if (isOnTime) {
+      await User.findByIdAndUpdate(report.userId, { $inc: { points: 20 } });
+      await PointsTransaction.create({
+        userId: report.userId,
+        reportId: report._id,
+        quarter: report.quarter,
+        year: report.year,
+        scorePercent: 0,
+        pointsAwarded: 20,
+      });
+    }
+
+    return res.json(report);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Помилка сервера' });
