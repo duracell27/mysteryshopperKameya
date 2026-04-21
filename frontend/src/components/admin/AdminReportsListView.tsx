@@ -27,6 +27,7 @@ export const AdminReportsListView: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [selectedStore, setSelectedStore] = useState<string>('');
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+  const [reflectionReport, setReflectionReport] = useState<ReportWithUser | null>(null);
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
@@ -35,6 +36,15 @@ export const AdminReportsListView: React.FC = () => {
       else next.add(key);
       return next;
     });
+  };
+
+  const getReflectionStatus = (report: ReportWithUser): 'on-time' | 'late' | 'missed' | 'pending' => {
+    if (!report.createdAt) return 'pending';
+    const hoursElapsed = (Date.now() - new Date(report.createdAt).getTime()) / (1000 * 3600);
+    if (report.reflection) {
+      return report.reflection.isOnTime ? 'on-time' : 'late';
+    }
+    return hoursElapsed >= 72 ? 'missed' : 'pending';
   };
 
   useEffect(() => {
@@ -284,6 +294,121 @@ export const AdminReportsListView: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Reflection panel */}
+        <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+          <p className="text-sm font-semibold text-slate-700 mb-3">Рефлексія</p>
+          {(() => {
+            const status = getReflectionStatus(selected);
+            const hoursElapsed = selected.createdAt
+              ? (Date.now() - new Date(selected.createdAt).getTime()) / (1000 * 3600)
+              : 999;
+            const hoursLeft = Math.max(0, Math.floor(72 - hoursElapsed));
+
+            if (status === 'on-time') return (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-circle-check text-green-500"></i>
+                  <span className="text-sm text-green-700 font-semibold">Отримана вчасно</span>
+                  <span className="text-xs text-slate-400">· +20 балів</span>
+                </div>
+                <button
+                  onClick={() => setReflectionReport(selected)}
+                  className="text-xs text-kameya-burgundy font-semibold hover:opacity-75"
+                >
+                  Переглянути відповіді
+                </button>
+              </div>
+            );
+
+            if (status === 'late') return (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-circle-xmark text-orange-500"></i>
+                  <span className="text-sm text-orange-700 font-semibold">Отримана не вчасно</span>
+                  <span className="text-xs text-slate-400">· 0 балів</span>
+                </div>
+                <button
+                  onClick={() => setReflectionReport(selected)}
+                  className="text-xs text-kameya-burgundy font-semibold hover:opacity-75"
+                >
+                  Переглянути відповіді
+                </button>
+              </div>
+            );
+
+            if (status === 'missed') return (
+              <div className="flex items-center gap-2">
+                <i className="fas fa-circle-xmark text-red-500"></i>
+                <span className="text-sm text-red-600 font-semibold">Не подана</span>
+                <span className="text-xs text-slate-400">· Термін минув</span>
+              </div>
+            );
+
+            return (
+              <div className="flex items-center gap-2">
+                <i className="fas fa-clock text-slate-400"></i>
+                <span className="text-sm text-slate-600">Очікується</span>
+                <span className="text-xs text-slate-400">· залишилось {hoursLeft} год</span>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Reflection answers modal */}
+        {reflectionReport?.reflection && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg">
+              <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Відповіді рефлексії</h3>
+                  <p className="text-sm text-slate-500">
+                    {getUserName(reflectionReport)} · {reflectionReport.quarter} {reflectionReport.year}
+                  </p>
+                </div>
+                <button onClick={() => setReflectionReport(null)} className="text-slate-400 hover:text-slate-600">
+                  <i className="fas fa-xmark text-xl"></i>
+                </button>
+              </div>
+              <div className="p-6 space-y-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
+                    reflectionReport.reflection.isOnTime
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-orange-100 text-orange-700'
+                  }`}>
+                    {reflectionReport.reflection.isOnTime ? '✅ Вчасно' : '⚠️ Не вчасно'}
+                  </span>
+                  <span className="text-sm text-slate-500">
+                    {new Date(reflectionReport.reflection.submittedAt).toLocaleDateString('uk-UA', {
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </span>
+                  <span className={`text-sm font-semibold ${reflectionReport.reflection.bonusPointsAwarded ? 'text-green-600' : 'text-slate-400'}`}>
+                    {reflectionReport.reflection.bonusPointsAwarded ? '+20 балів' : '0 балів'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    Що я зроблю інакше наступного разу?
+                  </p>
+                  <p className="text-sm text-slate-800 bg-slate-50 rounded-xl p-4 leading-relaxed">
+                    {reflectionReport.reflection.answer1}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    Який пункт був для мене несподіванкою?
+                  </p>
+                  <p className="text-sm text-slate-800 bg-slate-50 rounded-xl p-4 leading-relaxed">
+                    {reflectionReport.reflection.answer2}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
