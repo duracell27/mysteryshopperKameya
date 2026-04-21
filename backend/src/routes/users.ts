@@ -115,6 +115,24 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /api/users/:id
+// POST /api/users/:id/sync-points — перерахувати User.points із суми транзакцій
+router.post('/:id/sync-points', async (req: AuthRequest, res: Response) => {
+  try {
+    const transactions = await PointsTransaction.find({ userId: req.params.id });
+    const total = transactions.reduce((sum, tx) => sum + tx.pointsAwarded, 0);
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { points: total },
+      { new: true, select: '-password' }
+    );
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+    return res.json(user);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const deleted = await User.findByIdAndDelete(req.params.id);

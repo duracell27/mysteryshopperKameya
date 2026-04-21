@@ -69,3 +69,12 @@ export const getUserPointsHistory = async (userId: string): Promise<PointsTransa
   if (!res.ok) throw new Error('Помилка завантаження історії балів');
   return res.json();
 };
+
+export const syncUserPoints = async (userId: string): Promise<UserListItem> => {
+  const res = await fetch(`/api/users/${userId}/sync-points`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}` },
+  });
+  if (!res.ok) throw new Error('Помилка синхронізації');
+  return res.json();
+};

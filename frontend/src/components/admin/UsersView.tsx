@@ -145,6 +145,9 @@ export const UsersView: React.FC = () => {
     try {
       const history = await getUserPointsHistory(u._id);
       setPointsHistory(history);
+      const txSum = history.reduce((s, t) => s + t.pointsAwarded, 0);
+      setUsers((prev) => prev.map((usr) => usr._id === u._id ? { ...usr, points: txSum } : usr));
+      setPointsUser((prev) => prev ? { ...prev, points: txSum } : prev);
     } catch {
       setPointsHistory([]);
     } finally {
@@ -437,7 +440,7 @@ export const UsersView: React.FC = () => {
                     <span className="text-sm text-slate-500">Загальний баланс:</span>
                     <span className="font-bold text-kameya-burgundy text-lg">
                       <i className="fas fa-star text-xs mr-1"></i>
-                      {pointsUser.points ?? 0} балів
+                      {pointsHistory.reduce((s, t) => s + t.pointsAwarded, 0)} балів
                     </span>
                   </div>
                   {pointsHistory.map((tx) => {
