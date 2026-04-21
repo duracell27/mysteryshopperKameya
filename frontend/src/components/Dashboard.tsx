@@ -62,12 +62,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
                 <span className="absolute text-3xl font-bold text-slate-800 tracking-tight">{Math.round(lastAudit.totalScore)}%</span>
               </div>
 
-              <p className="mt-6 text-sm text-slate-500 font-medium">Дата перевірки: {formatDate(lastAudit.date)}</p>
+              {lastAudit.quarter && lastAudit.year && (
+                <p className="mt-6 text-sm font-semibold text-kameya-burgundy">{lastAudit.quarter} {lastAudit.year}</p>
+              )}
+              <p className={`${lastAudit.quarter && lastAudit.year ? '' : 'mt-6'} text-sm text-slate-500 font-medium`}>Дата перевірки: {formatDate(lastAudit.date)}</p>
               {lastAudit.store && (
                 <p className="text-sm text-slate-500 font-medium">Магазин: {lastAudit.store}</p>
-              )}
-              {lastAudit.quarter && lastAudit.year && (
-                <p className="text-sm text-slate-500 font-medium">{lastAudit.quarter} {lastAudit.year}</p>
               )}
               <button
                 onClick={() => lastAudit && onNavigateToAuditDetails?.(lastAudit)}

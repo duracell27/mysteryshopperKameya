@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { UserListItem, STORES, EMPLOYEE_POSITIONS, PointsTransaction } from '../../types';
-import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload } from '../../services/usersService';
-import { getUserPointsHistory } from '../../services/usersService';
+import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory } from '../../services/usersService';
 
 const EMPTY_CREATE: CreateUserPayload = {
   phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '',
