@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { UserListItem, STORES, EMPLOYEE_POSITIONS } from '../../types';
+import { UserListItem, STORES, EMPLOYEE_POSITIONS, PointsTransaction } from '../../types';
 import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload } from '../../services/usersService';
+import { getUserPointsHistory } from '../../services/usersService';
 
 const EMPTY_CREATE: CreateUserPayload = {
   phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '',
@@ -41,6 +42,11 @@ export const UsersView: React.FC = () => {
   const [editError, setEditError]   = useState('');
 
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Points history
+  const [pointsUser, setPointsUser] = useState<UserListItem | null>(null);
+  const [pointsHistory, setPointsHistory] = useState<PointsTransaction[]>([]);
+  const [pointsLoading, setPointsLoading] = useState(false);
 
   const loadUsers = async () => {
     try {
@@ -110,6 +116,20 @@ export const UsersView: React.FC = () => {
     } catch { alert('Помилка видалення'); }
   };
 
+  // ── Історія балів ──
+  const openPointsHistory = async (u: UserListItem) => {
+    setPointsUser(u);
+    setPointsLoading(true);
+    try {
+      const history = await getUserPointsHistory(u._id);
+      setPointsHistory(history);
+    } catch {
+      setPointsHistory([]);
+    } finally {
+      setPointsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
@@ -153,6 +173,7 @@ export const UsersView: React.FC = () => {
                   <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">Роль</th>
                   <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">Посада</th>
                   <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">Магазин</th>
+                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">Бали</th>
                   <th className="px-6 py-4"></th>
                 </tr>
               </thead>
@@ -172,6 +193,20 @@ export const UsersView: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-slate-600">{u.role === 'ADMIN' ? 'Адміністратор' : (u.position || '—')}</td>
                     <td className="px-6 py-4 text-slate-600">{u.store || '—'}</td>
+                    <td className="px-6 py-4">
+                      {u.role === 'EMPLOYEE' ? (
+                        <button
+                          onClick={() => openPointsHistory(u)}
+                          className="flex items-center gap-1 text-sm font-semibold text-kameya-burgundy hover:opacity-75 transition-opacity"
+                          title="Переглянути історію балів"
+                        >
+                          <i className="fas fa-star text-xs"></i>
+                          {u.points ?? 0}
+                        </button>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-3">
                         <button onClick={() => openEdit(u)} className="text-slate-400 hover:text-kameya-burgundy transition-colors" title="Редагувати">
@@ -337,6 +372,68 @@ export const UsersView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Модалка HISTORY БАЛІВ ── */}
+      {pointsUser && (
+        <Modal>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Історія балів</h3>
+                <p className="text-sm text-slate-500">{pointsUser.name || toDisplay(pointsUser.phone)}</p>
+              </div>
+              <button onClick={() => setPointsUser(null)} className="text-slate-400 hover:text-slate-600">
+                <i className="fas fa-xmark text-xl"></i>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              {pointsLoading ? (
+                <div className="flex justify-center py-8">
+                  <i className="fas fa-spinner fa-spin text-2xl text-slate-300"></i>
+                </div>
+              ) : pointsHistory.length === 0 ? (
+                <p className="text-center text-slate-400 py-8">Транзакцій ще немає</p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-4 px-2">
+                    <span className="text-sm text-slate-500">Загальний баланс:</span>
+                    <span className="font-bold text-kameya-burgundy text-lg">
+                      <i className="fas fa-star text-xs mr-1"></i>
+                      {pointsUser.points ?? 0} балів
+                    </span>
+                  </div>
+                  {pointsHistory.map((tx) => {
+                    const reportId = typeof tx.reportId === 'object' ? tx.reportId : null;
+                    return (
+                      <div key={tx._id} className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-xl">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">
+                            {tx.quarter} {tx.year}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Результат: {Math.floor(tx.scorePercent)}%
+                            {reportId?.fileName ? ` · ${reportId.fileName}` : ''}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(tx.createdAt).toLocaleDateString('uk-UA')}
+                          </p>
+                        </div>
+                        <span className={`text-sm font-bold px-3 py-1 rounded-full ${
+                          tx.pointsAwarded > 0
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-slate-200 text-slate-500'
+                        }`}>
+                          {tx.pointsAwarded > 0 ? `+${tx.pointsAwarded}` : '0'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </Modal>
       )}
