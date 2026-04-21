@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AuditResult, AuditSection } from '../../types';
-import { getMyReports } from '../../services/reportsService';
+import { AuditResult, AuditSection, Reflection } from '../../types';
+import { getMyReports, submitReflection } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { useAuth } from '../../context/AuthContext';
 import { scoreTextClass, scoreBgBorderClass, formatScore } from '../../utils/scoreColor';
@@ -12,10 +12,45 @@ export const MyReportsView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<AuditResult | null>(null);
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
-  const [showDetailedView, setShowDetailedView] = useState(false);
+  const [showReflection, setShowReflection] = useState(false);
+  const [reflAnswer1, setReflAnswer1] = useState('');
+  const [reflAnswer2, setReflAnswer2] = useState('');
+  const [reflSubmitting, setReflSubmitting] = useState(false);
+  const [reflError, setReflError] = useState('');
+  const [reflections, setReflections] = useState<Record<string, Reflection>>({});
 
   const periodLabel = (report: AuditResult) =>
     report.quarter && report.year ? `${report.quarter} ${report.year}` : formatDate(report.date);
+
+  const getReflection = (report: AuditResult): Reflection | undefined =>
+    reflections[report._id ?? report.id ?? ''] ?? report.reflection;
+
+  const hoursElapsed = (report: AuditResult): number => {
+    if (!report.createdAt) return 999;
+    return (Date.now() - new Date(report.createdAt).getTime()) / (1000 * 3600);
+  };
+
+  const handleSubmitReflection = async () => {
+    if (!selected) return;
+    if (reflAnswer1.trim().length < 10 || reflAnswer2.trim().length < 10) {
+      setReflError('Будь ласка, дайте розгорнуту відповідь (мін. 10 символів)');
+      return;
+    }
+    setReflSubmitting(true);
+    setReflError('');
+    try {
+      const updated = await submitReflection(selected._id ?? selected.id ?? '', reflAnswer1, reflAnswer2);
+      setSelected(updated);
+      setReflections((prev) => ({ ...prev, [updated._id ?? updated.id ?? '']: updated.reflection! }));
+      setShowReflection(false);
+      setReflAnswer1('');
+      setReflAnswer2('');
+    } catch (err) {
+      setReflError(err instanceof Error ? err.message : 'Помилка');
+    } finally {
+      setReflSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     getMyReports()
@@ -43,74 +78,16 @@ export const MyReportsView: React.FC = () => {
 
   // ── Detail view ──
   if (selected) {
-    // Детальний вид з усіма деталями (як в AuditView)
-    if (showDetailedView) {
-      return (
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => { setShowDetailedView(false); }}
-              className="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
-            >
-              <i className="fas fa-arrow-left text-slate-500 text-sm"></i>
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-slate-800">Звіт перевірки</h1>
-              <p className="text-xs text-slate-400">
-                {formatDate(selected.date)}
-                {selected.store && ` · ${selected.store}`}
-              </p>
-            </div>
-          </div>
+    const reflection = getReflection(selected);
+    const elapsed = hoursElapsed(selected);
+    const deadlinePassed = elapsed > 72;
 
-          {selected.quarter && selected.year && (
-            <div className="flex">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-kameya-burgundy/10 text-kameya-burgundy rounded-full text-sm font-semibold">
-                <i className="fas fa-calendar-check text-xs"></i>
-                {selected.quarter} {selected.year}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-4">
-            {selected.sections.map((section, idx) => (
-              <div key={idx} className="bg-white border rounded-xl overflow-hidden shadow-sm">
-                <div className="p-4 bg-slate-50 border-b flex justify-between items-center">
-                  <h3 className="font-bold text-slate-700">{section.title}</h3>
-                  <span className={`text-sm font-semibold ${section.score < section.maxScore * 0.7 ? 'text-red-600' : 'text-green-600'}`}>
-                    {section.score} / {section.maxScore}
-                  </span>
-                </div>
-                <div className="p-4 space-y-4">
-                  {section.feedback && <p className="text-sm italic text-slate-600">"{section.feedback}"</p>}
-                  <div className="divide-y divide-slate-100">
-                    {section.questions.map((q, qIdx) => (
-                      <div key={qIdx} className="py-3 flex items-start space-x-3">
-                        <i className={`fas ${q.isCorrect ? 'fa-check text-green-500' : 'fa-xmark text-red-500'} mt-0.5`}></i>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-slate-800">{q.question}</p>
-                          <p className="text-xs text-slate-500">Відповідь: {q.answer}</p>
-                          {q.comment && (
-                            <p className="text-xs text-kameya-burgundy mt-1 font-medium italic">— {q.comment}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // Коротка версія з кнопкою "Детальний звіт"
     return (
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { setSelected(null); setExpandedSection(null); }}
+            onClick={() => { setSelected(null); setExpandedSection(null); setShowReflection(false); }}
             className="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
           >
             <i className="fas fa-arrow-left text-slate-500 text-sm"></i>
@@ -124,6 +101,7 @@ export const MyReportsView: React.FC = () => {
           </div>
         </div>
 
+        {/* Q-period badge */}
         {selected.quarter && selected.year && (
           <div className="flex">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-kameya-burgundy/10 text-kameya-burgundy rounded-full text-sm font-semibold">
@@ -133,6 +111,7 @@ export const MyReportsView: React.FC = () => {
           </div>
         )}
 
+        {/* Score card */}
         <div className={`rounded-2xl border p-6 flex flex-col items-center ${scoreBgBorderClass(selected.totalScore)}`}>
           <p className="text-sm text-slate-500 mb-1">Загальний результат</p>
           <p className={`text-5xl font-bold ${scoreTextClass(selected.totalScore)}`}>{formatScore(selected.totalScore)}</p>
@@ -143,69 +122,147 @@ export const MyReportsView: React.FC = () => {
                 : Math.floor(selected.totalScore) >= 80
                 ? 'bg-yellow-500'
                 : 'bg-red-500';
-              return (
-                <div
-                  className={`h-2 rounded-full transition-all ${barColor}`}
-                  style={{ width: `${selected.totalScore}%` }}
-                />
-              );
+              return <div className={`h-2 rounded-full transition-all ${barColor}`} style={{ width: `${selected.totalScore}%` }} />;
             })()}
           </div>
         </div>
 
-        <div className="space-y-2">
-          {selected.sections.map((section: AuditSection, idx: number) => {
-            const pct = Math.round((section.score / section.maxScore) * 100);
+        {/* Sections — full detail, failed sections highlighted */}
+        <div className="grid grid-cols-1 gap-4">
+          {selected.sections.map((section, idx) => {
+            const failed = section.score < section.maxScore;
             return (
-              <div key={idx} className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
-                <button
-                  onClick={() => setExpandedSection(expandedSection === idx ? null : idx)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <i className={`fas fa-chevron-${expandedSection === idx ? 'up' : 'down'} text-xs text-slate-400`}></i>
-                    <span className="text-sm font-medium text-slate-700">{section.title}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-bold ${scoreTextClass(pct)}`}>{section.score}/{section.maxScore}</span>
-                    <span className="text-xs text-slate-400">({pct}%)</span>
-                  </div>
-                </button>
-
-                {expandedSection === idx && (
-                  <div className="px-4 pb-4 space-y-2">
-                    {section.feedback && (
-                      <p className="text-xs text-slate-500 italic border-l-2 border-slate-200 pl-3 py-1">{section.feedback}</p>
-                    )}
-                    <div className="space-y-1">
-                      {section.questions.map((q, qi) => (
-                        <div key={qi} className="flex items-center gap-2 py-2 border-b border-slate-50 last:border-0">
-                          <i className={`fas ${q.isCorrect ? 'fa-circle-check text-green-500' : 'fa-circle-xmark text-orange-400'} text-sm flex-shrink-0`}></i>
-                          <p className="text-xs text-slate-700 flex-1">{q.question}</p>
-                          <span className={`shrink-0 text-xs font-bold px-2 py-0.5 min-w-[1.5rem] text-center rounded-full border ${
-                            q.isCorrect
-                              ? 'text-green-700 bg-green-50 border-green-200'
-                              : 'text-orange-700 bg-orange-50 border-orange-200'
-                          }`}>
-                            {!isNaN(Number(q.answer)) && q.answer !== '' ? q.answer : q.isCorrect ? '1' : '0'}
-                          </span>
+              <div
+                key={idx}
+                className={`rounded-xl overflow-hidden shadow-sm border ${failed ? 'border-red-300 bg-red-50' : 'bg-white border-slate-100'}`}
+              >
+                <div className={`p-4 border-b flex justify-between items-center ${failed ? 'bg-red-100 border-red-300' : 'bg-slate-50 border-slate-100'}`}>
+                  <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                    {failed && <i className="fas fa-circle-exclamation text-red-500 text-sm"></i>}
+                    {section.title}
+                  </h3>
+                  <span className={`text-sm font-semibold ${failed ? 'text-red-600' : 'text-green-600'}`}>
+                    {section.score} / {section.maxScore}
+                  </span>
+                </div>
+                <div className="p-4 space-y-4">
+                  {section.feedback && <p className="text-sm italic text-slate-600">"{section.feedback}"</p>}
+                  <div className="divide-y divide-slate-100">
+                    {section.questions.map((q, qIdx) => (
+                      <div key={qIdx} className="py-3 flex items-start space-x-3">
+                        <i className={`fas ${q.isCorrect ? 'fa-check text-green-500' : 'fa-xmark text-red-500'} mt-0.5 flex-shrink-0`}></i>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-800">{q.question}</p>
+                          <p className="text-xs text-slate-500">Відповідь: {q.answer}</p>
+                          {q.comment && (
+                            <p className="text-xs text-kameya-burgundy mt-1 font-medium italic">— {q.comment}</p>
+                          )}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
         </div>
 
-        <button
-          onClick={() => setShowDetailedView(true)}
-          className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
-        >
-          <i className="fas fa-eye"></i>
-          Детальний звіт
-        </button>
+        {/* Reflection section */}
+        {reflection ? (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+            <i className="fas fa-circle-check text-green-500"></i>
+            <div>
+              <p className="text-sm font-semibold text-green-700">Рефлексію подано</p>
+              <p className="text-xs text-green-600">
+                {new Date(reflection.submittedAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {reflection.bonusPointsAwarded && ' · +20 балів нараховано'}
+              </p>
+            </div>
+          </div>
+        ) : deadlinePassed ? (
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+            <i className="fas fa-clock text-slate-400"></i>
+            <p className="text-sm text-slate-500">Термін рефлексії минув</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <button
+              onClick={() => setShowReflection(true)}
+              className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+            >
+              <i className="fas fa-pen-to-square"></i>
+              Ознайомився
+            </button>
+            <p className="text-center text-xs text-slate-400">
+              Залишилось {Math.max(0, Math.floor(72 - elapsed))} год для подання рефлексії
+            </p>
+          </div>
+        )}
+
+        {/* Reflection modal */}
+        {showReflection && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg">
+              <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                <h3 className="text-lg font-bold text-slate-800">Рефлексія</h3>
+                <button onClick={() => { setShowReflection(false); setReflError(''); }} className="text-slate-400 hover:text-slate-600">
+                  <i className="fas fa-xmark text-xl"></i>
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Що я зроблю інакше наступного разу?
+                  </label>
+                  <textarea
+                    value={reflAnswer1}
+                    onChange={(e) => setReflAnswer1(e.target.value)}
+                    rows={3}
+                    placeholder="Ваша відповідь..."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Який пункт був для мене несподіванкою?
+                  </label>
+                  <textarea
+                    value={reflAnswer2}
+                    onChange={(e) => setReflAnswer2(e.target.value)}
+                    rows={3}
+                    placeholder="Ваша відповідь..."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy resize-none"
+                  />
+                </div>
+                {reflError && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-600 flex items-center gap-2">
+                    <i className="fas fa-triangle-exclamation"></i>
+                    <span>{reflError}</span>
+                  </div>
+                )}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => { setShowReflection(false); setReflError(''); }}
+                    className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50"
+                  >
+                    Скасувати
+                  </button>
+                  <button
+                    onClick={handleSubmitReflection}
+                    disabled={reflSubmitting}
+                    className="flex-1 py-3 rounded-xl bg-kameya-burgundy text-white font-bold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {reflSubmitting ? (
+                      <><i className="fas fa-spinner fa-spin"></i> Надсилання...</>
+                    ) : (
+                      <><i className="fas fa-paper-plane"></i> Надіслати</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
