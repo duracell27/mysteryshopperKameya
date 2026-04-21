@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { AuditResult, AuditSection, STORES } from '../../types';
 import { getAllReports, deleteReport } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
-import { scoreTextClass, scoreBgBorderClass, formatScore } from '../../utils/scoreColor';
+import { scoreTextClass, scoreBgBorderClass, formatScore, getScoreStyle } from '../../utils/scoreColor';
 
 interface ReportWithUser extends Omit<AuditResult, 'userId'> {
   userId: { _id: string; name: string; phone: string; store?: string } | string;
+  quarter?: string;
+  year?: number;
 }
 
 const toDisplay = (phone: string) => {
@@ -24,6 +26,16 @@ export const AdminReportsListView: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [selectedStore, setSelectedStore] = useState<string>('');
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (key: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   useEffect(() => {
     getAllReports()
@@ -84,6 +96,24 @@ export const AdminReportsListView: React.FC = () => {
       // Сортування по даті (новіші зверху)
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
+
+  const quarterOrder: Record<string, number> = { Q4: 0, Q3: 1, Q2: 2, Q1: 3 };
+
+  const groupedReports = filtered.reduce<Record<string, ReportWithUser[]>>((acc, report) => {
+    const quarter = report.quarter ?? 'Q1';
+    const year = report.year ?? new Date().getFullYear();
+    const key = `${quarter} ${year}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(report);
+    return acc;
+  }, {});
+
+  const sortedGroupKeys = Object.keys(groupedReports).sort((a, b) => {
+    const [qa, ya] = a.split(' ');
+    const [qb, yb] = b.split(' ');
+    if (Number(yb) !== Number(ya)) return Number(yb) - Number(ya);
+    return (quarterOrder[qa] ?? 99) - (quarterOrder[qb] ?? 99);
+  });
 
   if (loading) {
     return (
@@ -161,7 +191,10 @@ export const AdminReportsListView: React.FC = () => {
             </button>
             <div>
               <h1 className="text-xl font-bold text-slate-800">{name}</h1>
-              <p className="text-xs text-slate-400">{phone} · {formatDate(selected.date)}{getStoreFromReport(selected) ? ` · ${getStoreFromReport(selected)}` : ''}</p>
+              <p className="text-xs text-slate-400">
+                {selected.quarter && selected.year ? `${selected.quarter} ${selected.year} · ` : ''}
+                {phone} · {formatDate(selected.date)}{getStoreFromReport(selected) ? ` · ${getStoreFromReport(selected)}` : ''}
+              </p>
             </div>
           </div>
           <button
@@ -294,7 +327,7 @@ export const AdminReportsListView: React.FC = () => {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {sortedGroupKeys.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
               <i className="fas fa-folder-open text-2xl text-slate-300"></i>
@@ -303,26 +336,54 @@ export const AdminReportsListView: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((report) => {
-              const id = report._id ?? report.id ?? '';
+            {sortedGroupKeys.map((groupKey) => {
+              const groupReports = groupedReports[groupKey];
+              const isOpen = openGroups.has(groupKey);
               return (
-                <button
-                  key={id}
-                  onClick={() => { setSelected(report); setExpandedSection(null); }}
-                  className="w-full bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all text-left flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-16 h-14 rounded-xl flex items-center justify-center border flex-shrink-0 ${scoreBgBorderClass(report.totalScore)}`}>
-                      <span className={`text-sm font-bold ${scoreTextClass(report.totalScore)}`}>{Math.round(report.totalScore)}%</span>
+                <div key={groupKey} className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+                  <button
+                    onClick={() => toggleGroup(groupKey)}
+                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-slate-800 text-lg">{groupKey}</span>
+                      <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                        {groupReports.length} {groupReports.length === 1 ? 'звіт' : 'звітів'}
+                      </span>
                     </div>
-                    <div>
-                      <p className="font-semibold text-slate-800">{getUserName(report)}</p>
-                      <p className="text-xs text-slate-500">{getUserPhone(report)}</p>
-                      <p className="text-xs text-slate-400">{formatDate(report.date)}{getStoreFromReport(report) ? ` · ${getStoreFromReport(report)}` : ''}</p>
+                    <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-slate-400 text-sm`}></i>
+                  </button>
+
+                  {isOpen && (
+                    <div className="border-t border-slate-100 divide-y divide-slate-50">
+                      {groupReports.map((report) => {
+                        const id = report._id ?? report.id ?? '';
+                        const style = getScoreStyle(report.totalScore);
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => { setSelected(report); setExpandedSection(null); }}
+                            className="w-full px-5 py-3 hover:bg-slate-50 transition-colors text-left flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`w-14 h-12 rounded-xl flex items-center justify-center border flex-shrink-0 ${style.bgClass} ${style.borderClass}`}>
+                                <span className={`text-sm font-bold ${style.textClass}`}>
+                                  {style.icon ?? `${Math.floor(report.totalScore)}%`}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-800">{getUserName(report)}</p>
+                                <p className="text-xs text-slate-500">{getUserPhone(report)}</p>
+                                <p className="text-xs text-slate-400">{formatDate(report.date)}{getStoreFromReport(report) ? ` · ${getStoreFromReport(report)}` : ''}</p>
+                              </div>
+                            </div>
+                            <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </div>
-                  <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
-                </button>
+                  )}
+                </div>
               );
             })}
           </div>
