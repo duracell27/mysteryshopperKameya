@@ -413,6 +413,46 @@ ${sectionsText}
   }
 });
 
+// POST /api/reports/:id/score-insight — employee submits their response
+router.post('/:id/score-insight', async (req: AuthRequest, res: Response) => {
+  try {
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+
+    if (report.userId.toString() !== req.user?.userId?.toString()) {
+      return res.status(403).json({ message: 'Доступ заборонено' });
+    }
+
+    if (report.scoreInsight) {
+      return res.status(409).json({ message: 'Відповідь вже надіслано' });
+    }
+
+    const tier = getTier(report.totalScore);
+    const { goalText, whatHelpedText } = req.body;
+
+    if (tier === 'below85' && !goalText?.trim()) {
+      return res.status(400).json({ message: 'Поле "ціль" обов\'язкове' });
+    }
+    if (tier === 'range95to99' && !whatHelpedText?.trim()) {
+      return res.status(400).json({ message: 'Поле відповіді обов\'язкове' });
+    }
+
+    report.scoreInsight = {
+      tier,
+      ...(tier === 'below85' && { goalText: goalText.trim() }),
+      ...(tier === 'range85to94' && { confirmedAt: new Date() }),
+      ...(tier === 'range95to99' && { whatHelpedText: whatHelpedText.trim() }),
+      submittedAt: new Date(),
+    };
+    await report.save();
+
+    return res.json(report);
+  } catch (error) {
+    console.error('score-insight error:', error);
+    return res.status(500).json({ message: 'Помилка збереження' });
+  }
+});
+
 // POST /api/reports/:id/reflection — employee submits reflection
 router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
   try {
