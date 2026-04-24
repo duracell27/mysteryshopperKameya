@@ -358,7 +358,7 @@ router.post('/:id/generate-ai', async (req: AuthRequest, res: Response) => {
     }
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const sectionsText = buildSectionsText(report.sections as never);
+    const sectionsText = buildSectionsText(report.sections as { title: string; score: number; maxScore: number; questions: { question: string; isCorrect: boolean }[] }[]);
 
     const prompt = `Ти — аналітик результатів таємного покупця ювелірного магазину.
 Проаналізуй звіт і поверни ТІЛЬКИ валідний JSON без markdown та пояснень.
@@ -395,18 +395,42 @@ ${sectionsText}
 
     const raw = (response.content[0] as { type: string; text: string }).text.trim();
     const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
-    const parsed = JSON.parse(text);
 
-    report.aiRecommendations = {
-      tier: parsed.tier,
-      mainMessage: parsed.mainMessage,
-      weakPoints: parsed.weakPoints ?? [],
-      question: parsed.question ?? null,
+    let parsed: { tier: string; mainMessage: string; weakPoints: unknown[]; question: unknown };
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      console.error('generate-ai: invalid JSON from Claude:', text.substring(0, 500));
+      return res.status(500).json({ message: 'AI повернув невалідну відповідь. Спробуйте ще раз.' });
+    }
+
+    if (parsed.tier !== tier || typeof parsed.mainMessage !== 'string' || !parsed.mainMessage.trim()) {
+      console.error('generate-ai: unexpected AI response shape:', parsed);
+      return res.status(500).json({ message: 'AI повернув невалідну відповідь. Спробуйте ще раз.' });
+    }
+
+    const aiData = {
+      tier: parsed.tier as 'below85' | 'range85to94' | 'range95to99',
+      mainMessage: parsed.mainMessage.trim(),
+      weakPoints: Array.isArray(parsed.weakPoints)
+        ? parsed.weakPoints.filter((p): p is string => typeof p === 'string')
+        : [],
+      question: typeof parsed.question === 'string' ? parsed.question : null,
       generatedAt: new Date(),
     };
-    await report.save();
 
-    return res.json(report);
+    // Atomic update — prevents race condition if two requests arrive simultaneously
+    const saved = await Report.findOneAndUpdate(
+      { _id: report._id, aiRecommendations: { $exists: false } },
+      { $set: { aiRecommendations: aiData } },
+      { new: true }
+    );
+
+    if (!saved) {
+      return res.json(await Report.findById(report._id));
+    }
+
+    return res.json(saved);
   } catch (error) {
     console.error('generate-ai error:', error);
     return res.status(500).json({ message: 'Помилка генерації рекомендацій' });
@@ -429,6 +453,13 @@ router.post('/:id/score-insight', async (req: AuthRequest, res: Response) => {
 
     const tier = getTier(report.totalScore);
     const { goalText, whatHelpedText } = req.body;
+
+    if (goalText && goalText.length > 2000) {
+      return res.status(400).json({ message: 'Ціль не може перевищувати 2000 символів' });
+    }
+    if (whatHelpedText && whatHelpedText.length > 2000) {
+      return res.status(400).json({ message: 'Відповідь не може перевищувати 2000 символів' });
+    }
 
     if (tier === 'below85' && !goalText?.trim()) {
       return res.status(400).json({ message: 'Поле "ціль" обов\'язкове' });

@@ -22,6 +22,9 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
   const insight = lastAudit.scoreInsight;
   const perfectCount = allReports.filter(r => r.totalScore === 100).length;
 
+  const onInsightUpdatedRef = React.useRef(onInsightUpdated);
+  onInsightUpdatedRef.current = onInsightUpdated;
+
   // Trigger generation on first open (skip for 100%)
   useEffect(() => {
     if (isPerfect) return;
@@ -30,10 +33,12 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
 
     setGenerating(true);
     generateAiRecommendations(reportId)
-      .then(updated => onInsightUpdated(updated))
-      .catch(err => setError(err.message))
+      .then(updated => onInsightUpdatedRef.current(updated))
+      .catch(err => setError(err instanceof Error ? err.message : 'Помилка'))
       .finally(() => setGenerating(false));
-  }, [reportId]);
+  // isPerfect and !!ai are stable derivations of reportId's audit; ref handles onInsightUpdated
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportId, isPerfect, !!ai]);
 
   const handleSubmitGoal = async () => {
     setSubmitting(true);

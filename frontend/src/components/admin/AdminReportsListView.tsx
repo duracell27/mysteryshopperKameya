@@ -28,7 +28,7 @@ export const AdminReportsListView: React.FC = () => {
   const [selectedStore, setSelectedStore] = useState<string>('');
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [reflectionReport, setReflectionReport] = useState<ReportWithUser | null>(null);
-  const [generatingAi, setGeneratingAi] = useState(false);
+  const [generatingAi, setGeneratingAi] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
   const toggleGroup = (key: string) => {
@@ -84,7 +84,7 @@ export const AdminReportsListView: React.FC = () => {
 
   const handleGenerateAi = async (report: ReportWithUser) => {
     const id = report._id ?? report.id ?? '';
-    setGeneratingAi(true);
+    setGeneratingAi(id);
     setAiError(null);
     try {
       const updated = await generateAiRecommendations(id);
@@ -93,7 +93,7 @@ export const AdminReportsListView: React.FC = () => {
     } catch (err) {
       setAiError(err instanceof Error ? err.message : 'Помилка генерації');
     } finally {
-      setGeneratingAi(false);
+      setGeneratingAi(null);
     }
   };
 
@@ -416,10 +416,10 @@ export const AdminReportsListView: React.FC = () => {
               <p className="text-sm text-slate-400">Консультант ще не відкривав дашборд</p>
               <button
                 onClick={() => handleGenerateAi(selected)}
-                disabled={generatingAi}
+                disabled={generatingAi === (selected._id ?? selected.id ?? '')}
                 className="text-xs text-kameya-burgundy font-semibold hover:opacity-75 flex items-center gap-1 disabled:opacity-40"
               >
-                {generatingAi ? (
+                {generatingAi === (selected._id ?? selected.id ?? '') ? (
                   <><i className="fas fa-spinner fa-spin"></i> Генеруємо...</>
                 ) : (
                   <><i className="fas fa-wand-magic-sparkles"></i> Згенерувати</>
