@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuditResult, AuditSection, STORES } from '../../types';
-import { getAllReports, deleteReport } from '../../services/reportsService';
+import { getAllReports, deleteReport, generateAiRecommendations } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { scoreTextClass, scoreBgBorderClass, formatScore, getScoreStyle } from '../../utils/scoreColor';
 
@@ -28,6 +28,8 @@ export const AdminReportsListView: React.FC = () => {
   const [selectedStore, setSelectedStore] = useState<string>('');
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [reflectionReport, setReflectionReport] = useState<ReportWithUser | null>(null);
+  const [generatingAi, setGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
@@ -77,6 +79,21 @@ export const AdminReportsListView: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Помилка видалення');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleGenerateAi = async (report: ReportWithUser) => {
+    const id = report._id ?? report.id ?? '';
+    setGeneratingAi(true);
+    setAiError(null);
+    try {
+      const updated = await generateAiRecommendations(id);
+      setReports(prev => prev.map(r => (r._id ?? r.id) === id ? { ...r, ...updated } as ReportWithUser : r));
+      setSelected(prev => prev && (prev._id ?? prev.id) === id ? { ...prev, ...updated } as ReportWithUser : prev);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Помилка генерації');
+    } finally {
+      setGeneratingAi(false);
     }
   };
 
@@ -355,6 +372,64 @@ export const AdminReportsListView: React.FC = () => {
           })()}
         </div>
 
+        {/* AI Recommendations panel */}
+        <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+          <p className="text-sm font-semibold text-slate-700 mb-3">AI Рекомендації</p>
+          {selected.totalScore === 100 ? (
+            <p className="text-sm text-slate-500">100% — рекомендації не генеруються</p>
+          ) : selected.aiRecommendations ? (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600">{selected.aiRecommendations.mainMessage}</p>
+              {selected.aiRecommendations.weakPoints.length > 0 && (
+                <ul className="space-y-1">
+                  {selected.aiRecommendations.weakPoints.map((point, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                      <i className="fas fa-circle-arrow-right text-kameya-burgundy mt-0.5 flex-shrink-0 text-xs"></i>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {selected.scoreInsight && (
+                <div className="border-t border-slate-100 pt-3 space-y-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Відповідь консультанта</p>
+                  {selected.scoreInsight.goalText && (
+                    <p className="text-sm text-slate-700 bg-slate-50 rounded-lg p-3">{selected.scoreInsight.goalText}</p>
+                  )}
+                  {selected.scoreInsight.confirmedAt && (
+                    <p className="text-sm text-green-700 flex items-center gap-2">
+                      <i className="fas fa-circle-check text-green-500"></i>
+                      Підтвердив розуміння
+                    </p>
+                  )}
+                  {selected.scoreInsight.whatHelpedText && (
+                    <p className="text-sm text-slate-700 bg-slate-50 rounded-lg p-3">{selected.scoreInsight.whatHelpedText}</p>
+                  )}
+                </div>
+              )}
+              {!selected.scoreInsight && (
+                <p className="text-xs text-slate-400">Консультант ще не відповів</p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-400">Консультант ще не відкривав дашборд</p>
+              <button
+                onClick={() => handleGenerateAi(selected)}
+                disabled={generatingAi}
+                className="text-xs text-kameya-burgundy font-semibold hover:opacity-75 flex items-center gap-1 disabled:opacity-40"
+              >
+                {generatingAi ? (
+                  <><i className="fas fa-spinner fa-spin"></i> Генеруємо...</>
+                ) : (
+                  <><i className="fas fa-wand-magic-sparkles"></i> Згенерувати</>
+                )}
+              </button>
+            </div>
+          )}
+          {aiError && <p className="text-xs text-red-500 mt-2">{aiError}</p>}
+        </div>
+
         {/* Reflection answers modal */}
         {reflectionReport?.reflection && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -503,6 +578,16 @@ export const AdminReportsListView: React.FC = () => {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
+                              {report.aiRecommendations && !report.scoreInsight && (
+                                <span className="text-xs text-amber-500 flex items-center gap-1">
+                                  <i className="fas fa-wand-magic-sparkles"></i> Без відповіді
+                                </span>
+                              )}
+                              {report.aiRecommendations && report.scoreInsight && (
+                                <span className="text-xs text-green-600 flex items-center gap-1">
+                                  <i className="fas fa-circle-check"></i> Відповів
+                                </span>
+                              )}
                               {(() => {
                                 const rs = getReflectionStatus(report);
                                 if (rs === 'on-time') return <span className="text-xs text-green-600 flex items-center gap-1"><i className="fas fa-circle-check"></i> Заповнено · вчасно</span>;
