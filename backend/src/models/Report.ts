@@ -26,6 +26,22 @@ interface IReflection {
   bonusPointsAwarded: boolean;
 }
 
+interface IAiRecommendations {
+  tier: 'below85' | 'range85to94' | 'range95to99';
+  mainMessage: string;
+  weakPoints: string[];
+  question: string | null;
+  generatedAt: Date;
+}
+
+interface IScoreInsight {
+  tier: 'below85' | 'range85to94' | 'range95to99' | 'perfect100';
+  goalText?: string;
+  confirmedAt?: Date;
+  whatHelpedText?: string;
+  submittedAt: Date;
+}
+
 export interface IReport extends Document {
   userId: Types.ObjectId;
   auditId: string;
@@ -38,6 +54,8 @@ export interface IReport extends Document {
   sections: ISection[];
   fileName: string;
   reflection?: IReflection;
+  aiRecommendations?: IAiRecommendations;
+  scoreInsight?: IScoreInsight;
   createdAt: Date;
 }
 
@@ -70,6 +88,28 @@ const ReflectionSchema = new Schema<IReflection>(
   { _id: false }
 );
 
+const AiRecommendationsSchema = new Schema<IAiRecommendations>(
+  {
+    tier:        { type: String, required: true },
+    mainMessage: { type: String, required: true },
+    weakPoints:  [{ type: String }],
+    question:    { type: String, default: null },
+    generatedAt: { type: Date, required: true },
+  },
+  { _id: false }
+);
+
+const ScoreInsightSchema = new Schema<IScoreInsight>(
+  {
+    tier:            { type: String, required: true },
+    goalText:        { type: String },
+    confirmedAt:     { type: Date },
+    whatHelpedText:  { type: String },
+    submittedAt:     { type: Date, required: true },
+  },
+  { _id: false }
+);
+
 const ReportSchema = new Schema<IReport>({
   userId:     { type: Schema.Types.ObjectId, ref: 'User', required: true },
   auditId:    { type: String, default: '' },
@@ -82,6 +122,8 @@ const ReportSchema = new Schema<IReport>({
   quarter:    { type: String, enum: ['Q1', 'Q2', 'Q3', 'Q4'], default: 'Q1' },
   year:       { type: Number, default: () => new Date().getFullYear() },
   reflection: { type: ReflectionSchema, default: undefined },
+  aiRecommendations: { type: AiRecommendationsSchema, default: undefined },
+  scoreInsight:      { type: ScoreInsightSchema, default: undefined },
 }, { timestamps: true });
 
 export const Report = mongoose.model<IReport>('Report', ReportSchema);
