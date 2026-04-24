@@ -43,6 +43,8 @@ export interface AuditResult {
   userId?: string;
   createdAt?: string;
   reflection?: Reflection;
+  aiRecommendations?: AiRecommendations;
+  scoreInsight?: ScoreInsight;
 }
 
 export interface DailyTask {
@@ -104,6 +106,22 @@ export interface Reflection {
   submittedAt: string;
   isOnTime: boolean;
   bonusPointsAwarded: boolean;
+}
+
+export interface AiRecommendations {
+  tier: 'below85' | 'range85to94' | 'range95to99';
+  mainMessage: string;
+  weakPoints: string[];
+  question: string | null;
+  generatedAt: string;
+}
+
+export interface ScoreInsight {
+  tier: 'below85' | 'range85to94' | 'range95to99' | 'perfect100';
+  goalText?: string;
+  confirmedAt?: string;
+  whatHelpedText?: string;
+  submittedAt: string;
 }
 
 export const STORES = [
