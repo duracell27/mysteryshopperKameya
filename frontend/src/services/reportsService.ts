@@ -1,4 +1,4 @@
-import { AuditResult, PointsTransaction } from '../types';
+import { AuditResult, PointsTransaction, ScoreInsight } from '../types';
 
 const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}`,
@@ -112,5 +112,33 @@ export const getMyRank = async (): Promise<UserRank> => {
 export const getMyPointsHistory = async (): Promise<PointsTransaction[]> => {
   const res = await fetch("/api/reports/my/transactions", { headers: getAuthHeaders() });
   if (!res.ok) throw new Error("Помилка завантаження балів");
+  return res.json();
+};
+
+export const generateAiRecommendations = async (reportId: string): Promise<AuditResult> => {
+  const res = await fetch(`/api/reports/${reportId}/generate-ai`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Помилка генерації рекомендацій');
+  }
+  return res.json();
+};
+
+export const submitScoreInsight = async (
+  reportId: string,
+  data: Partial<Pick<ScoreInsight, 'goalText' | 'whatHelpedText'>>,
+): Promise<AuditResult> => {
+  const res = await fetch(`/api/reports/${reportId}/score-insight`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Помилка збереження відповіді');
+  }
   return res.json();
 };
