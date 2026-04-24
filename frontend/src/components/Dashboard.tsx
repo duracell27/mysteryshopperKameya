@@ -5,6 +5,7 @@ import { getMyReports } from '../services/reportsService';
 import { getTodayTip, TipOfDay } from '../services/tipsService';
 import { formatDate } from '../utils/dateFormatter';
 import { ScoreChart } from './employee/ScoreChart';
+import { ScoreInsightCard } from './employee/ScoreInsightCard';
 
 interface DashboardProps {
   onNavigate: (screen: Screen) => void;
@@ -34,6 +35,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
       .catch(() => console.error('Помилка завантаження даних'))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleInsightUpdated = (updated: AuditResult) => {
+    setLastAudit(updated);
+    setAllReports(prev => prev.map(r =>
+      (r._id ?? r.id) === (updated._id ?? updated.id) ? updated : r
+    ));
+  };
 
   const radius = 54;
   const stroke = 10;
@@ -89,11 +97,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
           )}
         </div>
 
-        {/* Points Balance Card — placeholder */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center min-h-[160px]">
-          <i className="fas fa-star text-slate-200 text-4xl mb-3"></i>
-          <p className="text-slate-400 text-sm">Незабаром</p>
-        </div>
+        {lastAudit ? (
+          <ScoreInsightCard
+            lastAudit={lastAudit}
+            allReports={allReports}
+            onInsightUpdated={handleInsightUpdated}
+          />
+        ) : (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center min-h-[160px]">
+            <i className="fas fa-star text-slate-200 text-4xl mb-3"></i>
+            <p className="text-slate-400 text-sm">Незабаром</p>
+          </div>
+        )}
       </div>
 
       {/* Training Progress — full width below */}
