@@ -7,6 +7,22 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { awardPoints } from '../services/pointsService';
 import { PointsTransaction } from '../models/PointsTransaction';
 
+function getTier(score: number): 'below85' | 'range85to94' | 'range95to99' | 'perfect100' {
+  if (score === 100) return 'perfect100';
+  if (score >= 95) return 'range95to99';
+  if (score >= 85) return 'range85to94';
+  return 'below85';
+}
+
+function buildSectionsText(sections: { title: string; score: number; maxScore: number; questions: { question: string; isCorrect: boolean }[] }[]): string {
+  return sections.map(s => {
+    const pct = Math.round((s.score / s.maxScore) * 100);
+    const failed = s.questions.filter(q => !q.isCorrect).map(q => q.question);
+    const failedStr = failed.length > 0 ? `\n  Невиконані: ${failed.join('; ')}` : '';
+    return `- ${s.title}: ${s.score}/${s.maxScore} (${pct}%)${failedStr}`;
+  }).join('\n');
+}
+
 const router = Router();
 router.use(authMiddleware);
 
@@ -318,6 +334,82 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// POST /api/reports/:id/generate-ai — generate AI recommendations (employee or admin)
+router.post('/:id/generate-ai', async (req: AuthRequest, res: Response) => {
+  try {
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+
+    const isOwner = report.userId.toString() === req.user?.userId?.toString();
+    const isAdmin = req.user?.role === 'ADMIN';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Доступ заборонено' });
+
+    const tier = getTier(report.totalScore);
+    if (tier === 'perfect100') {
+      return res.status(400).json({ message: 'Для 100% рекомендації не генеруються' });
+    }
+
+    // Return existing if already generated
+    if (report.aiRecommendations) {
+      return res.json(report);
+    }
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const sectionsText = buildSectionsText(report.sections as never);
+
+    const prompt = `Ти — аналітик результатів таємного покупця ювелірного магазину.
+Проаналізуй звіт і поверни ТІЛЬКИ валідний JSON без markdown та пояснень.
+
+Загальна оцінка: ${report.totalScore}%
+Тір: ${tier}
+Секції:
+${sectionsText}
+
+Поверни JSON у форматі:
+{
+  "tier": "${tier}",
+  "mainMessage": "...",
+  "weakPoints": ["...", "..."],
+  "question": "..." або null
+}
+
+Правила:
+- weakPoints для below85: рівно 3 конкретні пункти, кожен починається з назви секції через двокрапку
+- weakPoints для range85to94: рівно 1 пункт, починається з назви секції через двокрапку
+- weakPoints для range95to99: порожній масив []
+- mainMessage для below85: "Є над чим попрацювати — ось три точки зростання:"
+- mainMessage для range85to94: "Один крок до відмінного результату:"
+- mainMessage для range95to99: одне речення-привітання з результатом
+- question для range95to99: "Що допомогло тобі досягти такого результату?"
+- question для below85 та range85to94: null
+- Всі тексти виключно українською мовою, конкретно, без загальних фраз`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const raw = (response.content[0] as { type: string; text: string }).text.trim();
+    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    const parsed = JSON.parse(text);
+
+    report.aiRecommendations = {
+      tier: parsed.tier,
+      mainMessage: parsed.mainMessage,
+      weakPoints: parsed.weakPoints ?? [],
+      question: parsed.question ?? null,
+      generatedAt: new Date(),
+    };
+    await report.save();
+
+    return res.json(report);
+  } catch (error) {
+    console.error('generate-ai error:', error);
+    return res.status(500).json({ message: 'Помилка генерації рекомендацій' });
   }
 });
 
