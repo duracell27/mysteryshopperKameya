@@ -6,6 +6,8 @@ import { getTodayTip, TipOfDay } from '../services/tipsService';
 import { formatDate } from '../utils/dateFormatter';
 import { ScoreChart } from './employee/ScoreChart';
 import { ScoreInsightCard } from './employee/ScoreInsightCard';
+import { PerfectScoreWidget } from './employee/PerfectScoreWidget';
+import { LearningPlanSection } from './employee/LearningPlanSection';
 
 interface DashboardProps {
   onNavigate: (screen: Screen) => void;
@@ -19,6 +21,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
   const [allReports, setAllReports] = useState<AuditResult[]>([]);
   const [tip, setTip] = useState<TipOfDay | null>(null);
   const [loading, setLoading] = useState(true);
+  const [learningPlanLoading, setLearningPlanLoading] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -50,6 +53,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
   const strokeDashoffset = lastAudit
     ? circumference - (lastAudit.totalScore / 100) * circumference
     : circumference;
+
+  const perfectCount = allReports.filter(r => r.totalScore === 100).length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <i className="fas fa-spinner fa-spin text-3xl text-kameya-burgundy"></i>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -97,12 +110,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
           )}
         </div>
 
+        {/* Plan росту / Perfect widget */}
         {lastAudit ? (
-          <ScoreInsightCard
-            lastAudit={lastAudit}
-            allReports={allReports}
-            onInsightUpdated={handleInsightUpdated}
-          />
+          lastAudit.totalScore === 100 ? (
+            <PerfectScoreWidget
+              report={lastAudit}
+              perfectCount={perfectCount}
+              onInsightUpdated={handleInsightUpdated}
+            />
+          ) : (
+            <ScoreInsightCard
+              lastAudit={lastAudit}
+              allReports={allReports}
+              onInsightUpdated={handleInsightUpdated}
+              onLearningPlanLoading={setLearningPlanLoading}
+            />
+          )
         ) : (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center min-h-[160px]">
             <i className="fas fa-star text-slate-200 text-4xl mb-3"></i>
@@ -111,21 +134,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
         )}
       </div>
 
-      {/* Training Progress — full width below */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-        <h3 className="font-bold text-lg text-slate-800 mb-6">Ваш план навчання</h3>
-        <div className="flex flex-col items-center justify-center py-12 flex-1">
-          <i className="fas fa-book text-5xl text-slate-200 mb-4"></i>
-          <p className="text-slate-500 font-medium">План навчання не обрано</p>
-          <p className="text-xs text-slate-400 mt-2 text-center">Обберіть план навчання, щоб почати</p>
-          <button
-            onClick={() => onNavigate(Screen.TRAINING_PLAN)}
-            className="mt-6 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-bold hover:bg-red-900 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
-          >
-            Обрати план навчання
-          </button>
-        </div>
-      </div>
+      {/* Learning Plan — full width */}
+      <LearningPlanSection
+        lastAudit={lastAudit}
+        loading={learningPlanLoading}
+        onPlanUpdated={handleInsightUpdated}
+        onNavigateToTraining={() => onNavigate(Screen.TRAINING_PLAN)}
+      />
 
       {/* Score Chart */}
       {allReports.length > 0 && (

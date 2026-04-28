@@ -1,14 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { AuditResult } from '../../types';
-import { generateAiRecommendations, submitScoreInsight } from '../../services/reportsService';
+import {
+  generateAiRecommendations,
+  submitScoreInsight,
+  generateLearningPlan,
+} from '../../services/reportsService';
 
 interface Props {
   lastAudit: AuditResult;
   allReports: AuditResult[];
   onInsightUpdated: (updated: AuditResult) => void;
+  onLearningPlanLoading: (loading: boolean) => void;
 }
 
-export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onInsightUpdated }) => {
+export const ScoreInsightCard: React.FC<Props> = ({
+  lastAudit,
+  allReports: _allReports,
+  onInsightUpdated,
+  onLearningPlanLoading,
+}) => {
   const [generating, setGenerating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,18 +26,18 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
   const [whatHelpedText, setWhatHelpedText] = useState('');
 
   const reportId = lastAudit._id ?? lastAudit.id ?? '';
-  const score = lastAudit.totalScore;
-  const isPerfect = score === 100;
   const ai = lastAudit.aiRecommendations;
   const insight = lastAudit.scoreInsight;
-  const perfectCount = allReports.filter(r => r.totalScore === 100).length;
 
   const onInsightUpdatedRef = React.useRef(onInsightUpdated);
   onInsightUpdatedRef.current = onInsightUpdated;
 
-  // Trigger generation on first open (skip for 100%)
+  const onLearningPlanLoadingRef = React.useRef(onLearningPlanLoading);
+  onLearningPlanLoadingRef.current = onLearningPlanLoading;
+
+  // Auto-trigger AI recommendations on first open (not for 100%)
   useEffect(() => {
-    if (isPerfect) return;
+    if (lastAudit.totalScore === 100) return;
     if (ai) return;
     if (!reportId) return;
 
@@ -36,9 +46,16 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
       .then(updated => onInsightUpdatedRef.current(updated))
       .catch(err => setError(err instanceof Error ? err.message : 'Помилка'))
       .finally(() => setGenerating(false));
-  // isPerfect and !!ai are stable derivations of reportId's audit; ref handles onInsightUpdated
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reportId, isPerfect, !!ai]);
+  }, [reportId, lastAudit.totalScore === 100, !!ai]);
+
+  const triggerLearningPlan = (id: string) => {
+    onLearningPlanLoadingRef.current(true);
+    generateLearningPlan(id)
+      .then(updated => onInsightUpdatedRef.current(updated))
+      .catch(err => console.error('[ScoreInsightCard] learning plan generation failed:', err))
+      .finally(() => onLearningPlanLoadingRef.current(false));
+  };
 
   const handleSubmitGoal = async () => {
     setSubmitting(true);
@@ -46,6 +63,7 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
     try {
       const updated = await submitScoreInsight(reportId, { goalText });
       onInsightUpdated(updated);
+      triggerLearningPlan(reportId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Помилка');
     } finally {
@@ -59,6 +77,7 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
     try {
       const updated = await submitScoreInsight(reportId, {});
       onInsightUpdated(updated);
+      triggerLearningPlan(reportId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Помилка');
     } finally {
@@ -79,35 +98,6 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
     }
   };
 
-  // ── 100% — static celebration ──
-  if (isPerfect) {
-    return (
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center space-y-3">
-        <div className="text-5xl">🏆</div>
-        <p className="text-xl font-bold text-slate-800">Ідеальна перевірка!</p>
-        <p className="text-sm text-slate-500">
-          {perfectCount > 1 ? `Це твій ${perfectCount}-й результат 100%` : 'Перший результат 100% — неймовірно!'}
-        </p>
-        {!insight && (
-          <button
-            onClick={handleConfirm}
-            disabled={submitting}
-            className="mt-2 px-5 py-2 bg-kameya-burgundy text-white rounded-xl font-bold text-sm hover:bg-red-900 transition-colors disabled:opacity-50"
-          >
-            {submitting ? 'Зберігаємо...' : 'Відзначити досягнення'}
-          </button>
-        )}
-        {insight && (
-          <span className="text-xs text-green-600 flex items-center gap-1 font-semibold">
-            <i className="fas fa-circle-check"></i> Зафіксовано
-          </span>
-        )}
-        {error && <p className="text-xs text-red-500">{error}</p>}
-      </div>
-    );
-  }
-
-  // ── Generating ──
   if (generating) {
     return (
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center space-y-3 min-h-[200px]">
@@ -118,7 +108,6 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
     );
   }
 
-  // ── Error ──
   if (error && !ai) {
     return (
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100 flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
@@ -132,7 +121,7 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
 
   const tier = ai.tier;
 
-  // ── Submitted — read-only view ──
+  // ── Submitted — read-only ──
   if (insight) {
     return (
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
@@ -206,7 +195,7 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
             disabled={submitting || !goalText.trim()}
             className="w-full py-2 bg-kameya-burgundy text-white rounded-xl font-bold text-sm hover:bg-red-900 transition-colors disabled:opacity-50"
           >
-            {submitting ? 'Зберігаємо...' : 'Зафіксувати ціль'}
+            {submitting ? 'Зберігаємо...' : 'Ознайомитись і скласти план навчання'}
           </button>
         </div>
       )}
@@ -217,7 +206,7 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
           disabled={submitting}
           className="w-full py-2 bg-kameya-burgundy text-white rounded-xl font-bold text-sm hover:bg-red-900 transition-colors disabled:opacity-50"
         >
-          {submitting ? 'Зберігаємо...' : 'Розумію, буду працювати над цим'}
+          {submitting ? 'Зберігаємо...' : 'Ознайомитись і скласти план навчання'}
         </button>
       )}
 
@@ -238,7 +227,7 @@ export const ScoreInsightCard: React.FC<Props> = ({ lastAudit, allReports, onIns
             disabled={submitting || !whatHelpedText.trim()}
             className="w-full py-2 bg-kameya-burgundy text-white rounded-xl font-bold text-sm hover:bg-red-900 transition-colors disabled:opacity-50"
           >
-            {submitting ? 'Зберігаємо...' : 'Поділитись'}
+            {submitting ? 'Зберігаємо...' : 'Ознайомитись'}
           </button>
         </div>
       )}
