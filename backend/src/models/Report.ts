@@ -42,6 +42,18 @@ interface IScoreInsight {
   submittedAt: Date;
 }
 
+interface ILearningTask {
+  topicTitle: string;
+  description: string;
+  isCompleted: boolean;
+  completedAt?: Date;
+}
+
+interface ILearningPlan {
+  tasks: ILearningTask[];
+  generatedAt: Date;
+}
+
 export interface IReport extends Document {
   userId: Types.ObjectId;
   auditId: string;
@@ -56,6 +68,7 @@ export interface IReport extends Document {
   reflection?: IReflection;
   aiRecommendations?: IAiRecommendations;
   scoreInsight?: IScoreInsight;
+  learningPlan?: ILearningPlan;
   createdAt: Date;
 }
 
@@ -110,6 +123,18 @@ const ScoreInsightSchema = new Schema<IScoreInsight>(
   { _id: false }
 );
 
+const LearningTaskSchema = new Schema<ILearningTask>({
+  topicTitle:  { type: String, required: true },
+  description: { type: String, required: true },
+  isCompleted: { type: Boolean, default: false },
+  completedAt: { type: Date },
+}, { _id: false });
+
+const LearningPlanSchema = new Schema<ILearningPlan>({
+  tasks:       [LearningTaskSchema],
+  generatedAt: { type: Date, required: true },
+}, { _id: false });
+
 const ReportSchema = new Schema<IReport>({
   userId:     { type: Schema.Types.ObjectId, ref: 'User', required: true },
   auditId:    { type: String, default: '' },
@@ -124,6 +149,7 @@ const ReportSchema = new Schema<IReport>({
   reflection: { type: ReflectionSchema, default: undefined },
   aiRecommendations: { type: AiRecommendationsSchema, default: undefined },
   scoreInsight:      { type: ScoreInsightSchema, default: undefined },
+  learningPlan:      { type: LearningPlanSchema, default: undefined },
 }, { timestamps: true });
 
 export const Report = mongoose.model<IReport>('Report', ReportSchema);

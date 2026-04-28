@@ -45,6 +45,7 @@ export interface AuditResult {
   reflection?: Reflection;
   aiRecommendations?: AiRecommendations;
   scoreInsight?: ScoreInsight;
+  learningPlan?: LearningPlan;
 }
 
 export interface DailyTask {
@@ -122,6 +123,18 @@ export interface ScoreInsight {
   confirmedAt?: string;
   whatHelpedText?: string;
   submittedAt: string;
+}
+
+export interface LearningTask {
+  topicTitle: string;
+  description: string;
+  isCompleted: boolean;
+  completedAt?: string;
+}
+
+export interface LearningPlan {
+  tasks: LearningTask[];
+  generatedAt: string;
 }
 
 export const STORES = [
