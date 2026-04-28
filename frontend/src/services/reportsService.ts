@@ -127,6 +127,30 @@ export const generateAiRecommendations = async (reportId: string): Promise<Audit
   return res.json();
 };
 
+export const generateLearningPlan = async (reportId: string): Promise<AuditResult> => {
+  const res = await fetch(`/api/reports/${reportId}/generate-learning-plan`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Помилка генерації плану навчання');
+  }
+  return res.json();
+};
+
+export const toggleLearningTask = async (reportId: string, taskIndex: number): Promise<AuditResult> => {
+  const res = await fetch(`/api/reports/${reportId}/learning-plan/${taskIndex}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Помилка оновлення задачі');
+  }
+  return res.json();
+};
+
 export const submitScoreInsight = async (
   reportId: string,
   data: Partial<Pick<ScoreInsight, 'goalText' | 'whatHelpedText'>>,
