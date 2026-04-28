@@ -6,6 +6,7 @@ import { User } from '../models/User';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { awardPoints } from '../services/pointsService';
 import { PointsTransaction } from '../models/PointsTransaction';
+import { getChunks } from '../services/standardsService';
 
 function getTier(score: number): 'below85' | 'range85to94' | 'range95to99' | 'perfect100' {
   if (score === 100) return 'perfect100';
@@ -481,6 +482,147 @@ router.post('/:id/score-insight', async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('score-insight error:', error);
     return res.status(500).json({ message: 'Помилка збереження' });
+  }
+});
+
+// POST /api/reports/:id/generate-learning-plan
+router.post('/:id/generate-learning-plan', async (req: AuthRequest, res: Response) => {
+  try {
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+
+    const isOwner = report.userId.toString() === req.user?.userId?.toString();
+    const isAdmin = req.user?.role === 'ADMIN';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Доступ заборонено' });
+
+    if (!report.aiRecommendations) {
+      return res.status(400).json({ message: 'Спочатку згенеруйте AI рекомендації' });
+    }
+
+    const tier = report.aiRecommendations.tier;
+    if (tier !== 'below85' && tier !== 'range85to94') {
+      return res.status(400).json({ message: 'План навчання генерується лише для тірів below85 та range85to94' });
+    }
+
+    // Idempotent — return existing plan if already generated
+    if (report.learningPlan) {
+      return res.json(report);
+    }
+
+    const taskCount = tier === 'below85' ? 6 : 3;
+    const weakPoints = report.aiRecommendations.weakPoints;
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const chunks = await getChunks();
+
+    let contextText = '';
+
+    if (chunks.length > 0) {
+      const titlesText = chunks.map(c => `${c.index}: ${c.title}`).join('\n');
+      const step1Prompt = `Ти аналітик навчання. Визнач найбільш релевантні розділи стандартів до слабких пунктів аудиту.
+Поверни ТІЛЬКИ валідний JSON масив числових індексів (максимум 6) найбільш релевантних розділів.
+
+Слабкі пункти:
+${weakPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+
+Розділи стандартів:
+${titlesText}
+
+Формат відповіді: [0, 3, 7]`;
+
+      const step1Res = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 256,
+        messages: [{ role: 'user', content: step1Prompt }],
+      });
+
+      const step1Raw = (step1Res.content[0] as { type: string; text: string }).text.trim()
+        .replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+
+      try {
+        const parsed = JSON.parse(step1Raw);
+        if (Array.isArray(parsed)) {
+          const indices = parsed
+            .filter((i): i is number => typeof i === 'number' && i >= 0 && i < chunks.length)
+            .slice(0, 6);
+          contextText = indices.map(i => `=== ${chunks[i].title} ===\n${chunks[i].content}`).join('\n\n');
+        }
+      } catch {
+        console.warn('[generate-learning-plan] step 1 index selection failed, proceeding without standards context');
+      }
+    }
+
+    const contextSection = contextText ? `\nРелевантні розділи стандартів обслуговування:\n${contextText}\n` : '';
+
+    const step2Prompt = `Ти тренер з продажів ювелірного магазину. Створи план навчання на основі слабких пунктів аудиту.
+Поверни ТІЛЬКИ валідний JSON масив з рівно ${taskCount} задачами.
+${contextSection}
+Слабкі пункти:
+${weakPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
+
+Формат кожної задачі:
+{
+  "topicTitle": "Назва теми або проблеми (до 60 символів)",
+  "description": "Конкретне практичне завдання (1-2 речення, українська)"
+}
+
+Правила:
+- ${tier === 'below85' ? 'Рівно 6 задач: по 2 задачі на кожен з 3 слабких пунктів. topicTitle кожної задачі — це назва слабкого пункту.' : 'Від 2 до 3 задач для одного слабкого пункту. topicTitle — назва слабкого пункту.'}
+- description: конкретна дія (що переглянути, що відпрацювати, який розділ стандартів опрацювати)
+- Якщо є розділи стандартів — обов'язково вкажи конкретний розділ у description
+- Без загальних порад, тільки конкретні дії`;
+
+    let parsedTasks: { topicTitle: string; description: string }[] = [];
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const step2Res = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: step2Prompt }],
+      });
+
+      const step2Raw = (step2Res.content[0] as { type: string; text: string }).text.trim()
+        .replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+
+      try {
+        const parsed = JSON.parse(step2Raw);
+        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0]?.topicTitle === 'string') {
+          parsedTasks = parsed.filter(
+            (t): t is { topicTitle: string; description: string } =>
+              typeof t.topicTitle === 'string' && typeof t.description === 'string'
+          );
+          break;
+        }
+      } catch {
+        if (attempt === 1) {
+          console.error('[generate-learning-plan] step 2 failed both attempts. Raw:', step2Raw.substring(0, 300));
+          return res.status(500).json({ message: 'AI повернув невалідну відповідь при генерації плану. Спробуйте ще раз.' });
+        }
+      }
+    }
+
+    if (parsedTasks.length === 0) {
+      return res.status(500).json({ message: 'Не вдалось згенерувати план навчання' });
+    }
+
+    const learningPlanData = {
+      tasks: parsedTasks.map(t => ({
+        topicTitle: t.topicTitle.trim(),
+        description: t.description.trim(),
+        isCompleted: false,
+      })),
+      generatedAt: new Date(),
+    };
+
+    const saved = await Report.findOneAndUpdate(
+      { _id: report._id, learningPlan: { $exists: false } },
+      { $set: { learningPlan: learningPlanData } },
+      { new: true }
+    );
+
+    return res.json(saved ?? await Report.findById(report._id));
+  } catch (error) {
+    console.error('generate-learning-plan error:', error);
+    return res.status(500).json({ message: 'Помилка генерації плану навчання' });
   }
 });
 
