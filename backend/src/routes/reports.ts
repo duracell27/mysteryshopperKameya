@@ -339,6 +339,83 @@ router.get('/my/transactions', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /api/reports/stats/dashboard — admin dashboard stats
+router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ message: 'Доступ заборонено' });
+  }
+
+  try {
+    const currentYear = new Date().getFullYear();
+    const quarterOrder: Record<string, number> = { Q1: 1, Q2: 2, Q3: 3, Q4: 4 };
+
+    const yearReports = await Report.find({ year: currentYear })
+      .populate('userId', 'name store')
+      .lean();
+
+    // ── 1. Загальний бал по мережі за рік ──
+    const networkAvg = yearReports.length
+      ? Math.round((yearReports.reduce((s, r) => s + r.totalScore, 0) / yearReports.length) * 10) / 10
+      : null;
+
+    // ── 2. Бал по останньому Q що має звіти ──
+    const quartersPresent = [...new Set(yearReports.map(r => r.quarter))]
+      .sort((a, b) => (quarterOrder[b] ?? 0) - (quarterOrder[a] ?? 0));
+    const latestQ = quartersPresent[0] ?? null;
+    const latestQReports = latestQ ? yearReports.filter(r => r.quarter === latestQ) : [];
+    const latestQAvg = latestQReports.length
+      ? Math.round((latestQReports.reduce((s, r) => s + r.totalScore, 0) / latestQReports.length) * 10) / 10
+      : null;
+
+    // ── 3. Рейтинг по магазинах ──
+    const storeMap: Record<string, { sum: number; count: number }> = {};
+    for (const r of yearReports) {
+      const store = r.store || (typeof r.userId === 'object' && r.userId && 'store' in r.userId ? (r.userId as { store?: string }).store : '') || 'Не вказано';
+      if (!storeMap[store]) storeMap[store] = { sum: 0, count: 0 };
+      storeMap[store].sum += r.totalScore;
+      storeMap[store].count += 1;
+    }
+    const storeRanking = Object.entries(storeMap)
+      .map(([store, { sum, count }]) => ({
+        store,
+        avg: Math.round((sum / count) * 10) / 10,
+        count,
+      }))
+      .sort((a, b) => b.avg - a.avg);
+
+    // ── 4. Рейтинг по консультантах ──
+    const consultantMap: Record<string, { name: string; sum: number; count: number }> = {};
+    for (const r of yearReports) {
+      const uid = typeof r.userId === 'object' && r.userId ? (r.userId as { _id: { toString(): string } })._id.toString() : String(r.userId);
+      const name = typeof r.userId === 'object' && r.userId && 'name' in r.userId
+        ? ((r.userId as { name?: string }).name || '—')
+        : '—';
+      if (!consultantMap[uid]) consultantMap[uid] = { name, sum: 0, count: 0 };
+      consultantMap[uid].sum += r.totalScore;
+      consultantMap[uid].count += 1;
+    }
+    const consultantRanking = Object.values(consultantMap)
+      .map(({ name, sum, count }) => ({
+        name,
+        avg: Math.round((sum / count) * 10) / 10,
+        count,
+      }))
+      .sort((a, b) => b.avg - a.avg);
+
+    return res.json({
+      year: currentYear,
+      networkAvg,
+      latestQ,
+      latestQAvg,
+      storeRanking,
+      consultantRanking,
+    });
+  } catch (error) {
+    console.error('dashboard stats error:', error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 // GET /api/reports — всі звіти (адмін)
 router.get('/', async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== 'ADMIN') {

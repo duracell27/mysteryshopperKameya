@@ -115,6 +115,21 @@ export const getMyPointsHistory = async (): Promise<PointsTransaction[]> => {
   return res.json();
 };
 
+export interface DashboardStats {
+  year: number;
+  networkAvg: number | null;
+  latestQ: string | null;
+  latestQAvg: number | null;
+  storeRanking: { store: string; avg: number; count: number }[];
+  consultantRanking: { name: string; avg: number; count: number }[];
+}
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  const res = await fetch('/api/reports/stats/dashboard', { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error('Помилка завантаження статистики');
+  return res.json();
+};
+
 export const generateAiRecommendations = async (reportId: string): Promise<AuditResult> => {
   const res = await fetch(`/api/reports/${reportId}/generate-ai`, {
     method: 'POST',
