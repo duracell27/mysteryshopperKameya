@@ -4,7 +4,7 @@ import { UserListItem, STORES, EMPLOYEE_POSITIONS, PointsTransaction } from '../
 import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory } from '../../services/usersService';
 
 const EMPTY_CREATE: CreateUserPayload = {
-  phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '',
+  phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '', birthday: '',
 };
 
 // 380XXXXXXXXX → 050 809 81 82
@@ -36,7 +36,7 @@ export const UsersView: React.FC = () => {
 
   // Edit
   const [editUser, setEditUser]     = useState<UserListItem | null>(null);
-  const [editForm, setEditForm]     = useState<UpdateUserPayload & { position: string; store: string }>({ name: '', role: 'EMPLOYEE', position: '', store: '', password: '' });
+  const [editForm, setEditForm]     = useState<UpdateUserPayload & { position: string; store: string; birthday: string }>({ name: '', role: 'EMPLOYEE', position: '', store: '', password: '', birthday: '' });
   const [isEditing, setIsEditing]   = useState(false);
   const [editError, setEditError]   = useState('');
 
@@ -103,7 +103,14 @@ export const UsersView: React.FC = () => {
   // ── Редагування ──
   const openEdit = (u: UserListItem) => {
     setEditUser(u);
-    setEditForm({ name: u.name, role: u.role, position: u.position ?? '', store: u.store ?? '', password: '' });
+    setEditForm({
+      name: u.name,
+      role: u.role,
+      position: u.position ?? '',
+      store: u.store ?? '',
+      password: '',
+      birthday: u.birthday ? u.birthday.slice(0, 10) : '',
+    });
     setEditError('');
   };
 
@@ -118,6 +125,7 @@ export const UsersView: React.FC = () => {
         role:     editForm.role,
         position: editForm.role === 'EMPLOYEE' ? editForm.position : undefined,
         store:    editForm.role === 'EMPLOYEE' ? editForm.store    : undefined,
+        birthday: editForm.role === 'EMPLOYEE' ? (editForm.birthday || undefined) : undefined,
         password: editForm.password || undefined,
       };
       const updated = await updateUser(editUser._id, payload);
@@ -326,6 +334,11 @@ export const UsersView: React.FC = () => {
                       {STORES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </FormField>
+                  <FormField label="Дата народження">
+                    <input type="date" value={createForm.birthday ?? ''}
+                      onChange={(e) => setCreateForm((f) => ({ ...f, birthday: e.target.value }))}
+                      className={inputCls} required />
+                  </FormField>
                 </>
               )}
 
@@ -392,6 +405,11 @@ export const UsersView: React.FC = () => {
                       {STORES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </FormField>
+                  <FormField label="Дата народження">
+                    <input type="date" value={editForm.birthday}
+                      onChange={(e) => setEditForm((f) => ({ ...f, birthday: e.target.value }))}
+                      className={inputCls} />
+                  </FormField>
                 </>
               )}
 
@@ -445,16 +463,20 @@ export const UsersView: React.FC = () => {
                   </div>
                   {pointsHistory.map((tx) => {
                     const reportId = typeof tx.reportId === 'object' ? tx.reportId : null;
+                    const label = tx.reason === 'birthday'
+                      ? `🎂 День народження ${tx.birthdayYear ?? tx.year}`
+                      : tx.reason === 'streak'
+                        ? `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`
+                        : tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0)
+                          ? `Рефлексія ${tx.quarter ?? ''} ${tx.year}`
+                          : `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
                     return (
                       <div key={tx._id} className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-xl">
                         <div>
-                          <p className="text-sm font-semibold text-slate-800">
-                            {tx.quarter} {tx.year}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            Результат: {Math.floor(tx.scorePercent)}%
-                            {reportId?.fileName ? ` · ${reportId.fileName}` : ''}
-                          </p>
+                          <p className="text-sm font-semibold text-slate-800">{label}</p>
+                          {reportId?.fileName && (
+                            <p className="text-xs text-slate-500">{reportId.fileName}</p>
+                          )}
                           <p className="text-xs text-slate-400">
                             {new Date(tx.createdAt).toLocaleDateString('uk-UA')}
                           </p>

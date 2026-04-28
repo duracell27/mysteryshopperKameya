@@ -24,10 +24,13 @@ export const ProgressView: React.FC = () => {
   const totalPoints = loading ? 0 : transactions.reduce((sum, tx) => sum + tx.pointsAwarded, 0);
   const lastThree = transactions.slice(0, 3);
 
-  const txLabel = (tx: PointsTransaction) =>
-    tx.scorePercent === 0
-      ? `Рефлексія ${tx.quarter} ${tx.year}`
-      : `${tx.quarter} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
+  const txLabel = (tx: PointsTransaction) => {
+    if (tx.reason === 'birthday') return `🎂 День народження ${tx.birthdayYear ?? tx.year}`;
+    if (tx.reason === 'streak')   return `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`;
+    if (tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0))
+      return `Рефлексія ${tx.quarter ?? ''} ${tx.year}`;
+    return `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
+  };
 
   return (
     <div className="space-y-8">

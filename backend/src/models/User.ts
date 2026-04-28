@@ -8,6 +8,7 @@ export interface IUser extends Document {
   store?: string;     // назва магазину
   role: 'ADMIN' | 'EMPLOYEE';
   points: number;
+  birthday?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +22,7 @@ const UserSchema = new Schema<IUser>(
     store:    { type: String },
     role:     { type: String, enum: ['ADMIN', 'EMPLOYEE'], default: 'EMPLOYEE' },
     points:   { type: Number, default: 0 },
+    birthday: { type: Date },
   },
   { timestamps: true }
 );

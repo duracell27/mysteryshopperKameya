@@ -7,6 +7,8 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { awardPoints } from '../services/pointsService';
 import { PointsTransaction } from '../models/PointsTransaction';
 import { getChunks } from '../services/standardsService';
+import { syncStreakBonuses } from '../services/streakService';
+import { checkAndAwardBirthday } from '../services/birthdayService';
 
 function getTier(score: number): 'below85' | 'range85to94' | 'range95to99' | 'perfect100' {
   if (score === 100) return 'perfect100';
@@ -247,6 +249,9 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
       totalScore,
     });
 
+    // Recalculate streak bonuses after new report is added
+    await syncStreakBonuses(userId, Number(year));
+
     return res.status(201).json({ ...report.toObject(), pointsAwarded, totalPoints });
   } catch (error) {
     console.error(error);
@@ -306,7 +311,15 @@ router.get('/my/rank', async (req: AuthRequest, res: Response) => {
 // GET /api/reports/my — звіти поточного працівника
 router.get('/my', async (req: AuthRequest, res: Response) => {
   try {
-    const reports = await Report.find({ userId: req.user?.userId }).sort({ createdAt: -1 });
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ message: 'Не авторизовано' });
+
+    // Non-blocking birthday check — awards 15 pts if birthday passed this year and not yet awarded
+    checkAndAwardBirthday(userId).catch(err =>
+      console.error('[birthday] check failed:', err)
+    );
+
+    const reports = await Report.find({ userId }).sort({ createdAt: -1 });
     return res.json(reports);
   } catch (error) {
     console.error(error);
@@ -742,6 +755,9 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
         { $set: { points: { $max: [{ $subtract: ['$points', pointsToRemove] }, 0] } } },
       ]);
     }
+
+    // Recalculate streak bonuses after report is removed
+    await syncStreakBonuses(report.userId, report.year);
 
     return res.json({ message: 'Звіт видалено', id });
   } catch (error) {

@@ -18,6 +18,7 @@ export interface CreateUserPayload {
   role: 'ADMIN' | 'EMPLOYEE';
   position?: string;
   store?: string;
+  birthday?: string;
 }
 
 export const createUser = async (data: CreateUserPayload): Promise<UserListItem> => {
@@ -39,6 +40,7 @@ export interface UpdateUserPayload {
   position?: string;
   store?: string;
   password?: string;
+  birthday?: string;
 }
 
 export const updateUser = async (id: string, data: UpdateUserPayload): Promise<UserListItem> => {

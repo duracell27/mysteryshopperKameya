@@ -41,13 +41,16 @@ router.get('/', async (_req, res: Response) => {
 // POST /api/users
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { phone, password, name, role, position, store } = req.body;
+    const { phone, password, name, role, position, store, birthday } = req.body;
 
     if (!phone || !password || !role) {
       return res.status(400).json({ message: 'Заповніть всі обов\'язкові поля' });
     }
     if (role === 'EMPLOYEE' && (!position || !store)) {
       return res.status(400).json({ message: 'Для працівника вкажіть посаду та магазин' });
+    }
+    if (role === 'EMPLOYEE' && !birthday) {
+      return res.status(400).json({ message: 'Вкажіть дату народження' });
     }
 
     const normalizedPhone = normalizePhone(String(phone));
@@ -63,6 +66,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       role,
       position: role === 'EMPLOYEE' ? position : undefined,
       store:    role === 'EMPLOYEE' ? store    : undefined,
+      birthday: role === 'EMPLOYEE' && birthday ? new Date(birthday) : undefined,
     });
 
     try {
@@ -92,13 +96,14 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 // PATCH /api/users/:id
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, position, store, password, role } = req.body;
+    const { name, position, store, password, role, birthday } = req.body;
     const update: Record<string, unknown> = {};
 
     if (name     !== undefined) update.name     = name;
     if (role     !== undefined) update.role     = role;
     if (position !== undefined) update.position = position;
     if (store    !== undefined) update.store    = store;
+    if (birthday !== undefined) update.birthday = birthday ? new Date(birthday) : undefined;
     if (password) update.password = await bcrypt.hash(String(password), 12);
 
     const query: Record<string, unknown> = { $set: update };

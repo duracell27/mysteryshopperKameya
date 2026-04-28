@@ -87,17 +87,24 @@ export interface UserListItem {
   store?: string;
   role: 'ADMIN' | 'EMPLOYEE';
   points?: number;
+  birthday?: string;
   createdAt: string;
 }
+
+export type TransactionReason = 'score' | 'reflection' | 'streak' | 'birthday';
 
 export interface PointsTransaction {
   _id: string;
   userId: string;
-  reportId: { _id: string; fileName: string; date: string } | string;
-  quarter: string;
+  reportId?: { _id: string; fileName: string; date: string } | string;
+  quarter?: string;
   year: number;
   scorePercent: number;
   pointsAwarded: number;
+  reason?: TransactionReason;
+  streakQuarters?: number;
+  streakYear?: number;
+  birthdayYear?: number;
   createdAt: string;
 }
 
