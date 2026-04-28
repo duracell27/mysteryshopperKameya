@@ -262,25 +262,39 @@ router.get('/my/rank', async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'Не авторизовано' });
     }
 
-    // Рейтинг по реальних балах (User.points) серед всіх EMPLOYEE
-    const employees = await User.find({ role: 'EMPLOYEE' }, 'points').lean();
-    const totalUsers = employees.length;
+    // Рейтинг по середньому балу звітів серед усіх EMPLOYEE
+    const totalUsers = await User.countDocuments({ role: 'EMPLOYEE' });
+    const allReports = await Report.find({}, 'userId totalScore').lean();
 
-    // Сортуємо за балами спадаючи
-    const sorted = [...employees].sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+    // Середній totalScore по кожному юзеру
+    const scoreMap: Record<string, { sum: number; count: number }> = {};
+    for (const r of allReports) {
+      const uid = r.userId.toString();
+      if (!scoreMap[uid]) scoreMap[uid] = { sum: 0, count: 0 };
+      scoreMap[uid].sum += r.totalScore;
+      scoreMap[uid].count += 1;
+    }
+
+    const avgScore = (uid: string) =>
+      scoreMap[uid] ? scoreMap[uid].sum / scoreMap[uid].count : 0;
+
+    // Зібрати всіх EMPLOYEE і посортувати за середнім балом
+    const employees = await User.find({ role: 'EMPLOYEE' }, '_id').lean();
+    const sorted = [...employees].sort(
+      (a, b) => avgScore(b._id.toString()) - avgScore(a._id.toString())
+    );
 
     const myIndex = sorted.findIndex(u => u._id.toString() === userId.toString());
     const myRank = myIndex === -1 ? totalUsers : myIndex + 1;
-    const myPoints = sorted[myIndex]?.points ?? 0;
+    const myAvg = Math.round(avgScore(userId.toString()) * 10) / 10;
 
-    // Рівень кожні 10 позицій
     const tierNumber = Math.ceil(myRank / 10) * 10;
     const tier = `Топ ${tierNumber}`;
 
     return res.json({
       rank: myRank,
       totalUsers,
-      totalScore: myPoints,
+      totalScore: myAvg,
       tier,
     });
   } catch (error) {
