@@ -720,10 +720,25 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
   try {
     const { id } = req.params;
-    const report = await Report.findByIdAndDelete(id);
+    const report = await Report.findById(id);
 
     if (!report) {
       return res.status(404).json({ message: 'Звіт не знайдено' });
+    }
+
+    // Знайти всі транзакції по цьому звіту і порахувати скільки балів треба відняти
+    const transactions = await PointsTransaction.find({ reportId: id });
+    const pointsToRemove = transactions.reduce((sum, t) => sum + t.pointsAwarded, 0);
+
+    // Видалити транзакції і звіт
+    await PointsTransaction.deleteMany({ reportId: id });
+    await report.deleteOne();
+
+    // Відняти бали від юзера (мінімум 0)
+    if (pointsToRemove > 0) {
+      await User.findByIdAndUpdate(report.userId, [
+        { $set: { points: { $max: [{ $subtract: ['$points', pointsToRemove] }, 0] } } },
+      ]);
     }
 
     return res.json({ message: 'Звіт видалено', id });
