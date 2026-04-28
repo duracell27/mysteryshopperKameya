@@ -626,6 +626,39 @@ ${weakPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
   }
 });
 
+// PATCH /api/reports/:id/learning-plan/:taskIndex — toggle task completion
+router.patch('/:id/learning-plan/:taskIndex', async (req: AuthRequest, res: Response) => {
+  try {
+    const taskIndex = parseInt(req.params.taskIndex, 10);
+    if (isNaN(taskIndex) || taskIndex < 0) {
+      return res.status(400).json({ message: 'Невалідний індекс задачі' });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+
+    if (report.userId.toString() !== req.user?.userId?.toString()) {
+      return res.status(403).json({ message: 'Доступ заборонено' });
+    }
+
+    if (!report.learningPlan || taskIndex >= report.learningPlan.tasks.length) {
+      return res.status(400).json({ message: 'Задача не знайдена' });
+    }
+
+    const task = report.learningPlan.tasks[taskIndex];
+    task.isCompleted = !task.isCompleted;
+    task.completedAt = task.isCompleted ? new Date() : undefined;
+
+    report.markModified('learningPlan');
+    await report.save();
+
+    return res.json(report);
+  } catch (error) {
+    console.error('toggle-learning-task error:', error);
+    return res.status(500).json({ message: 'Помилка збереження' });
+  }
+});
+
 // POST /api/reports/:id/reflection — employee submits reflection
 router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
   try {
