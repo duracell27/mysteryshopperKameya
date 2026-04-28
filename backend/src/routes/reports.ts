@@ -262,38 +262,26 @@ router.get('/my/rank', async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'Не авторизовано' });
     }
 
-    // Отримати всі звіти та згрупувати по користувачам
-    const allReports = await Report.find();
+    // Рейтинг по реальних балах (User.points) серед всіх EMPLOYEE
+    const employees = await User.find({ role: 'EMPLOYEE' }, 'points').lean();
+    const totalUsers = employees.length;
 
-    // Обчислити суму балів для кожного користувача
-    const userScores: { [key: string]: number } = {};
-    allReports.forEach(report => {
-      const uid = report.userId.toString();
-      userScores[uid] = (userScores[uid] || 0) + (report.totalScore || 0);
-    });
+    // Сортуємо за балами спадаючи
+    const sorted = [...employees].sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
 
-    // Сортувати користувачів за балами (спадаючи)
-    const sortedUsers = Object.entries(userScores)
-      .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
-      .map(([uid], index) => ({ userId: uid, rank: index + 1 }));
+    const myIndex = sorted.findIndex(u => u._id.toString() === userId.toString());
+    const myRank = myIndex === -1 ? totalUsers : myIndex + 1;
+    const myPoints = sorted[myIndex]?.points ?? 0;
 
-    // Знайти ранг поточного користувача
-    const userRank = sortedUsers.find(u => u.userId === userId.toString());
-    const totalUsers = sortedUsers.length;
-    const userTotalScore = userScores[userId.toString()] || 0;
-
-    // Визначити рівень на основі рангу (кожні 10 позицій)
-    let tier = 'Топ 100+';
-    if (userRank) {
-      const tierNumber = Math.ceil(userRank.rank / 10) * 10;
-      tier = `Топ ${tierNumber}`;
-    }
+    // Рівень кожні 10 позицій
+    const tierNumber = Math.ceil(myRank / 10) * 10;
+    const tier = `Топ ${tierNumber}`;
 
     return res.json({
-      rank: userRank?.rank || totalUsers + 1,
+      rank: myRank,
       totalUsers,
-      totalScore: userTotalScore,
-      tier
+      totalScore: myPoints,
+      tier,
     });
   } catch (error) {
     console.error(error);
