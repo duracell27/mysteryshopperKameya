@@ -430,6 +430,63 @@ export const AdminReportsListView: React.FC = () => {
           {aiError && <p className="text-xs text-red-500 mt-2">{aiError}</p>}
         </div>
 
+        {/* Learning Plan panel */}
+        <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+          <p className="text-sm font-semibold text-slate-700 mb-3">План навчання</p>
+          {selected.learningPlan ? (
+            <div className="space-y-3">
+              <p className="text-xs text-slate-400">
+                Згенеровано: {new Date(selected.learningPlan.generatedAt).toLocaleDateString('uk-UA')}
+                {' · '}
+                {selected.learningPlan.tasks.filter(t => t.isCompleted).length}/{selected.learningPlan.tasks.length} виконано
+              </p>
+              {(() => {
+                type LPTask = NonNullable<typeof selected.learningPlan>['tasks'][number];
+                const groups: { topic: string; tasks: LPTask[] }[] = [];
+                const seen = new Map<string, number>();
+                selected.learningPlan.tasks.forEach(t => {
+                  const idx = seen.get(t.topicTitle);
+                  if (idx !== undefined) {
+                    groups[idx].tasks.push(t);
+                  } else {
+                    seen.set(t.topicTitle, groups.length);
+                    groups.push({ topic: t.topicTitle, tasks: [t] });
+                  }
+                });
+                return groups.map(({ topic, tasks }) => (
+                  <div key={topic}>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{topic}</p>
+                    <div className="space-y-1">
+                      {tasks.map((task, i) => (
+                        <div
+                          key={i}
+                          className={`flex items-start gap-2 p-2 rounded-lg text-sm ${
+                            task.isCompleted ? 'bg-green-50' : 'bg-slate-50'
+                          }`}
+                        >
+                          <i className={`fas ${task.isCompleted ? 'fa-circle-check text-green-500' : 'fa-circle text-slate-300'} flex-shrink-0 mt-0.5 text-xs`}></i>
+                          <div className="flex-1">
+                            <span className={task.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700'}>
+                              {task.description}
+                            </span>
+                            {task.completedAt && (
+                              <span className="ml-2 text-xs text-green-600">
+                                {new Date(task.completedAt).toLocaleDateString('uk-UA')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-400">План ще не згенеровано</p>
+          )}
+        </div>
+
         {/* Reflection answers modal */}
         {reflectionReport?.reflection && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
