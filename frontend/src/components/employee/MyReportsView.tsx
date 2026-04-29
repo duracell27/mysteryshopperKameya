@@ -318,11 +318,11 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {refl ? (
                       <span className="text-xs text-green-600 flex items-center gap-1">
-                        <i className="fas fa-circle-check"></i> Заповнено
+                        <i className="fas fa-circle-check"></i> Ознайомлено
                       </span>
                     ) : (
                       <span className="text-xs text-slate-400 flex items-center gap-1">
-                        <i className="fas fa-circle"></i> Не заповнено
+                        <i className="fas fa-circle"></i> Не ознайомлено
                       </span>
                     )}
                     <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
