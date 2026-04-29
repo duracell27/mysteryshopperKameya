@@ -47,6 +47,8 @@ export const UsersView: React.FC = () => {
   const [pointsHistory, setPointsHistory] = useState<PointsTransaction[]>([]);
   const [pointsLoading, setPointsLoading] = useState(false);
 
+  const [search, setSearch] = useState('');
+
   // Sorting
   type SortKey = 'name' | 'role' | 'position' | 'store' | 'points';
   const [sortKey, setSortKey] = useState<SortKey>('name');
@@ -57,7 +59,17 @@ export const UsersView: React.FC = () => {
     else { setSortKey(key); setSortDir('asc'); }
   };
 
-  const sortedUsers = [...users].sort((a, b) => {
+  const q = search.toLowerCase().trim();
+  const filteredUsers = q
+    ? users.filter(u =>
+        u.name.toLowerCase().includes(q) ||
+        u.phone.includes(q) ||
+        (u.position ?? '').toLowerCase().includes(q) ||
+        (u.store ?? '').toLowerCase().includes(q)
+      )
+    : users;
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
     let av: string | number = '';
     let bv: string | number = '';
     if (sortKey === 'name')     { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
@@ -186,16 +198,28 @@ export const UsersView: React.FC = () => {
         </div>
       )}
 
+      {/* Пошук */}
+      <div className="relative">
+        <i className="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Пошук за ім'ям, телефоном, посадою або магазином..."
+          className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy transition-all"
+        />
+      </div>
+
       {/* Таблиця */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center items-center py-20">
             <i className="fas fa-spinner fa-spin text-2xl text-slate-300"></i>
           </div>
-        ) : users.length === 0 ? (
+        ) : sortedUsers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-            <i className="fas fa-users text-4xl mb-3"></i>
-            <p>Користувачів поки немає</p>
+            <i className="fas fa-magnifying-glass text-4xl mb-3"></i>
+            <p>{users.length === 0 ? 'Користувачів поки немає' : 'Нікого не знайдено'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -220,6 +244,7 @@ export const UsersView: React.FC = () => {
                       </span>
                     </th>
                   ))}
+                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">День народження</th>
                   <th className="px-6 py-4"></th>
                 </tr>
               </thead>
@@ -252,6 +277,11 @@ export const UsersView: React.FC = () => {
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600">
+                      {u.birthday
+                        ? new Date(u.birthday).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                        : '—'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-3">
