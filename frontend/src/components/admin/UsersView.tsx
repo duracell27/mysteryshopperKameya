@@ -50,7 +50,7 @@ export const UsersView: React.FC = () => {
   const [search, setSearch] = useState('');
 
   // Sorting
-  type SortKey = 'name' | 'role' | 'position' | 'store' | 'points';
+  type SortKey = 'name' | 'role' | 'position' | 'store' | 'points' | 'birthday';
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -77,6 +77,7 @@ export const UsersView: React.FC = () => {
     if (sortKey === 'position') { av = (a.position ?? '').toLowerCase(); bv = (b.position ?? '').toLowerCase(); }
     if (sortKey === 'store')    { av = (a.store ?? '').toLowerCase(); bv = (b.store ?? '').toLowerCase(); }
     if (sortKey === 'points')   { av = a.points ?? 0; bv = b.points ?? 0; }
+    if (sortKey === 'birthday') { av = a.birthday ?? ''; bv = b.birthday ?? ''; }
     if (av < bv) return sortDir === 'asc' ? -1 : 1;
     if (av > bv) return sortDir === 'asc' ? 1 : -1;
     return 0;
@@ -244,7 +245,15 @@ export const UsersView: React.FC = () => {
                       </span>
                     </th>
                   ))}
-                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">ДН</th>
+                  <th
+                    onClick={() => handleSort('birthday')}
+                    className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs cursor-pointer select-none hover:text-slate-800 transition-colors"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      ДН
+                      <i className={`fas fa-sort${sortKey === 'birthday' ? (sortDir === 'asc' ? '-up text-kameya-burgundy' : '-down text-kameya-burgundy') : ' text-slate-300'} text-xs`}></i>
+                    </span>
+                  </th>
                   <th className="px-6 py-4"></th>
                 </tr>
               </thead>
