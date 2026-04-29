@@ -244,7 +244,7 @@ export const UsersView: React.FC = () => {
                       </span>
                     </th>
                   ))}
-                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">День народження</th>
+                  <th className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs">ДН</th>
                   <th className="px-6 py-4"></th>
                 </tr>
               </thead>
