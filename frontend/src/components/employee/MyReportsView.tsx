@@ -192,13 +192,7 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            {deadlinePassed && (
-              <p className="text-xs text-slate-400 text-center flex items-center justify-center gap-1">
-                <i className="fas fa-clock"></i>
-                Термін для отримання +10 балів минув, але рефлексію все одно можна заповнити
-              </p>
-            )}
+          <div>
             <button
               onClick={() => setShowReflection(true)}
               className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
