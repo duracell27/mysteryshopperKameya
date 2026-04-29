@@ -191,19 +191,22 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
               </p>
             </div>
           </div>
-        ) : deadlinePassed ? (
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-            <i className="fas fa-clock text-slate-400"></i>
-            <p className="text-sm text-slate-500">Термін рефлексії минув</p>
-          </div>
         ) : (
-          <button
-            onClick={() => setShowReflection(true)}
-            className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
-          >
-            <i className="fas fa-pen-to-square"></i>
-            Ознайомився
-          </button>
+          <div className="space-y-2">
+            {deadlinePassed && (
+              <p className="text-xs text-slate-400 text-center flex items-center justify-center gap-1">
+                <i className="fas fa-clock"></i>
+                Термін для отримання +10 балів минув, але рефлексію все одно можна заповнити
+              </p>
+            )}
+            <button
+              onClick={() => setShowReflection(true)}
+              className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+            >
+              <i className="fas fa-pen-to-square"></i>
+              Ознайомився
+            </button>
+          </div>
         )}
 
         {/* Reflection modal */}
