@@ -137,11 +137,13 @@ export interface LearningTask {
   description: string;
   isCompleted: boolean;
   completedAt?: string;
+  response?: string;
 }
 
 export interface LearningPlan {
   tasks: LearningTask[];
   generatedAt: string;
+  deadline?: string;
 }
 
 export const STORES = [

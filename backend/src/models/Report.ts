@@ -47,11 +47,13 @@ interface ILearningTask {
   description: string;
   isCompleted: boolean;
   completedAt?: Date;
+  response?: string;
 }
 
 interface ILearningPlan {
   tasks: ILearningTask[];
   generatedAt: Date;
+  deadline: Date;
 }
 
 export interface IReport extends Document {
@@ -128,11 +130,13 @@ const LearningTaskSchema = new Schema<ILearningTask>({
   description: { type: String, required: true },
   isCompleted: { type: Boolean, default: false },
   completedAt: { type: Date },
+  response:    { type: String },
 }, { _id: false });
 
 const LearningPlanSchema = new Schema<ILearningPlan>({
   tasks:       [LearningTaskSchema],
   generatedAt: { type: Date, required: true },
+  deadline:    { type: Date, required: true },
 }, { _id: false });
 
 const ReportSchema = new Schema<IReport>({

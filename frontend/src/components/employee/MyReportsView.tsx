@@ -6,12 +6,16 @@ import { formatDate } from '../../utils/dateFormatter';
 import { useAuth } from '../../context/AuthContext';
 import { scoreTextClass, scoreBgBorderClass, formatScore } from '../../utils/scoreColor';
 
-export const MyReportsView: React.FC = () => {
+interface MyReportsViewProps {
+  initialSelected?: AuditResult | null;
+}
+
+export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected }) => {
   const { user } = useAuth();
   const [reports, setReports] = useState<AuditResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AuditResult | null>(null);
+  const [selected, setSelected] = useState<AuditResult | null>(initialSelected ?? null);
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [showReflection, setShowReflection] = useState(false);
   const [reflAnswer1, setReflAnswer1] = useState('');
@@ -55,7 +59,14 @@ export const MyReportsView: React.FC = () => {
 
   useEffect(() => {
     getMyReports()
-      .then(setReports)
+      .then(data => {
+        setReports(data);
+        if (initialSelected) {
+          const initId = initialSelected._id ?? initialSelected.id;
+          const fresh = data.find(r => (r._id ?? r.id) === initId);
+          if (fresh) setSelected(fresh);
+        }
+      })
       .catch(() => setError('Не вдалося завантажити звіти'))
       .finally(() => setLoading(false));
   }, []);

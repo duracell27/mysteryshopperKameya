@@ -154,10 +154,11 @@ export const generateLearningPlan = async (reportId: string): Promise<AuditResul
   return res.json();
 };
 
-export const toggleLearningTask = async (reportId: string, taskIndex: number): Promise<AuditResult> => {
+export const toggleLearningTask = async (reportId: string, taskIndex: number, response?: string): Promise<AuditResult> => {
   const res = await fetch(`/api/reports/${reportId}/learning-plan/${taskIndex}`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ response }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

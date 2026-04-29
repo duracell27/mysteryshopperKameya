@@ -696,13 +696,18 @@ ${weakPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
       return res.status(500).json({ message: 'Не вдалось згенерувати план навчання' });
     }
 
+    const generatedAt = new Date();
+    const deadlineDays = Math.min(10, 5 + parsedTasks.length);
+    const deadline = new Date(generatedAt.getTime() + deadlineDays * 24 * 60 * 60 * 1000);
+
     const learningPlanData = {
       tasks: parsedTasks.map(t => ({
         topicTitle: t.topicTitle.trim(),
         description: t.description.trim(),
         isCompleted: false,
       })),
-      generatedAt: new Date(),
+      generatedAt,
+      deadline,
     };
 
     const saved = await Report.findOneAndUpdate(
@@ -738,6 +743,15 @@ router.patch('/:id/learning-plan/:taskIndex', async (req: AuthRequest, res: Resp
     }
 
     const task = report.learningPlan.tasks[taskIndex];
+    const { response } = req.body as { response?: string };
+
+    if (!task.isCompleted) {
+      if (!response || response.trim().length < 300) {
+        return res.status(400).json({ message: 'Необхідно написати розгорнуту відповідь (мін. 300 символів)' });
+      }
+      task.response = response.trim();
+    }
+
     task.isCompleted = !task.isCompleted;
     task.completedAt = task.isCompleted ? new Date() : undefined;
 

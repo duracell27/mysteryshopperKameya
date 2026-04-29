@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
-import { AuditView } from './components/AuditView';
 import { TrainingPlanView } from './components/TrainingPlanView';
 import { QuizView } from './components/QuizView';
 import { ProgressView } from './components/ProgressView';
@@ -12,7 +11,7 @@ import { ReportsUploadView } from './components/admin/ReportsUploadView';
 import { AdminReportsListView } from './components/admin/AdminReportsListView';
 import { MyReportsView } from './components/employee/MyReportsView';
 import { LoginPage } from './pages/LoginPage';
-import { Screen, AIAnalysisResult, QuizQuestion } from './types';
+import { Screen, AIAnalysisResult, AuditResult, QuizQuestion } from './types';
 import { MOCK_AUDIT } from './constants';
 import { analyzeAuditResult, generateQuizQuestions } from './services/geminiService';
 
@@ -21,7 +20,7 @@ const AppContent: React.FC = () => {
   const isAdmin = user?.role === 'ADMIN';
 
   const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.DASHBOARD);
-  const [selectedAudit, setSelectedAudit] = useState<typeof MOCK_AUDIT | null>(null);
+  const [selectedAudit, setSelectedAudit] = useState<AuditResult | null>(null);
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeQuiz, setActiveQuiz] = useState<{ topic: string; questions: QuizQuestion[] } | null>(null);
@@ -44,9 +43,14 @@ const AppContent: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleNavigateToAuditDetails = (audit: typeof MOCK_AUDIT) => {
+  const handleNavigate = (screen: Screen) => {
+    setSelectedAudit(null);
+    setCurrentScreen(screen);
+  };
+
+  const handleNavigateToAuditDetails = (audit: AuditResult) => {
     setSelectedAudit(audit);
-    setCurrentScreen(Screen.AUDIT_DETAILS);
+    setCurrentScreen(Screen.MY_REPORTS);
   };
 
   if (isLoading) {
@@ -105,9 +109,7 @@ const AppContent: React.FC = () => {
   const renderEmployeeScreen = () => {
     switch (currentScreen) {
       case Screen.MY_REPORTS:
-        return <MyReportsView />;
-      case Screen.AUDIT_DETAILS:
-        return <AuditView audit={selectedAudit || MOCK_AUDIT} onStartAnalysis={handleRunAnalysis} isAnalyzing={isAnalyzing} />;
+        return <MyReportsView initialSelected={selectedAudit} />;
       case Screen.TRAINING_PLAN:
         return <TrainingPlanView analysis={analysis} onNavigateToQuiz={handleStartQuiz} />;
       case Screen.QUIZ:
@@ -120,12 +122,12 @@ const AppContent: React.FC = () => {
       case Screen.PROGRESS:
         return <ProgressView />;
       default:
-        return <Dashboard onNavigate={setCurrentScreen} onNavigateToAuditDetails={handleNavigateToAuditDetails} />;
+        return <Dashboard onNavigate={handleNavigate} onNavigateToAuditDetails={handleNavigateToAuditDetails} />;
     }
   };
 
   return (
-    <Layout activeScreen={currentScreen} onNavigate={setCurrentScreen} user={user} onLogout={logout}>
+    <Layout activeScreen={currentScreen} onNavigate={handleNavigate} user={user} onLogout={logout}>
       {toast && (
         <div className="fixed top-4 right-4 z-[100] bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl animate-bounce-in flex items-center space-x-2">
           <i className="fas fa-circle-check text-green-400"></i>
