@@ -8,9 +8,9 @@ export interface ScoreStyle {
 export function getScoreStyle(totalScore: number): ScoreStyle {
   const s = Math.floor(totalScore);
   if (s === 100) return {
-    textClass: 'text-amber-600',
-    bgClass: 'bg-amber-100',
-    borderClass: 'border-amber-400',
+    textClass: 'text-green-700',
+    bgClass: 'bg-green-50',
+    borderClass: 'border-green-400',
     icon: '🏆',
   };
   if (s >= 95) return {
@@ -41,7 +41,7 @@ export function scoreBgBorderClass(totalScore: number): string {
 
 export function scoreBarBgClass(totalScore: number): string {
   const s = Math.floor(totalScore);
-  if (s === 100) return 'bg-amber-400';
+  if (s === 100) return 'bg-green-600';
   if (s >= 95) return 'bg-green-500';
   if (s >= 80) return 'bg-yellow-500';
   return 'bg-red-500';
