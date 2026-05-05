@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { TrainingPlanView } from './components/TrainingPlanView';
+import { DevelopmentPlanView } from './components/employee/DevelopmentPlanView';
 import { QuizView } from './components/QuizView';
 import { ProgressView } from './components/ProgressView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -111,7 +112,7 @@ const AppContent: React.FC = () => {
       case Screen.MY_REPORTS:
         return <MyReportsView initialSelected={selectedAudit} />;
       case Screen.TRAINING_PLAN:
-        return <TrainingPlanView analysis={analysis} onNavigateToQuiz={handleStartQuiz} />;
+        return <DevelopmentPlanView />;
       case Screen.QUIZ:
         return activeQuiz ? (
           <QuizView topic={activeQuiz.topic} questions={activeQuiz.questions} onFinish={() => {

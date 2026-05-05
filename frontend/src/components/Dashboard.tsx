@@ -5,9 +5,6 @@ import { getMyReports } from '../services/reportsService';
 import { getTodayTip, TipOfDay } from '../services/tipsService';
 import { formatDate } from '../utils/dateFormatter';
 import { ScoreChart } from './employee/ScoreChart';
-import { ScoreInsightCard } from './employee/ScoreInsightCard';
-import { PerfectScoreWidget } from './employee/PerfectScoreWidget';
-import { LearningPlanSection } from './employee/LearningPlanSection';
 
 interface DashboardProps {
   onNavigate: (screen: Screen) => void;
@@ -21,30 +18,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
   const [allReports, setAllReports] = useState<AuditResult[]>([]);
   const [tip, setTip] = useState<TipOfDay | null>(null);
   const [loading, setLoading] = useState(true);
-  const [learningPlanLoading, setLearningPlanLoading] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      getMyReports(),
-      getTodayTip(),
-    ])
+    Promise.all([getMyReports(), getTodayTip()])
       .then(([reports, tipData]) => {
-        if (reports.length > 0) {
-          setLastAudit(reports[0]);
-        }
+        if (reports.length > 0) setLastAudit(reports[0]);
         setAllReports(reports);
         setTip(tipData);
       })
-      .catch(() => console.error('Помилка завантаження даних'))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
-
-  const handleInsightUpdated = (updated: AuditResult) => {
-    setLastAudit(updated);
-    setAllReports(prev => prev.map(r =>
-      (r._id ?? r.id) === (updated._id ?? updated.id) ? updated : r
-    ));
-  };
 
   const radius = 54;
   const stroke = 10;
@@ -53,8 +37,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
   const strokeDashoffset = lastAudit
     ? circumference - (lastAudit.totalScore / 100) * circumference
     : circumference;
-
-  const perfectCount = allReports.filter(r => r.totalScore === 100).length;
 
   if (loading) {
     return (
@@ -68,79 +50,55 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
     <div className="space-y-6">
       <header>
         <h2 className="text-3xl font-bold text-slate-800">Вітаємо, {fullName}!</h2>
-        <p className="text-slate-500 mt-1">Ось огляд ваших останніх результатів та завдань на сьогодні.</p>
+        <p className="text-slate-500 mt-1">Ось огляд ваших останніх результатів.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Score Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
-          <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Остання оцінка</p>
+      {/* Score Card */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center">
+        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-4">Остання оцінка</p>
 
-          {lastAudit ? (
-            <>
-              <div className="relative inline-flex items-center justify-center">
-                <svg height={radius * 2} width={radius * 2} className="transform -rotate-90">
-                  <circle stroke="currentColor" fill="transparent" strokeWidth={stroke} className="text-slate-100" r={normalizedRadius} cx={radius} cy={radius} />
-                  <circle stroke="currentColor" fill="transparent" strokeWidth={stroke} strokeDasharray={`${circumference} ${circumference}`} style={{ strokeDashoffset }} strokeLinecap="round" className="text-kameya-burgundy transition-all duration-1000 ease-out" r={normalizedRadius} cx={radius} cy={radius} />
-                </svg>
-                <span className="absolute text-3xl font-bold text-slate-800 tracking-tight">{Math.round(lastAudit.totalScore)}%</span>
-              </div>
+        {lastAudit ? (
+          <>
+            <div className="relative inline-flex items-center justify-center">
+              <svg height={radius * 2} width={radius * 2} className="transform -rotate-90">
+                <circle stroke="currentColor" fill="transparent" strokeWidth={stroke} className="text-slate-100" r={normalizedRadius} cx={radius} cy={radius} />
+                <circle stroke="currentColor" fill="transparent" strokeWidth={stroke} strokeDasharray={`${circumference} ${circumference}`} style={{ strokeDashoffset }} strokeLinecap="round" className="text-kameya-burgundy transition-all duration-1000 ease-out" r={normalizedRadius} cx={radius} cy={radius} />
+              </svg>
+              <span className="absolute text-3xl font-bold text-slate-800 tracking-tight">{Math.round(lastAudit.totalScore)}%</span>
+            </div>
 
-              {lastAudit.quarter && lastAudit.year && (
-                <p className="mt-6 text-sm font-semibold text-kameya-burgundy">{lastAudit.quarter} {lastAudit.year}</p>
-              )}
-              <p className={`${lastAudit.quarter && lastAudit.year ? '' : 'mt-6'} text-sm text-slate-500 font-medium`}>Дата перевірки: {formatDate(lastAudit.date)}</p>
-              {lastAudit.store && (
-                <p className="text-sm text-slate-500 font-medium">Магазин: {lastAudit.store}</p>
-              )}
+            {lastAudit.quarter && lastAudit.year && (
+              <p className="mt-6 text-sm font-semibold text-kameya-burgundy">{lastAudit.quarter} {lastAudit.year}</p>
+            )}
+            <p className={`${lastAudit.quarter && lastAudit.year ? '' : 'mt-6'} text-sm text-slate-500 font-medium`}>Дата перевірки: {formatDate(lastAudit.date)}</p>
+            {lastAudit.store && (
+              <p className="text-sm text-slate-500 font-medium">Магазин: {lastAudit.store}</p>
+            )}
+            <div className="flex items-center gap-4 mt-4">
               <button
                 onClick={() => lastAudit && onNavigateToAuditDetails?.(lastAudit)}
-                className="mt-4 text-kameya-burgundy font-bold text-sm hover:text-red-900 transition-colors flex items-center space-x-1"
+                className="text-kameya-burgundy font-bold text-sm hover:text-red-900 transition-colors flex items-center space-x-1"
               >
                 <span>Детальний звіт</span>
                 <i className="fas fa-arrow-right text-xs"></i>
               </button>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8">
-              <i className="fas fa-clipboard text-5xl text-slate-200 mb-4"></i>
-              <p className="text-slate-500 font-medium">Перевірок ще немає</p>
-              <p className="text-xs text-slate-400 mt-2">Ваша перша перевірка з'явиться тут</p>
+              <button
+                onClick={() => onNavigate(Screen.TRAINING_PLAN)}
+                className="text-slate-500 font-bold text-sm hover:text-slate-700 transition-colors flex items-center space-x-1"
+              >
+                <span>План розвитку</span>
+                <i className="fas fa-arrow-right text-xs"></i>
+              </button>
             </div>
-          )}
-        </div>
-
-        {/* Plan росту / Perfect widget */}
-        {lastAudit ? (
-          lastAudit.totalScore === 100 ? (
-            <PerfectScoreWidget
-              report={lastAudit}
-              perfectCount={perfectCount}
-              onInsightUpdated={handleInsightUpdated}
-            />
-          ) : (
-            <ScoreInsightCard
-              lastAudit={lastAudit}
-              allReports={allReports}
-              onInsightUpdated={handleInsightUpdated}
-              onLearningPlanLoading={setLearningPlanLoading}
-            />
-          )
+          </>
         ) : (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center min-h-[160px]">
-            <i className="fas fa-star text-slate-200 text-4xl mb-3"></i>
-            <p className="text-slate-400 text-sm">Незабаром</p>
+          <div className="flex flex-col items-center justify-center py-8">
+            <i className="fas fa-clipboard text-5xl text-slate-200 mb-4"></i>
+            <p className="text-slate-500 font-medium">Перевірок ще немає</p>
+            <p className="text-xs text-slate-400 mt-2">Ваша перша перевірка з'явиться тут</p>
           </div>
         )}
       </div>
-
-      {/* Learning Plan — full width */}
-      <LearningPlanSection
-        lastAudit={lastAudit}
-        loading={learningPlanLoading}
-        onPlanUpdated={handleInsightUpdated}
-        onNavigateToTraining={() => onNavigate(Screen.TRAINING_PLAN)}
-      />
 
       {/* Score Chart */}
       {allReports.length > 0 && (
