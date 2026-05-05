@@ -35,6 +35,7 @@ export interface ConfirmReportPayload {
   fileName: string;
   quarter: string;
   year: number;
+  month?: number;
 }
 
 export interface ConfirmReportResponse extends AuditResult {
@@ -117,16 +118,44 @@ export const getMyPointsHistory = async (): Promise<PointsTransaction[]> => {
 
 export interface DashboardStats {
   year: number;
-  networkAvg: number | null;
-  latestQ: string | null;
-  latestQAvg: number | null;
+  periodType: 'month' | 'quarter' | 'year';
+  periodAvg: number | null;
+  reportCount: number;
   storeRanking: { store: string; avg: number; count: number }[];
   consultantRanking: { name: string; avg: number; count: number }[];
 }
 
-export const getDashboardStats = async (): Promise<DashboardStats> => {
-  const res = await fetch('/api/reports/stats/dashboard', { headers: getAuthHeaders() });
+export interface DashboardParams {
+  periodType?: 'month' | 'quarter' | 'year';
+  year?: number;
+  quarter?: string;
+  month?: number;
+}
+
+export const getDashboardStats = async (params?: DashboardParams): Promise<DashboardStats> => {
+  const q = new URLSearchParams();
+  if (params?.periodType) q.set('periodType', params.periodType);
+  if (params?.year) q.set('year', String(params.year));
+  if (params?.quarter) q.set('quarter', params.quarter);
+  if (params?.month) q.set('month', String(params.month));
+  const res = await fetch(`/api/reports/stats/dashboard?${q}`, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error('Помилка завантаження статистики');
+  return res.json();
+};
+
+export const updateReportPeriod = async (
+  reportId: string,
+  data: { quarter?: string; year?: number; month?: number | null },
+): Promise<AuditResult> => {
+  const res = await fetch(`/api/reports/${reportId}`, {
+    method: 'PATCH',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Помилка оновлення звіту');
+  }
   return res.json();
 };
 

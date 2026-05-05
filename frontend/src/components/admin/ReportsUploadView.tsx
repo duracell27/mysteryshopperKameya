@@ -7,6 +7,8 @@ import { scoreTextClass } from '../../utils/scoreColor';
 
 type Step = 'select' | 'parsing' | 'preview' | 'saving' | 'done';
 
+const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+
 const toDisplay = (phone: string) => {
   const p = phone.slice(2);
   return `${p.slice(0, 3)} ${p.slice(3, 6)} ${p.slice(6, 8)} ${p.slice(8, 10)}`;
@@ -28,6 +30,7 @@ export const ReportsUploadView: React.FC = () => {
   const yearOptions = [currentYear - 1, currentYear, currentYear + 1];
   const [selectedQuarter, setSelectedQuarter] = useState<'Q1' | 'Q2' | 'Q3' | 'Q4'>('Q1');
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [awardedPoints, setAwardedPoints] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -83,6 +86,7 @@ export const ReportsUploadView: React.FC = () => {
         fileName: parsed.fileName,
         quarter: selectedQuarter,
         year: selectedYear,
+        month: selectedMonth,
       });
       setAwardedPoints(result.pointsAwarded);
       setStep('done');
@@ -104,6 +108,7 @@ export const ReportsUploadView: React.FC = () => {
     setExpandedSection(null);
     setSelectedQuarter('Q1');
     setSelectedYear(currentYear);
+    setSelectedMonth(new Date().getMonth() + 1);
     setAwardedPoints(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -304,7 +309,7 @@ export const ReportsUploadView: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Рік</label>
                 <select
@@ -330,6 +335,19 @@ export const ReportsUploadView: React.FC = () => {
                   <option value="Q2">Q2</option>
                   <option value="Q3">Q3</option>
                   <option value="Q4">Q4</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Місяць</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  disabled={step === 'parsing'}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy disabled:opacity-50"
+                >
+                  {MONTHS_UK.map((name, i) => (
+                    <option key={i + 1} value={i + 1}>{name}</option>
+                  ))}
                 </select>
               </div>
             </div>

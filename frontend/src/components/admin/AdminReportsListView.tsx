@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { AuditResult, AuditSection, STORES } from '../../types';
-import { getAllReports, deleteReport, generateAiRecommendations } from '../../services/reportsService';
+import { getAllReports, deleteReport, generateAiRecommendations, updateReportPeriod } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { scoreTextClass, scoreBgBorderClass, formatScore, getScoreStyle } from '../../utils/scoreColor';
+
+const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
 interface ReportWithUser extends Omit<AuditResult, 'userId'> {
   userId: { _id: string; name: string; phone: string; store?: string } | string;
   quarter?: string;
   year?: number;
+  month?: number;
 }
 
 const toDisplay = (phone: string) => {
@@ -30,6 +33,10 @@ export const AdminReportsListView: React.FC = () => {
   const [reflectionReport, setReflectionReport] = useState<ReportWithUser | null>(null);
   const [generatingAi, setGeneratingAi] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [showPeriodEdit, setShowPeriodEdit] = useState(false);
+  const [periodForm, setPeriodForm] = useState({ quarter: 'Q1', year: new Date().getFullYear(), month: new Date().getMonth() + 1 });
+  const [periodSaving, setPeriodSaving] = useState(false);
+  const [periodError, setPeriodError] = useState<string | null>(null);
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
@@ -216,12 +223,30 @@ export const AdminReportsListView: React.FC = () => {
             >
               <i className="fas fa-arrow-left text-slate-500 text-sm"></i>
             </button>
-            <div>
+            <div className="flex-1 min-w-0">
               <h1 className="text-xl font-bold text-slate-800">{name}</h1>
-              <p className="text-xs text-slate-400">
-                {selected.quarter && selected.year ? `${selected.quarter} ${selected.year} · ` : ''}
-                {phone} · {formatDate(selected.date)}{getStoreFromReport(selected) ? ` · ${getStoreFromReport(selected)}` : ''}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-xs text-slate-400">
+                  {selected.quarter && selected.year ? `${selected.quarter} ${selected.year}` : ''}
+                  {selected.month ? ` · ${MONTHS_UK[selected.month - 1]}` : ''}
+                  {` · ${phone} · ${formatDate(selected.date)}`}
+                  {getStoreFromReport(selected) ? ` · ${getStoreFromReport(selected)}` : ''}
+                </p>
+                <button
+                  onClick={() => {
+                    setPeriodForm({
+                      quarter: selected.quarter ?? 'Q1',
+                      year: selected.year ?? new Date().getFullYear(),
+                      month: selected.month ?? new Date().getMonth() + 1,
+                    });
+                    setPeriodError(null);
+                    setShowPeriodEdit(true);
+                  }}
+                  className="text-xs text-kameya-burgundy font-semibold hover:opacity-75 flex items-center gap-1"
+                >
+                  <i className="fas fa-pen text-[10px]"></i> Редагувати
+                </button>
+              </div>
             </div>
           </div>
           <button
@@ -486,6 +511,91 @@ export const AdminReportsListView: React.FC = () => {
             <p className="text-sm text-slate-400">План ще не згенеровано</p>
           )}
         </div>
+
+        {/* Period edit modal */}
+        {showPeriodEdit && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm">
+              <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                <h3 className="text-lg font-bold text-slate-800">Редагувати період</h3>
+                <button onClick={() => setShowPeriodEdit(false)} className="text-slate-400 hover:text-slate-600">
+                  <i className="fas fa-xmark text-xl"></i>
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Рік</label>
+                    <select
+                      value={periodForm.year}
+                      onChange={e => setPeriodForm(f => ({ ...f, year: Number(e.target.value) }))}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30"
+                    >
+                      {[new Date().getFullYear() - 2, new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1].map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Квартал</label>
+                    <select
+                      value={periodForm.quarter}
+                      onChange={e => setPeriodForm(f => ({ ...f, quarter: e.target.value }))}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30"
+                    >
+                      {['Q1','Q2','Q3','Q4'].map(q => <option key={q} value={q}>{q}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Місяць</label>
+                    <select
+                      value={periodForm.month}
+                      onChange={e => setPeriodForm(f => ({ ...f, month: Number(e.target.value) }))}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30"
+                    >
+                      {MONTHS_UK.map((name, i) => <option key={i + 1} value={i + 1}>{name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {periodError && (
+                  <p className="text-sm text-red-600 flex items-center gap-2">
+                    <i className="fas fa-triangle-exclamation"></i>{periodError}
+                  </p>
+                )}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowPeriodEdit(false)}
+                    className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50"
+                  >
+                    Скасувати
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!selected) return;
+                      setPeriodSaving(true);
+                      setPeriodError(null);
+                      try {
+                        const updated = await updateReportPeriod(selected._id ?? selected.id ?? '', periodForm);
+                        const merged = { ...selected, ...updated } as ReportWithUser;
+                        setSelected(merged);
+                        setReports(prev => prev.map(r => (r._id ?? r.id) === (merged._id ?? merged.id) ? merged : r));
+                        setShowPeriodEdit(false);
+                      } catch (err) {
+                        setPeriodError(err instanceof Error ? err.message : 'Помилка');
+                      } finally {
+                        setPeriodSaving(false);
+                      }
+                    }}
+                    disabled={periodSaving}
+                    className="flex-1 py-3 rounded-xl bg-kameya-burgundy text-white font-bold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {periodSaving ? <><i className="fas fa-spinner fa-spin"></i> Збереження...</> : <><i className="fas fa-floppy-disk"></i> Зберегти</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Reflection answers modal */}
         {reflectionReport?.reflection && (

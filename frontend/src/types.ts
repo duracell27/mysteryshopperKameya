@@ -37,6 +37,7 @@ export interface AuditResult {
   date: string;
   quarter?: string;
   year?: number;
+  month?: number;
   totalScore: number;
   sections: AuditSection[];
   fileName?: string;

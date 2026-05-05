@@ -226,7 +226,7 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const { userId, auditId, location, date, totalScore, sections, fileName, quarter, year } = req.body;
+    const { userId, auditId, location, date, totalScore, sections, fileName, quarter, year, month } = req.body;
 
     if (!userId || !date || totalScore === undefined || !quarter || !year) {
       return res.status(400).json({ message: 'Не вистачає обов\'язкових полів' });
@@ -238,6 +238,7 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
     const report = await Report.create({
       userId, auditId, location, store, date,
       quarter, year: Number(year),
+      ...(month !== undefined && { month: Number(month) }),
       totalScore, sections, fileName,
     });
 
@@ -339,54 +340,51 @@ router.get('/my/transactions', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// GET /api/reports/stats/dashboard — admin dashboard stats
+// GET /api/reports/stats/dashboard — admin dashboard stats (period-aware)
 router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== 'ADMIN') {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
 
   try {
-    const currentYear = new Date().getFullYear();
-    const quarterOrder: Record<string, number> = { Q1: 1, Q2: 2, Q3: 3, Q4: 4 };
+    const periodType = (req.query.periodType as string) || 'year';
+    const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
+    const quarter = req.query.quarter as string | undefined;
+    const month = req.query.month ? Number(req.query.month) : undefined;
 
-    const yearReports = await Report.find({ year: currentYear })
+    // Build filter for the selected period
+    const filter: Record<string, unknown> = { year };
+    if (periodType === 'quarter' && quarter) filter.quarter = quarter;
+    if (periodType === 'month' && month) filter.month = month;
+
+    const periodReports = await Report.find(filter)
       .populate('userId', 'name store')
       .lean();
 
-    // ── 1. Загальний бал по мережі за рік ──
-    const networkAvg = yearReports.length
-      ? Math.round((yearReports.reduce((s, r) => s + r.totalScore, 0) / yearReports.length) * 10) / 10
+    // ── Period avg & count ──
+    const periodAvg = periodReports.length
+      ? Math.round((periodReports.reduce((s, r) => s + r.totalScore, 0) / periodReports.length) * 10) / 10
       : null;
+    const reportCount = periodReports.length;
 
-    // ── 2. Бал по останньому Q що має звіти ──
-    const quartersPresent = [...new Set(yearReports.map(r => r.quarter))]
-      .sort((a, b) => (quarterOrder[b] ?? 0) - (quarterOrder[a] ?? 0));
-    const latestQ = quartersPresent[0] ?? null;
-    const latestQReports = latestQ ? yearReports.filter(r => r.quarter === latestQ) : [];
-    const latestQAvg = latestQReports.length
-      ? Math.round((latestQReports.reduce((s, r) => s + r.totalScore, 0) / latestQReports.length) * 10) / 10
-      : null;
-
-    // ── 3. Рейтинг по магазинах ──
+    // ── Store ranking ──
     const storeMap: Record<string, { sum: number; count: number }> = {};
-    for (const r of yearReports) {
+    for (const r of periodReports) {
       const store = r.store || (typeof r.userId === 'object' && r.userId && 'store' in r.userId ? (r.userId as { store?: string }).store : '') || 'Не вказано';
       if (!storeMap[store]) storeMap[store] = { sum: 0, count: 0 };
       storeMap[store].sum += r.totalScore;
       storeMap[store].count += 1;
     }
     const storeRanking = Object.entries(storeMap)
-      .map(([store, { sum, count }]) => ({
-        store,
-        avg: Math.round((sum / count) * 10) / 10,
-        count,
-      }))
+      .map(([store, { sum, count }]) => ({ store, avg: Math.round((sum / count) * 10) / 10, count }))
       .sort((a, b) => b.avg - a.avg);
 
-    // ── 4. Рейтинг по консультантах ──
+    // ── Consultant ranking ──
     const consultantMap: Record<string, { name: string; sum: number; count: number }> = {};
-    for (const r of yearReports) {
-      const uid = typeof r.userId === 'object' && r.userId ? (r.userId as { _id: { toString(): string } })._id.toString() : String(r.userId);
+    for (const r of periodReports) {
+      const uid = typeof r.userId === 'object' && r.userId
+        ? (r.userId as { _id: { toString(): string } })._id.toString()
+        : String(r.userId);
       const name = typeof r.userId === 'object' && r.userId && 'name' in r.userId
         ? ((r.userId as { name?: string }).name || '—')
         : '—';
@@ -395,21 +393,10 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
       consultantMap[uid].count += 1;
     }
     const consultantRanking = Object.values(consultantMap)
-      .map(({ name, sum, count }) => ({
-        name,
-        avg: Math.round((sum / count) * 10) / 10,
-        count,
-      }))
+      .map(({ name, sum, count }) => ({ name, avg: Math.round((sum / count) * 10) / 10, count }))
       .sort((a, b) => b.avg - a.avg);
 
-    return res.json({
-      year: currentYear,
-      networkAvg,
-      latestQ,
-      latestQAvg,
-      storeRanking,
-      consultantRanking,
-    });
+    return res.json({ year, periodType, periodAvg, reportCount, storeRanking, consultantRanking });
   } catch (error) {
     console.error('dashboard stats error:', error);
     return res.status(500).json({ message: 'Помилка сервера' });
@@ -815,6 +802,32 @@ router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// PATCH /api/reports/:id — оновити базові поля звіту (адмін)
+router.patch('/:id', async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ message: 'Доступ заборонено' });
+  }
+  try {
+    const { quarter, year, month } = req.body as { quarter?: string; year?: number; month?: number | null };
+    const update: Record<string, unknown> = {};
+    if (quarter !== undefined) update.quarter = quarter;
+    if (year !== undefined) update.year = Number(year);
+    if (month !== undefined) update.month = month !== null ? Number(month) : undefined;
+
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      { $set: update },
+      { new: true }
+    ).populate('userId', 'name phone store');
+
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+    return res.json(report);
+  } catch (error) {
+    console.error('patch-report error:', error);
+    return res.status(500).json({ message: 'Помилка оновлення звіту' });
   }
 });
 

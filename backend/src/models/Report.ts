@@ -64,6 +64,7 @@ export interface IReport extends Document {
   date: string;
   quarter: string;
   year: number;
+  month?: number;
   totalScore: number;
   sections: ISection[];
   fileName: string;
@@ -150,6 +151,7 @@ const ReportSchema = new Schema<IReport>({
   fileName:   { type: String, default: '' },
   quarter:    { type: String, enum: ['Q1', 'Q2', 'Q3', 'Q4'], default: 'Q1' },
   year:       { type: Number, default: () => new Date().getFullYear() },
+  month:      { type: Number, min: 1, max: 12 },
   reflection: { type: ReflectionSchema, default: undefined },
   aiRecommendations: { type: AiRecommendationsSchema, default: undefined },
   scoreInsight:      { type: ScoreInsightSchema, default: undefined },

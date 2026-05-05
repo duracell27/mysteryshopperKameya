@@ -39,6 +39,14 @@ export function scoreBgBorderClass(totalScore: number): string {
   return `${s.bgClass} ${s.borderClass}`;
 }
 
+export function scoreBarBgClass(totalScore: number): string {
+  const s = Math.floor(totalScore);
+  if (s === 100) return 'bg-amber-400';
+  if (s >= 95) return 'bg-green-500';
+  if (s >= 80) return 'bg-yellow-500';
+  return 'bg-red-500';
+}
+
 export function formatScore(totalScore: number): string {
   const s = getScoreStyle(totalScore);
   const pct = `${Math.floor(totalScore)}%`;
