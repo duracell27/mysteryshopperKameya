@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserListItem, AuditSection } from '../../types';
 import { fetchUsers } from '../../services/usersService';
-import { parseReport, confirmReport, ParsedReport } from '../../services/reportsService';
+import { parseReport, confirmReport, previewAffirmation, ParsedReport } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { scoreTextClass } from '../../utils/scoreColor';
 
@@ -32,6 +32,8 @@ export const ReportsUploadView: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [awardedPoints, setAwardedPoints] = useState<number | null>(null);
+  const [affirmationPreview, setAffirmationPreview] = useState<string | null>(null);
+  const [affirmationLoading, setAffirmationLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +59,18 @@ export const ReportsUploadView: React.FC = () => {
     if (f) setFile(f);
   };
 
+  const fetchAffirmationPreview = async (userId: string) => {
+    setAffirmationLoading(true);
+    try {
+      const text = await previewAffirmation(userId);
+      setAffirmationPreview(text);
+    } catch {
+      setAffirmationPreview(null);
+    } finally {
+      setAffirmationLoading(false);
+    }
+  };
+
   const handleParse = async () => {
     if (!selectedUserId || !file) return;
     setError(null);
@@ -65,6 +79,7 @@ export const ReportsUploadView: React.FC = () => {
       const result = await parseReport(file);
       setParsed(result);
       setStep('preview');
+      if (result.totalScore >= 100) fetchAffirmationPreview(selectedUserId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Помилка аналізу');
       setStep('select');
@@ -87,6 +102,7 @@ export const ReportsUploadView: React.FC = () => {
         quarter: selectedQuarter,
         year: selectedYear,
         month: selectedMonth,
+        ...(affirmationPreview ? { affirmation: affirmationPreview } : {}),
       });
       setAwardedPoints(result.pointsAwarded);
       setStep('done');
@@ -110,6 +126,8 @@ export const ReportsUploadView: React.FC = () => {
     setSelectedYear(currentYear);
     setSelectedMonth(new Date().getMonth() + 1);
     setAwardedPoints(null);
+    setAffirmationPreview(null);
+    setAffirmationLoading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -486,6 +504,30 @@ export const ReportsUploadView: React.FC = () => {
               ))}
             </div>
           </div>
+
+          {parsed.totalScore >= 100 && (
+            <div className="bg-kameya-burgundy/10 border border-kameya-burgundy/20 rounded-2xl px-5 py-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-kameya-burgundy flex items-center gap-2">
+                  <i className="fas fa-quote-left text-xs"></i>
+                  Афірмація для працівника
+                </p>
+                <button
+                  onClick={() => fetchAffirmationPreview(selectedUserId)}
+                  disabled={affirmationLoading || step === 'saving'}
+                  className="text-xs text-kameya-burgundy font-semibold flex items-center gap-1 hover:opacity-70 disabled:opacity-40 transition-opacity"
+                >
+                  <i className={`fas fa-arrows-rotate ${affirmationLoading ? 'fa-spin' : ''}`}></i>
+                  Перегенерувати
+                </button>
+              </div>
+              {affirmationLoading ? (
+                <p className="text-sm text-slate-400 italic">Завантаження...</p>
+              ) : (
+                <p className="text-sm text-slate-700 italic">{affirmationPreview}</p>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3">
             <button

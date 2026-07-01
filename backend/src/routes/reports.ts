@@ -227,7 +227,7 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const { userId, auditId, location, date, totalScore, sections, fileName, quarter, year, month } = req.body;
+    const { userId, auditId, location, date, totalScore, sections, fileName, quarter, year, month, affirmation: providedAffirmation } = req.body;
 
     if (!userId || !date || totalScore === undefined || !quarter || !year) {
       return res.status(400).json({ message: 'Не вистачає обов\'язкових полів' });
@@ -236,20 +236,24 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
     const user = await User.findById(userId);
     const store = user?.store || '';
 
-    // Assign affirmation for perfect score
+    // Use admin-provided affirmation if given, otherwise auto-select
     let affirmation: string | undefined;
     if (totalScore >= 100) {
-      const cutoff = new Date();
-      cutoff.setFullYear(cutoff.getFullYear() - 1);
-      const cutoffStr = cutoff.toISOString().slice(0, 10); // "YYYY-MM-DD"
-      const recentPerfect = await Report.find(
-        { userId, totalScore: { $gte: 100 }, affirmation: { $exists: true, $ne: null }, date: { $gte: cutoffStr } },
-        'affirmation'
-      ).lean();
-      const usedSet = new Set(recentPerfect.map((r) => r.affirmation as string));
-      let available = AFFIRMATIONS.filter((a) => !usedSet.has(a));
-      if (available.length === 0) available = AFFIRMATIONS;
-      affirmation = available[Math.floor(Math.random() * available.length)];
+      if (providedAffirmation && typeof providedAffirmation === 'string' && AFFIRMATIONS.includes(providedAffirmation)) {
+        affirmation = providedAffirmation;
+      } else {
+        const cutoff = new Date();
+        cutoff.setFullYear(cutoff.getFullYear() - 1);
+        const cutoffStr = cutoff.toISOString().slice(0, 10);
+        const recentPerfect = await Report.find(
+          { userId, totalScore: { $gte: 100 }, affirmation: { $exists: true, $ne: null }, date: { $gte: cutoffStr } },
+          'affirmation'
+        ).lean();
+        const usedSet = new Set(recentPerfect.map((r) => r.affirmation as string));
+        let available = AFFIRMATIONS.filter((a) => !usedSet.has(a));
+        if (available.length === 0) available = AFFIRMATIONS;
+        affirmation = available[Math.floor(Math.random() * available.length)];
+      }
     }
 
     const report = await Report.create({
@@ -417,6 +421,34 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
     return res.json({ year, periodType, periodAvg, reportCount, storeRanking, consultantRanking });
   } catch (error) {
     console.error('dashboard stats error:', error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// GET /api/reports/preview-affirmation?userId=X — preview which affirmation would be assigned (admin)
+router.get('/preview-affirmation', async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ message: 'Доступ заборонено' });
+  }
+  const { userId } = req.query;
+  if (!userId || typeof userId !== 'string') {
+    return res.status(400).json({ message: 'userId обов\'язковий' });
+  }
+  try {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 1);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const recentPerfect = await Report.find(
+      { userId, totalScore: { $gte: 100 }, affirmation: { $exists: true, $ne: null }, date: { $gte: cutoffStr } },
+      'affirmation'
+    ).lean();
+    const usedSet = new Set(recentPerfect.map((r) => r.affirmation as string));
+    let available = AFFIRMATIONS.filter((a) => !usedSet.has(a));
+    if (available.length === 0) available = AFFIRMATIONS;
+    const affirmation = available[Math.floor(Math.random() * available.length)];
+    return res.json({ affirmation });
+  } catch (error) {
+    console.error(error);
     return res.status(500).json({ message: 'Помилка сервера' });
   }
 });

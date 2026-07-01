@@ -36,7 +36,17 @@ export interface ConfirmReportPayload {
   quarter: string;
   year: number;
   month?: number;
+  affirmation?: string;
 }
+
+export const previewAffirmation = async (userId: string): Promise<string> => {
+  const res = await fetch(`/api/reports/preview-affirmation?userId=${encodeURIComponent(userId)}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error('Помилка отримання афірмації');
+  const data = await res.json();
+  return data.affirmation as string;
+};
 
 export interface ConfirmReportResponse extends AuditResult {
   pointsAwarded: number;
