@@ -583,8 +583,8 @@ router.post('/:id/generate-learning-plan', async (req: AuthRequest, res: Respons
       return res.status(400).json({ message: 'План навчання генерується лише для тірів below85 та range85to94' });
     }
 
-    // Idempotent — return existing plan if already generated
-    if (report.learningPlan) {
+    // Idempotent for non-admins — return existing plan if already generated
+    if (report.learningPlan && !isAdmin) {
       return res.json(report);
     }
 
@@ -697,16 +697,65 @@ ${weakPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
       deadline,
     };
 
-    const saved = await Report.findOneAndUpdate(
-      { _id: report._id, learningPlan: { $exists: false } },
-      { $set: { learningPlan: learningPlanData } },
-      { new: true }
-    );
+    const saved = isAdmin
+      ? await Report.findByIdAndUpdate(report._id, { $set: { learningPlan: learningPlanData } }, { new: true })
+      : await Report.findOneAndUpdate(
+          { _id: report._id, learningPlan: { $exists: false } },
+          { $set: { learningPlan: learningPlanData } },
+          { new: true }
+        );
 
     return res.json(saved ?? await Report.findById(report._id));
   } catch (error) {
     console.error('generate-learning-plan error:', error);
     return res.status(500).json({ message: 'Помилка генерації плану навчання' });
+  }
+});
+
+// DELETE /api/reports/:id/learning-plan — admin only
+router.delete('/:id/learning-plan', async (req: AuthRequest, res: Response) => {
+  try {
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Доступ заборонено' });
+    }
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      { $unset: { learningPlan: '' } },
+      { new: true }
+    );
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+    return res.json(report);
+  } catch (error) {
+    console.error('delete-learning-plan error:', error);
+    return res.status(500).json({ message: 'Помилка видалення плану' });
+  }
+});
+
+// PATCH /api/reports/:id/learning-plan — admin only, replaces tasks array
+router.patch('/:id/learning-plan', async (req: AuthRequest, res: Response) => {
+  try {
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Доступ заборонено' });
+    }
+    const { tasks } = req.body as { tasks: { topicTitle: string; description: string; isCompleted: boolean; completedAt?: string; response?: string }[] };
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      return res.status(400).json({ message: 'Масив задач не може бути порожнім' });
+    }
+    const invalid = tasks.some(t => typeof t.topicTitle !== 'string' || typeof t.description !== 'string');
+    if (invalid) {
+      return res.status(400).json({ message: 'Кожна задача повинна мати topicTitle і description' });
+    }
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+    if (!report.learningPlan) return res.status(400).json({ message: 'План навчання не існує' });
+
+    report.learningPlan.tasks = tasks as any;
+    report.markModified('learningPlan');
+    await report.save();
+    return res.json(report);
+  } catch (error) {
+    console.error('update-learning-plan error:', error);
+    return res.status(500).json({ message: 'Помилка оновлення плану' });
   }
 });
 
