@@ -741,9 +741,9 @@ router.patch('/:id/learning-plan', async (req: AuthRequest, res: Response) => {
     if (!Array.isArray(tasks) || tasks.length === 0) {
       return res.status(400).json({ message: 'Масив задач не може бути порожнім' });
     }
-    const invalid = tasks.some(t => typeof t.topicTitle !== 'string' || typeof t.description !== 'string');
+    const invalid = tasks.some(t => typeof t.topicTitle !== 'string' || !t.topicTitle.trim() || typeof t.description !== 'string' || !t.description.trim());
     if (invalid) {
-      return res.status(400).json({ message: 'Кожна задача повинна мати topicTitle і description' });
+      return res.status(400).json({ message: 'Кожна задача повинна мати непорожні topicTitle і description' });
     }
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });

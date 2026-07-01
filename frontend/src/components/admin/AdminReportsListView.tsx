@@ -532,7 +532,8 @@ export const AdminReportsListView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => { setPlanError(null); setEditTasks([...selected.learningPlan!.tasks]); setEditingPlan(true); }}
-                  className="text-slate-400 hover:text-kameya-burgundy transition-colors"
+                  disabled={planActionLoading}
+                  className="text-slate-400 hover:text-kameya-burgundy transition-colors disabled:opacity-40"
                   title="Редагувати задачі"
                 >
                   <i className="fas fa-pen text-xs"></i>
@@ -753,7 +754,7 @@ export const AdminReportsListView: React.FC = () => {
               </div>
               <div className="p-6 border-t border-slate-100 flex gap-3 flex-shrink-0">
                 <button
-                  onClick={() => setEditingPlan(false)}
+                  onClick={() => { setPlanError(null); setEditingPlan(false); }}
                   className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all"
                 >
                   Скасувати
