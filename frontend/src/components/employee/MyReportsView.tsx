@@ -72,6 +72,15 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!selected || selected.totalScore < 100) return;
+    const timer = setTimeout(() => {
+      confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 } });
+      confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 } });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [selected]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -94,15 +103,6 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
     const reflection = getReflection(selected);
     const elapsed = hoursElapsed(selected);
     const deadlinePassed = elapsed > 72;
-
-    useEffect(() => {
-      if (!selected || selected.totalScore < 100) return;
-      const timer = setTimeout(() => {
-        confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 } });
-        confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 } });
-      }, 300);
-      return () => clearTimeout(timer);
-    }, [selected]);
 
     return (
       <div className="space-y-6">
