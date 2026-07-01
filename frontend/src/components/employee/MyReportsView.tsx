@@ -5,6 +5,7 @@ import { getMyReports, submitReflection } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { useAuth } from '../../context/AuthContext';
 import { scoreTextClass, scoreBgBorderClass, formatScore } from '../../utils/scoreColor';
+import confetti from 'canvas-confetti';
 
 interface MyReportsViewProps {
   initialSelected?: AuditResult | null;
@@ -94,6 +95,15 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
     const elapsed = hoursElapsed(selected);
     const deadlinePassed = elapsed > 72;
 
+    useEffect(() => {
+      if (!selected || selected.totalScore < 100) return;
+      const timer = setTimeout(() => {
+        confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 } });
+        confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 } });
+      }, 300);
+      return () => clearTimeout(timer);
+    }, [selected]);
+
     return (
       <div className="space-y-6">
         {/* Header */}
@@ -138,6 +148,14 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
             })()}
           </div>
         </div>
+
+        {selected.totalScore >= 100 && (
+          <div className="flex items-center justify-center gap-2 bg-green-50 border border-green-200 rounded-2xl px-6 py-4">
+            <span className="text-2xl">🎉</span>
+            <p className="text-green-700 font-bold text-lg">Ідеальний результат!</p>
+            <span className="text-2xl">🎉</span>
+          </div>
+        )}
 
         {/* Sections — full detail, failed sections highlighted */}
         <div className="grid grid-cols-1 gap-4">
