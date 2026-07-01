@@ -225,7 +225,6 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
               <p className="text-sm font-semibold text-green-700">Рефлексію подано</p>
               <p className="text-xs text-green-600">
                 {new Date(reflection.submittedAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                {reflection.bonusPointsAwarded && ' · +10 балів нараховано'}
               </p>
             </div>
           </div>

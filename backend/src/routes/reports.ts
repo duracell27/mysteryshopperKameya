@@ -853,21 +853,9 @@ router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
       answer2: answer2.trim(),
       submittedAt: new Date(),
       isOnTime,
-      bonusPointsAwarded: isOnTime,
+      bonusPointsAwarded: false,
     };
     await report.save();
-
-    if (isOnTime) {
-      await User.findByIdAndUpdate(report.userId, { $inc: { points: 10 } });
-      await PointsTransaction.create({
-        userId: report.userId,
-        reportId: report._id,
-        quarter: report.quarter,
-        year: report.year,
-        scorePercent: 0,
-        pointsAwarded: 10,
-      });
-    }
 
     return res.json(report);
   } catch (error) {
