@@ -4,10 +4,12 @@ import { PointsTransaction } from '../models/PointsTransaction';
 
 export function calculatePoints(totalScore: number): number {
   const floored = Math.floor(totalScore);
-  if (floored === 100) return 200;
-  if (floored >= 95)   return 150;
-  if (floored >= 90)   return 100;
-  if (floored >= 80)   return 50;
+  if (floored === 100) return 100;
+  if (floored >= 97)   return 55;
+  if (floored >= 93)   return 35;
+  if (floored >= 88)   return 18;
+  if (floored >= 80)   return 8;
+  if (floored >= 70)   return 2;
   return 0;
 }
 
