@@ -72,6 +72,7 @@ export interface IReport extends Document {
   aiRecommendations?: IAiRecommendations;
   scoreInsight?: IScoreInsight;
   learningPlan?: ILearningPlan;
+  affirmation?: string;
   createdAt: Date;
 }
 
@@ -156,6 +157,7 @@ const ReportSchema = new Schema<IReport>({
   aiRecommendations: { type: AiRecommendationsSchema, default: undefined },
   scoreInsight:      { type: ScoreInsightSchema, default: undefined },
   learningPlan:      { type: LearningPlanSchema, default: undefined },
+  affirmation: { type: String },
 }, { timestamps: true });
 
 export const Report = mongoose.model<IReport>('Report', ReportSchema);
