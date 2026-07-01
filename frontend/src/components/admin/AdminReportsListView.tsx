@@ -531,7 +531,7 @@ export const AdminReportsListView: React.FC = () => {
             {selected.learningPlan && (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => { setEditTasks([...selected.learningPlan!.tasks]); setEditingPlan(true); }}
+                  onClick={() => { setPlanError(null); setEditTasks([...selected.learningPlan!.tasks]); setEditingPlan(true); }}
                   className="text-slate-400 hover:text-kameya-burgundy transition-colors"
                   title="Редагувати задачі"
                 >
