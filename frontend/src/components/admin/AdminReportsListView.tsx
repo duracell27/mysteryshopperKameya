@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AuditResult, AuditSection, STORES } from '../../types';
-import { getAllReports, deleteReport, generateAiRecommendations, updateReportPeriod } from '../../services/reportsService';
+import { AuditResult, AuditSection, LearningTask, STORES } from '../../types';
+import { getAllReports, deleteReport, generateAiRecommendations, updateReportPeriod, deleteLearningPlan, updateLearningPlanTasks, generateLearningPlan } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { scoreTextClass, scoreBgBorderClass, formatScore, getScoreStyle } from '../../utils/scoreColor';
 
@@ -37,6 +37,10 @@ export const AdminReportsListView: React.FC = () => {
   const [periodForm, setPeriodForm] = useState({ quarter: 'Q1', year: new Date().getFullYear(), month: new Date().getMonth() + 1 });
   const [periodSaving, setPeriodSaving] = useState(false);
   const [periodError, setPeriodError] = useState<string | null>(null);
+  const [editingPlan, setEditingPlan] = useState(false);
+  const [editTasks, setEditTasks] = useState<LearningTask[]>([]);
+  const [planActionLoading, setPlanActionLoading] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
@@ -148,6 +152,71 @@ export const AdminReportsListView: React.FC = () => {
     if (Number(yb) !== Number(ya)) return Number(yb) - Number(ya);
     return (quarterOrder[qa] ?? 99) - (quarterOrder[qb] ?? 99);
   });
+
+  const applyPlanUpdate = (updated: AuditResult) => {
+    const merged = { ...selected!, ...updated } as ReportWithUser;
+    setSelected(merged);
+    setReports(prev => prev.map(r => (r._id ?? r.id) === (merged._id ?? merged.id) ? merged : r));
+  };
+
+  const handleDeletePlan = async () => {
+    if (!selected) return;
+    if (!confirm('Видалити план навчання? Цю дію не можна скасувати.')) return;
+    setPlanError(null);
+    setPlanActionLoading(true);
+    try {
+      const updated = await deleteLearningPlan(selected._id ?? selected.id ?? '');
+      applyPlanUpdate(updated);
+    } catch (err) {
+      setPlanError(err instanceof Error ? err.message : 'Помилка видалення');
+    } finally {
+      setPlanActionLoading(false);
+    }
+  };
+
+  const handleRecreatePlan = async () => {
+    if (!selected) return;
+    if (!confirm('Перестворити план навчання? Поточний план і прогрес будуть втрачені.')) return;
+    setPlanError(null);
+    setPlanActionLoading(true);
+    try {
+      const updated = await generateLearningPlan(selected._id ?? selected.id ?? '');
+      applyPlanUpdate(updated);
+    } catch (err) {
+      setPlanError(err instanceof Error ? err.message : 'Помилка генерації');
+    } finally {
+      setPlanActionLoading(false);
+    }
+  };
+
+  const handleGeneratePlan = async () => {
+    if (!selected) return;
+    setPlanError(null);
+    setPlanActionLoading(true);
+    try {
+      const updated = await generateLearningPlan(selected._id ?? selected.id ?? '');
+      applyPlanUpdate(updated);
+    } catch (err) {
+      setPlanError(err instanceof Error ? err.message : 'Помилка генерації');
+    } finally {
+      setPlanActionLoading(false);
+    }
+  };
+
+  const handleSavePlanEdit = async () => {
+    if (!selected) return;
+    setPlanError(null);
+    setPlanActionLoading(true);
+    try {
+      const updated = await updateLearningPlanTasks(selected._id ?? selected.id ?? '', editTasks);
+      applyPlanUpdate(updated);
+      setEditingPlan(false);
+    } catch (err) {
+      setPlanError(err instanceof Error ? err.message : 'Помилка збереження');
+    } finally {
+      setPlanActionLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -457,7 +526,37 @@ export const AdminReportsListView: React.FC = () => {
 
         {/* Learning Plan panel */}
         <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
-          <p className="text-sm font-semibold text-slate-700 mb-3">План навчання</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-slate-700">План навчання</p>
+            {selected.learningPlan && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setEditTasks([...selected.learningPlan!.tasks]); setEditingPlan(true); }}
+                  className="text-slate-400 hover:text-kameya-burgundy transition-colors"
+                  title="Редагувати задачі"
+                >
+                  <i className="fas fa-pen text-xs"></i>
+                </button>
+                <button
+                  onClick={handleRecreatePlan}
+                  disabled={planActionLoading}
+                  className="text-slate-400 hover:text-blue-500 transition-colors disabled:opacity-40"
+                  title="Перестворити план"
+                >
+                  <i className="fas fa-rotate text-xs"></i>
+                </button>
+                <button
+                  onClick={handleDeletePlan}
+                  disabled={planActionLoading}
+                  className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                  title="Видалити план"
+                >
+                  <i className="fas fa-trash-can text-xs"></i>
+                </button>
+              </div>
+            )}
+          </div>
+
           {selected.learningPlan ? (
             <div className="space-y-3">
               <p className="text-xs text-slate-400">
@@ -508,8 +607,26 @@ export const AdminReportsListView: React.FC = () => {
               })()}
             </div>
           ) : (
-            <p className="text-sm text-slate-400">План ще не згенеровано</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-400">План ще не згенеровано</p>
+              {selected.aiRecommendations &&
+                (selected.aiRecommendations.tier === 'below85' || selected.aiRecommendations.tier === 'range85to94') && (
+                <button
+                  onClick={handleGeneratePlan}
+                  disabled={planActionLoading}
+                  className="text-xs text-kameya-burgundy font-semibold hover:opacity-75 flex items-center gap-1 disabled:opacity-40"
+                >
+                  {planActionLoading ? (
+                    <><i className="fas fa-spinner fa-spin"></i> Генерація...</>
+                  ) : (
+                    <><i className="fas fa-wand-magic-sparkles"></i> Згенерувати</>
+                  )}
+                </button>
+              )}
+            </div>
           )}
+
+          {planError && <p className="text-xs text-red-500 mt-2">{planError}</p>}
         </div>
 
         {/* Period edit modal */}
@@ -593,6 +710,67 @@ export const AdminReportsListView: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Learning Plan modal */}
+        {editingPlan && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+              <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Редагувати задачі</h3>
+                  <p className="text-sm text-slate-500">{getUserName(selected)} · {editTasks.length} задач</p>
+                </div>
+                <button onClick={() => setEditingPlan(false)} className="text-slate-400 hover:text-slate-600">
+                  <i className="fas fa-xmark text-xl"></i>
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                {editTasks.map((task, i) => (
+                  <div key={i} className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Тема</label>
+                      <input
+                        type="text"
+                        value={task.topicTitle}
+                        onChange={e => setEditTasks(prev => prev.map((t, j) => j === i ? { ...t, topicTitle: e.target.value } : t))}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Завдання</label>
+                      <textarea
+                        value={task.description}
+                        onChange={e => setEditTasks(prev => prev.map((t, j) => j === i ? { ...t, description: e.target.value } : t))}
+                        rows={3}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy resize-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="p-6 border-t border-slate-100 flex gap-3 flex-shrink-0">
+                <button
+                  onClick={() => setEditingPlan(false)}
+                  className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all"
+                >
+                  Скасувати
+                </button>
+                <button
+                  onClick={handleSavePlanEdit}
+                  disabled={planActionLoading}
+                  className="flex-1 py-3 rounded-xl bg-kameya-burgundy text-white font-bold hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {planActionLoading ? (
+                    <><i className="fas fa-spinner fa-spin"></i> Збереження...</>
+                  ) : (
+                    <><i className="fas fa-floppy-disk"></i> Зберегти</>
+                  )}
+                </button>
+              </div>
+              {planError && <p className="text-xs text-red-500 px-6 pb-4">{planError}</p>}
             </div>
           </div>
         )}
