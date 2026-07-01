@@ -47,6 +47,7 @@ export interface AuditResult {
   aiRecommendations?: AiRecommendations;
   scoreInsight?: ScoreInsight;
   learningPlan?: LearningPlan;
+  affirmation?: string;
 }
 
 export interface DailyTask {

@@ -29,3 +29,19 @@
 }
 .trophy-bounce { display: inline-block; animation: trophyBounce 2.2s ease-in-out infinite; }
 .float-star    { animation: floatStar 3s ease-in-out infinite; }
+
+@keyframes floatUp {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.10; }
+  90%  { opacity: 0.10; }
+  100% { transform: translateY(-130px) rotate(15deg); opacity: 0; }
+}
+
+.float-icon {
+  position: absolute;
+  bottom: -10px;
+  font-size: 1.4rem;
+  animation: floatUp 4s ease-in-out infinite;
+  pointer-events: none;
+  user-select: none;
+}

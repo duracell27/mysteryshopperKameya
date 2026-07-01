@@ -149,11 +149,31 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
           </div>
         </div>
 
-        {selected.totalScore >= 100 && (
-          <div className="flex items-center justify-center gap-2 bg-green-50 border border-green-200 rounded-2xl px-6 py-4">
-            <span className="text-2xl">🎉</span>
-            <p className="text-green-700 font-bold text-lg">Ідеальний результат!</p>
-            <span className="text-2xl">🎉</span>
+        {selected.totalScore >= 100 && selected.affirmation && (
+          <div className="relative overflow-hidden bg-kameya-burgundy rounded-2xl px-6 py-6 text-center">
+            {[
+              { icon: '🏆', left: '5%',  delay: '0s'    },
+              { icon: '💎', left: '15%', delay: '0.6s'  },
+              { icon: '🏆', left: '28%', delay: '1.2s'  },
+              { icon: '💎', left: '40%', delay: '0.3s'  },
+              { icon: '🏆', left: '52%', delay: '1.8s'  },
+              { icon: '💎', left: '63%', delay: '0.9s'  },
+              { icon: '🏆', left: '74%', delay: '2.4s'  },
+              { icon: '💎', left: '83%', delay: '1.5s'  },
+              { icon: '🏆', left: '90%', delay: '0.5s'  },
+              { icon: '💎', left: '96%', delay: '2.1s'  },
+            ].map((item, i) => (
+              <span
+                key={i}
+                className="float-icon"
+                style={{ left: item.left, animationDelay: item.delay }}
+              >
+                {item.icon}
+              </span>
+            ))}
+            <p className="relative z-10 text-white text-lg font-semibold italic leading-relaxed">
+              {selected.affirmation}
+            </p>
           </div>
         )}
 
