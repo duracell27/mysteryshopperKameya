@@ -32,8 +32,8 @@
 
 @keyframes floatUp {
   0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
-  10%  { opacity: 0.10; }
-  90%  { opacity: 0.10; }
+  10%  { opacity: 0.20; }
+  90%  { opacity: 0.20; }
   100% { transform: translateY(-130px) rotate(15deg); opacity: 0; }
 }
 
@@ -42,6 +42,7 @@
   bottom: -10px;
   font-size: 1.4rem;
   animation: floatUp 4s ease-in-out infinite;
+  animation-fill-mode: both;
   pointer-events: none;
   user-select: none;
 }
