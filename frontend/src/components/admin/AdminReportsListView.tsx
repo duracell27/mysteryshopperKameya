@@ -154,7 +154,7 @@ export const AdminReportsListView: React.FC = () => {
   });
 
   const applyPlanUpdate = (updated: AuditResult) => {
-    const merged = { ...selected!, ...updated } as ReportWithUser;
+    const merged = { ...selected!, ...updated, userId: selected!.userId } as ReportWithUser;
     setSelected(merged);
     setReports(prev => prev.map(r => (r._id ?? r.id) === (merged._id ?? merged.id) ? merged : r));
   };

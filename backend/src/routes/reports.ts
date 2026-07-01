@@ -765,7 +765,7 @@ router.patch('/:id/learning-plan', async (req: AuthRequest, res: Response) => {
     }
     const invalidCompleted = tasks.some(t => typeof t.isCompleted !== 'boolean');
     if (invalidCompleted) {
-      return res.status(400).json({ error: 'isCompleted must be a boolean' });
+      return res.status(400).json({ message: 'isCompleted must be a boolean' });
     }
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
