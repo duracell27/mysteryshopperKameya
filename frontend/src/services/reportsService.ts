@@ -1,4 +1,4 @@
-import { AuditResult, PointsTransaction, ScoreInsight } from '../types';
+import { AuditResult, LearningTask, PointsTransaction, ScoreInsight } from '../types';
 
 const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}`,
@@ -179,6 +179,31 @@ export const generateLearningPlan = async (reportId: string): Promise<AuditResul
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || 'Помилка генерації плану навчання');
+  }
+  return res.json();
+};
+
+export const deleteLearningPlan = async (reportId: string): Promise<AuditResult> => {
+  const res = await fetch(`/api/reports/${reportId}/learning-plan`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Помилка видалення плану навчання');
+  }
+  return res.json();
+};
+
+export const updateLearningPlanTasks = async (reportId: string, tasks: LearningTask[]): Promise<AuditResult> => {
+  const res = await fetch(`/api/reports/${reportId}/learning-plan`, {
+    method: 'PATCH',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tasks }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Помилка оновлення плану навчання');
   }
   return res.json();
 };
