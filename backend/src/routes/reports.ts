@@ -745,6 +745,10 @@ router.patch('/:id/learning-plan', async (req: AuthRequest, res: Response) => {
     if (invalid) {
       return res.status(400).json({ message: 'Кожна задача повинна мати непорожні topicTitle і description' });
     }
+    const invalidCompleted = tasks.some(t => typeof t.isCompleted !== 'boolean');
+    if (invalidCompleted) {
+      return res.status(400).json({ error: 'isCompleted must be a boolean' });
+    }
     const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
     if (!report.learningPlan) return res.status(400).json({ message: 'План навчання не існує' });
