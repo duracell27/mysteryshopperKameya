@@ -9,6 +9,7 @@ import { PointsTransaction } from '../models/PointsTransaction';
 import { getChunks } from '../services/standardsService';
 import { syncStreakBonuses } from '../services/streakService';
 import { checkAndAwardBirthday } from '../services/birthdayService';
+import { AFFIRMATIONS } from '../constants/affirmations';
 
 function getTier(score: number): 'below85' | 'range85to94' | 'range95to99' | 'perfect100' {
   if (score === 100) return 'perfect100';
@@ -235,11 +236,28 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
     const user = await User.findById(userId);
     const store = user?.store || '';
 
+    // Assign affirmation for perfect score
+    let affirmation: string | undefined;
+    if (totalScore >= 100) {
+      const cutoff = new Date();
+      cutoff.setFullYear(cutoff.getFullYear() - 1);
+      const cutoffStr = cutoff.toISOString().slice(0, 10); // "YYYY-MM-DD"
+      const recentPerfect = await Report.find(
+        { userId, totalScore: { $gte: 100 }, affirmation: { $exists: true, $ne: null }, date: { $gte: cutoffStr } },
+        'affirmation'
+      ).lean();
+      const usedSet = new Set(recentPerfect.map((r) => r.affirmation as string));
+      let available = AFFIRMATIONS.filter((a) => !usedSet.has(a));
+      if (available.length === 0) available = AFFIRMATIONS;
+      affirmation = available[Math.floor(Math.random() * available.length)];
+    }
+
     const report = await Report.create({
       userId, auditId, location, store, date,
       quarter, year: Number(year),
       ...(month !== undefined && { month: Number(month) }),
       totalScore, sections, fileName,
+      ...(affirmation !== undefined && { affirmation }),
     });
 
     const { pointsAwarded, totalPoints } = await awardPoints({
