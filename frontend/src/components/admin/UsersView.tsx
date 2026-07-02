@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { UserListItem, STORES, EMPLOYEE_POSITIONS, PointsTransaction } from '../../types';
 import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory } from '../../services/usersService';
+import { BadgesModal } from './BadgesModal';
 
 const EMPTY_CREATE: CreateUserPayload = {
   phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '', birthday: '',
@@ -41,6 +42,9 @@ export const UsersView: React.FC = () => {
   const [editError, setEditError]   = useState('');
 
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Badges
+  const [badgesUser, setBadgesUser] = useState<UserListItem | null>(null);
 
   // Points history
   const [pointsUser, setPointsUser] = useState<UserListItem | null>(null);
@@ -294,6 +298,15 @@ export const UsersView: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-3">
+                        {u.role === 'EMPLOYEE' && (
+                          <button
+                            onClick={() => setBadgesUser(u)}
+                            className="text-slate-400 hover:text-amber-500 transition-colors"
+                            title="Нагороди"
+                          >
+                            <i className="fas fa-medal" />
+                          </button>
+                        )}
                         <button onClick={() => openEdit(u)} className="text-slate-400 hover:text-kameya-burgundy transition-colors" title="Редагувати">
                           <i className="fas fa-pen"></i>
                         </button>
@@ -472,6 +485,13 @@ export const UsersView: React.FC = () => {
       )}
 
       {/* ── Модалка HISTORY БАЛІВ ── */}
+      {badgesUser && (
+        <BadgesModal
+          user={badgesUser}
+          onClose={() => setBadgesUser(null)}
+        />
+      )}
+
       {pointsUser && (
         <Modal>
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
