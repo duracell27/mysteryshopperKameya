@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { PointsTransaction } from '../types';
-import { getMyRank, UserRank, getMyPointsHistory } from '../services/reportsService';
+import { PointsTransaction, BadgeAward } from '../types';
+import { getMyRank, UserRank, getMyPointsHistory, getMyBadges } from '../services/reportsService';
 import { useAuth } from '../context/AuthContext';
+import { BADGE_CATALOGUE, BADGE_CATEGORIES } from '../constants/badges';
+import { BadgeTile } from './BadgeTile';
 
 export const ProgressView: React.FC = () => {
   const { user } = useAuth();
   const [rank, setRank] = useState<UserRank | null>(null);
   const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
+  const [badges, setBadges] = useState<BadgeAward[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    Promise.all([getMyRank(), getMyPointsHistory()])
-      .then(([rankData, txData]) => {
+    Promise.all([getMyRank(), getMyPointsHistory(), getMyBadges()])
+      .then(([rankData, txData, badgeData]) => {
         setRank(rankData);
         setTransactions(txData);
+        setBadges(badgeData);
       })
       .catch(() => console.error('Помилка завантаження даних'))
       .finally(() => setLoading(false));
@@ -44,7 +48,7 @@ export const ProgressView: React.FC = () => {
         <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 flex flex-col relative overflow-hidden group">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 bg-kameya-burgundy/10 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
-              <i className="fas fa-gem text-kameya-burgundy text-2xl"></i>
+              <i className="fas fa-gem text-kameya-burgundy text-2xl" />
             </div>
             <div>
               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Накопичено балів</p>
@@ -54,7 +58,6 @@ export const ProgressView: React.FC = () => {
             </div>
           </div>
 
-          {/* Last transactions */}
           {lastThree.length > 0 && (
             <div className="space-y-2 mt-2">
               {lastThree.map((tx) => (
@@ -77,53 +80,68 @@ export const ProgressView: React.FC = () => {
             </button>
           )}
 
-          <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-100/50 rounded-full blur-2xl"></div>
+          <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-100/50 rounded-full blur-2xl" />
         </div>
 
-        {/* Badges card */}
-        <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100">
-          <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-            <i className="fas fa-medal text-amber-500"></i>
-            Ваші значки
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            {transactions.length > 0 ? (
-              <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center border-2 border-kameya-burgundy hover:bg-white transition-all">
-                <i className="fas fa-star text-3xl mb-2 text-amber-400"></i>
-                <p className="text-[10px] font-bold text-slate-800 uppercase">Перша перевірка</p>
+        {/* Network rank card */}
+        <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-center relative overflow-hidden">
+          {rank ? (
+            <>
+              <div className="absolute top-5 right-5 bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 flex items-center gap-1.5">
+                <i className="fas fa-layer-group text-amber-500 text-xs" />
+                <span className="text-amber-700 font-bold text-xs uppercase tracking-wide">{rank.tier}</span>
               </div>
-            ) : (
-              <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center hover:bg-slate-100 transition-all">
-                <i className="fas fa-star text-3xl mb-2 text-slate-300"></i>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Перша перевірка</p>
+              <div className="flex items-end gap-3 mb-2">
+                <i className="fas fa-trophy text-amber-400 text-3xl mb-1" />
+                <div>
+                  <p className="text-slate-400 font-bold uppercase tracking-widest text-xs mb-0.5">Місце в мережі</p>
+                  <p className="text-5xl font-bold text-slate-800 tracking-tighter leading-none">#{rank.rank}</p>
+                </div>
               </div>
-            )}
-            <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center hover:bg-slate-100 transition-all">
-              <i className="fas fa-medal text-3xl mb-2 text-slate-300"></i>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Срібний Гід</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center hover:bg-slate-100 transition-all">
-              <i className="fas fa-book text-3xl mb-2 text-slate-300"></i>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Студент Року</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center hover:bg-slate-100 transition-all">
-              <i className="fas fa-crown text-3xl mb-2 text-slate-300"></i>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Експерт Сервісу</p>
-            </div>
-          </div>
+              <p className="text-slate-400 text-sm mt-3">
+                з <span className="font-semibold text-slate-600">{rank.totalUsers}</span> учасників · Продовжуйте зростати!
+              </p>
+            </>
+          ) : (
+            <p className="text-slate-400 text-sm">{loading ? 'Завантаження...' : 'Дані рейтингу відсутні'}</p>
+          )}
+          <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-amber-50 rounded-full blur-2xl" />
         </div>
       </div>
 
-      {rank && (
-        <div className="bg-slate-800 p-8 rounded-3xl text-white shadow-xl">
-          <div className="mb-4">
-            <h4 className="text-xl font-bold italic text-amber-400">Ви в {rank.tier} мережі!</h4>
-            <p className="text-slate-400 text-sm mt-1">
-              Ваше місце: <span className="font-semibold text-white">#{rank.rank}</span> з {rank.totalUsers} · Продовжуйте розвиватися та підвищуйте свої результати
-            </p>
+      {/* Badges section */}
+      <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100">
+        <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
+          <i className="fas fa-medal text-amber-500" />
+          Ваші значки
+        </h3>
+
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <i className="fas fa-spinner fa-spin text-2xl text-slate-300" />
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-6">
+            {BADGE_CATEGORIES.map(category => {
+              const defs = BADGE_CATALOGUE.filter(b => b.category === category);
+              return (
+                <div key={category}>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">{category}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {defs.map(def => (
+                      <BadgeTile
+                        key={def.badgeId}
+                        def={def}
+                        awards={badges.filter(a => a.badgeId === def.badgeId)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Points history modal */}
       {showHistory && ReactDOM.createPortal(
@@ -132,7 +150,7 @@ export const ProgressView: React.FC = () => {
             <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
               <h3 className="text-lg font-bold text-slate-800">Історія балів</h3>
               <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-slate-600">
-                <i className="fas fa-xmark text-xl"></i>
+                <i className="fas fa-xmark text-xl" />
               </button>
             </div>
             <div className="p-6 overflow-y-auto flex-1 space-y-2">
