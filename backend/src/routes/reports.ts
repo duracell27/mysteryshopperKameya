@@ -10,6 +10,7 @@ import { getChunks } from '../services/standardsService';
 import { syncStreakBonuses } from '../services/streakService';
 import { checkAndAwardBirthday } from '../services/birthdayService';
 import { AFFIRMATIONS } from '../constants/affirmations';
+import { evaluateOnReportConfirm, evaluateOnLearningPlanComplete } from '../services/badgeService';
 
 function getTier(score: number): 'below85' | 'range85to94' | 'range95to99' | 'perfect100' {
   if (score === 100) return 'perfect100';
@@ -275,6 +276,9 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
     // Recalculate streak bonuses after new report is added
     await syncStreakBonuses(userId, Number(year));
 
+    evaluateOnReportConfirm(userId, report._id as import('mongoose').Types.ObjectId)
+      .catch(err => console.error('[badge] report eval failed:', err));
+
     return res.status(201).json({ ...report.toObject(), pointsAwarded, totalPoints });
   } catch (error) {
     console.error(error);
@@ -356,6 +360,19 @@ router.get('/my/transactions', async (req: AuthRequest, res: Response) => {
     const transactions = await PointsTransaction.find({ userId: req.user?.userId })
       .sort({ createdAt: -1 });
     return res.json(transactions);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// GET /api/reports/my/badges — badges for current employee
+router.get('/my/badges', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ message: 'Не авторизовано' });
+    const user = await User.findById(userId, 'badges').lean();
+    return res.json(user?.badges ?? []);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Помилка сервера' });
@@ -847,6 +864,11 @@ router.patch('/:id/learning-plan/:taskIndex', async (req: AuthRequest, res: Resp
 
     report.markModified('learningPlan');
     await report.save();
+
+    if (report.learningPlan?.tasks.every(t => t.isCompleted)) {
+      evaluateOnLearningPlanComplete(report.userId.toString(), report._id.toString())
+        .catch(err => console.error('[badge] learning plan eval failed:', err));
+    }
 
     return res.json(report);
   } catch (error) {

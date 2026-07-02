@@ -1,9 +1,11 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import { Types } from 'mongoose';
 import { User } from '../models/User';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sendSms } from '../services/sms';
 import { PointsTransaction } from '../models/PointsTransaction';
+import { evaluateStudentOfYear } from '../services/badgeService';
 
 const router = Router();
 
@@ -179,6 +181,79 @@ router.post('/migrate-points', async (_req, res: Response) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Помилка міграції' });
+  }
+});
+
+// POST /api/users/evaluate-student-of-year — trigger Студент року evaluation for all employees (admin)
+router.post('/evaluate-student-of-year', async (req: AuthRequest, res: Response) => {
+  try {
+    const { year } = req.body as { year?: number };
+    const evalYear = year ?? new Date().getFullYear();
+    const employees = await User.find({ role: 'EMPLOYEE' }, '_id').lean();
+    await Promise.all(employees.map(u => evaluateStudentOfYear(u._id.toString(), evalYear)));
+    return res.json({ message: `Оцінено ${employees.length} працівників`, evaluated: employees.length });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// GET /api/users/:id/badges — list badge awards for a user (admin)
+router.get('/:id/badges', async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.params.id, 'badges').lean();
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+    return res.json(user.badges ?? []);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// POST /api/users/:id/badges — manually assign a badge (admin)
+router.post('/:id/badges', async (req: AuthRequest, res: Response) => {
+  try {
+    const { badgeId, earnedAt, year, manual } = req.body as {
+      badgeId: string;
+      earnedAt?: string;
+      year?: number;
+      manual?: boolean;
+    };
+    if (!badgeId) return res.status(400).json({ message: 'badgeId обовʼязковий' });
+
+    const award = {
+      badgeId,
+      earnedAt: earnedAt ? new Date(earnedAt) : new Date(),
+      ...(year !== undefined && { year: Number(year) }),
+      manual: manual !== false,
+    };
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { $push: { badges: award } },
+      { new: true, select: 'badges' },
+    );
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+    return res.status(201).json(user.badges);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// DELETE /api/users/:id/badges/:awardId — remove a specific badge award (admin)
+router.delete('/:id/badges/:awardId', async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { $pull: { badges: { _id: new Types.ObjectId(req.params.awardId) } } },
+      { new: true, select: 'badges' },
+    );
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+    return res.json({ message: 'Нагороду видалено' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
   }
 });
 

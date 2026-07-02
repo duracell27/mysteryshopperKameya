@@ -246,3 +246,9 @@ export const submitScoreInsight = async (
   }
   return res.json();
 };
+
+export const getMyBadges = async (): Promise<import('../types').BadgeAward[]> => {
+  const res = await fetch('/api/reports/my/badges', { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error('Помилка завантаження бейджів');
+  return res.json();
+};
