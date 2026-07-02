@@ -165,3 +165,22 @@ export const EMPLOYEE_POSITIONS = [
   'Продавець консультант',
   'Керівник відділу',
 ] as const;
+
+export type BadgeId =
+  | 'first_report'
+  | 'first_perfect'
+  | 'honor_student'
+  | 'student_of_year'
+  | 'clean_form'
+  | 'silver_guide'
+  | 'gold_series'
+  | 'platinum_standard'
+  | 'comeback';
+
+export interface BadgeAward {
+  _id: string;
+  badgeId: BadgeId;
+  earnedAt: string;
+  year?: number;
+  manual?: boolean;
+}

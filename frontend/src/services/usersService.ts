@@ -1,4 +1,4 @@
-import { UserListItem, PointsTransaction } from '../types';
+import { UserListItem, PointsTransaction, BadgeAward } from '../types';
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -79,4 +79,39 @@ export const syncUserPoints = async (userId: string): Promise<UserListItem> => {
   });
   if (!res.ok) throw new Error('Помилка синхронізації');
   return res.json();
+};
+
+export const getUserBadges = async (userId: string): Promise<BadgeAward[]> => {
+  const res = await fetch(`/api/users/${userId}/badges`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}` },
+  });
+  if (!res.ok) throw new Error('Помилка завантаження нагород');
+  return res.json();
+};
+
+export interface AssignBadgePayload {
+  badgeId: string;
+  earnedAt?: string;
+  year?: number;
+}
+
+export const assignBadge = async (userId: string, payload: AssignBadgePayload): Promise<BadgeAward[]> => {
+  const res = await fetch(`/api/users/${userId}/badges`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...payload, manual: true }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message || 'Помилка призначення нагороди');
+  }
+  return res.json();
+};
+
+export const deleteBadge = async (userId: string, awardId: string): Promise<void> => {
+  const res = await fetch(`/api/users/${userId}/badges/${awardId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}` },
+  });
+  if (!res.ok) throw new Error('Помилка видалення нагороди');
 };
