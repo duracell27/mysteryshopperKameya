@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { BadgeAward } from '../types';
 import { BadgeDef } from '../constants/badges';
 
@@ -37,6 +37,13 @@ export const BadgeTile: React.FC<BadgeTileProps> = ({ def, awards }) => {
   const handleTouchMove = () => {
     if (touchTimer.current) clearTimeout(touchTimer.current);
   };
+
+  useEffect(() => {
+    return () => {
+      if (touchTimer.current) clearTimeout(touchTimer.current);
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    };
+  }, []);
 
   return (
     <div
