@@ -34,41 +34,53 @@ function calcSeriesMilestones(reports: { quarter: string; totalScore: number }[]
   return milestones;
 }
 
-export async function evaluateOnReportConfirm(
+/**
+ * Pure read-only simulation: computes which badges would be earned if a report
+ * with the given params were confirmed. Does not write to DB.
+ *
+ * excludeReportId: when called after a report is already saved (i.e. from
+ * evaluateOnReportConfirm), pass the new report's _id so it is excluded from
+ * the DB query and instead treated as the synthetic "incoming" report.
+ * Without this param (preview mode), the report does not yet exist in DB.
+ */
+export async function computePendingBadges(
   userId: string | Types.ObjectId,
-  reportId: string | Types.ObjectId,
-): Promise<void> {
+  totalScore: number,
+  quarter: string,
+  year: number,
+  excludeReportId?: string | Types.ObjectId,
+): Promise<{ badgeId: BadgeId; year?: number }[]> {
   const user = await User.findById(userId);
-  if (!user) return;
+  if (!user) return [];
 
-  const allReports = await Report.find({ userId })
-    .sort({ createdAt: 1 })
-    .lean();
+  const dbQuery: Record<string, unknown> = { userId };
+  if (excludeReportId) dbQuery['_id'] = { $ne: excludeReportId };
 
-  const newBadges: { badgeId: BadgeId; earnedAt: Date; year?: number }[] = [];
+  const existingReports = await Report.find(dbQuery).sort({ createdAt: 1 }).lean();
+  const allReports = [...existingReports, { quarter, totalScore, year }];
+
+  const pending: { badgeId: BadgeId; year?: number }[] = [];
   const has = (id: BadgeId) => user.badges.some(b => b.badgeId === id);
-  const hasForYear = (id: BadgeId, year: number) =>
-    user.badges.some(b => b.badgeId === id && b.year === year);
+  const hasForYear = (id: BadgeId, y: number) =>
+    user.badges.some(b => b.badgeId === id && b.year === y);
 
   // ── Старт ──────────────────────────────────────────────────────────────────
   if (!has('first_report')) {
-    newBadges.push({ badgeId: 'first_report', earnedAt: new Date() });
+    pending.push({ badgeId: 'first_report' });
   }
 
   if (!has('first_perfect') && allReports.length === 1 && allReports[0].totalScore === 100) {
-    newBadges.push({ badgeId: 'first_perfect', earnedAt: new Date() });
+    pending.push({ badgeId: 'first_perfect' });
   }
 
   // ── Серія ──────────────────────────────────────────────────────────────────
-  const currentReport = allReports.find(r => r._id.toString() === reportId.toString());
-  const year = currentReport?.year ?? new Date().getFullYear();
   const yearReports = allReports.filter(r => r.year === year);
   const milestones = calcSeriesMilestones(yearReports);
 
   for (const m of milestones) {
     const badgeId: BadgeId = m === 2 ? 'silver_guide' : m === 3 ? 'gold_series' : 'platinum_standard';
     if (!hasForYear(badgeId, year)) {
-      newBadges.push({ badgeId, earnedAt: new Date(), year });
+      pending.push({ badgeId, year });
     }
   }
 
@@ -76,9 +88,10 @@ export async function evaluateOnReportConfirm(
   if (allReports.length >= 2) {
     let historicalComebacks = 0;
     for (let i = 1; i < allReports.length; i++) {
-      const prev = allReports[i - 1];
+      const prev = allReports[i - 1] as typeof existingReports[0];
       const curr = allReports[i];
       const prevHasCompletedPlan =
+        'learningPlan' in prev &&
         !!prev.learningPlan?.tasks?.length &&
         prev.learningPlan.tasks.every((t: { isCompleted: boolean }) => t.isCompleted);
       if (prev.totalScore < 85 && prevHasCompletedPlan && curr.totalScore === 100) {
@@ -87,11 +100,30 @@ export async function evaluateOnReportConfirm(
     }
     const existingComebacks = user.badges.filter(b => b.badgeId === 'comeback').length;
     if (existingComebacks < historicalComebacks) {
-      newBadges.push({ badgeId: 'comeback', earnedAt: new Date() });
+      pending.push({ badgeId: 'comeback' });
     }
   }
 
-  if (newBadges.length > 0) {
+  return pending;
+}
+
+export async function evaluateOnReportConfirm(
+  userId: string | Types.ObjectId,
+  reportId: string | Types.ObjectId,
+): Promise<void> {
+  const report = await Report.findById(reportId).lean();
+  if (!report) return;
+
+  const pending = await computePendingBadges(
+    userId,
+    report.totalScore,
+    report.quarter,
+    report.year ?? new Date().getFullYear(),
+    reportId,
+  );
+
+  if (pending.length > 0) {
+    const newBadges = pending.map(b => ({ ...b, earnedAt: new Date() }));
     await User.findByIdAndUpdate(userId, { $push: { badges: { $each: newBadges } } });
   }
 }
