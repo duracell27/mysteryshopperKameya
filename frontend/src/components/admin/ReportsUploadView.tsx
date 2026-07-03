@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { UserListItem, AuditSection } from '../../types';
-import { fetchUsers } from '../../services/usersService';
-import { parseReport, confirmReport, previewAffirmation, ParsedReport } from '../../services/reportsService';
+import { UserListItem, AuditSection, BadgeId } from '../../types';
+import { fetchUsers, getUserBadges } from '../../services/usersService';
+import { parseReport, confirmReport, previewAffirmation, previewBadges, ParsedReport, BadgePreview } from '../../services/reportsService';
+import { BADGE_CATALOGUE } from '../../constants/badges';
 import { formatDate } from '../../utils/dateFormatter';
 import { scoreTextClass } from '../../utils/scoreColor';
 
@@ -36,6 +37,11 @@ export const ReportsUploadView: React.FC = () => {
   const [affirmationLoading, setAffirmationLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [badgePreview, setBadgePreview] = useState<BadgePreview[]>([]);
+  const [badgeOverrideMode, setBadgeOverrideMode] = useState<'award' | 'cancel' | 'replace'>('award');
+  const [replaceBadgeId, setReplaceBadgeId] = useState<BadgeId | ''>('');
+  const [userBadgeIds, setUserBadgeIds] = useState<BadgeId[]>([]);
 
   useEffect(() => {
     fetchUsers()
@@ -80,6 +86,9 @@ export const ReportsUploadView: React.FC = () => {
       setParsed(result);
       setStep('preview');
       if (result.totalScore >= 100) fetchAffirmationPreview(selectedUserId);
+      previewBadges(selectedUserId, result.totalScore, selectedQuarter, selectedYear)
+        .then(badges => setBadgePreview(badges))
+        .catch(() => setBadgePreview([]));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Помилка аналізу');
       setStep('select');
@@ -91,6 +100,13 @@ export const ReportsUploadView: React.FC = () => {
     setError(null);
     setStep('saving');
     try {
+      const badgeOverride =
+        badgeOverrideMode === 'cancel'
+          ? { action: 'cancel' as const }
+          : badgeOverrideMode === 'replace' && replaceBadgeId
+          ? { action: 'replace' as const, replaceBadgeId }
+          : undefined;
+
       const result = await confirmReport({
         userId: selectedUserId,
         auditId: parsed.auditId ?? '',
@@ -103,6 +119,7 @@ export const ReportsUploadView: React.FC = () => {
         year: selectedYear,
         month: selectedMonth,
         ...(affirmationPreview ? { affirmation: affirmationPreview } : {}),
+        ...(badgeOverride ? { badgeOverride } : {}),
       });
       setAwardedPoints(result.pointsAwarded);
       setStep('done');
@@ -129,6 +146,10 @@ export const ReportsUploadView: React.FC = () => {
     setAffirmationPreview(null);
     setAffirmationLoading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    setBadgePreview([]);
+    setBadgeOverrideMode('award');
+    setReplaceBadgeId('');
+    setUserBadgeIds([]);
   };
 
   const filteredEmployees = employees.filter((u) => {
@@ -145,6 +166,9 @@ export const ReportsUploadView: React.FC = () => {
     setSelectedEmployee(employee);
     setShowDropdown(false);
     setSearchQuery('');
+    getUserBadges(employee._id)
+      .then(awards => setUserBadgeIds(awards.map(a => a.badgeId)))
+      .catch(() => setUserBadgeIds([]));
   };
 
   // ── Step: done ──
@@ -529,6 +553,82 @@ export const ReportsUploadView: React.FC = () => {
             </div>
           )}
 
+          {badgePreview.length > 0 && (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-5 space-y-4">
+              <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <i className="fas fa-medal text-amber-400"></i>
+                Нагорода за цей звіт
+              </p>
+
+              <div className="space-y-2">
+                {badgePreview.map((badge) => (
+                  <div key={badge.badgeId} className="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                    <i className={`${badge.icon} ${badge.color} text-lg mt-0.5 flex-shrink-0`}></i>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {badge.name}{badge.year ? ` (${badge.year})` : ''}
+                      </p>
+                      <p className="text-xs text-slate-500">{badge.condition}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="badgeOverride"
+                    value="award"
+                    checked={badgeOverrideMode === 'award'}
+                    onChange={() => { setBadgeOverrideMode('award'); setReplaceBadgeId(''); }}
+                    className="accent-kameya-burgundy"
+                  />
+                  <span className="text-sm text-slate-700">Нарахувати (за замовчуванням)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="badgeOverride"
+                    value="cancel"
+                    checked={badgeOverrideMode === 'cancel'}
+                    onChange={() => { setBadgeOverrideMode('cancel'); setReplaceBadgeId(''); }}
+                    className="accent-kameya-burgundy"
+                  />
+                  <span className="text-sm text-slate-700">Скасувати нагороду</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="badgeOverride"
+                    value="replace"
+                    checked={badgeOverrideMode === 'replace'}
+                    onChange={() => setBadgeOverrideMode('replace')}
+                    className="accent-kameya-burgundy"
+                  />
+                  <span className="text-sm text-slate-700">Замінити на інший бейдж</span>
+                </label>
+
+                {badgeOverrideMode === 'replace' && (
+                  <select
+                    value={replaceBadgeId}
+                    onChange={(e) => setReplaceBadgeId(e.target.value as BadgeId)}
+                    className="mt-1 ml-6 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy w-full max-w-xs"
+                  >
+                    <option value="">Оберіть бейдж...</option>
+                    {BADGE_CATALOGUE
+                      .filter(b => !userBadgeIds.includes(b.badgeId))
+                      .map(b => (
+                        <option key={b.badgeId} value={b.badgeId}>{b.name}</option>
+                      ))}
+                  </select>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button
               onClick={handleReset}
@@ -548,7 +648,7 @@ export const ReportsUploadView: React.FC = () => {
             </button>
             <button
               onClick={handleConfirm}
-              disabled={step === 'saving'}
+              disabled={step === 'saving' || (badgeOverrideMode === 'replace' && !replaceBadgeId)}
               className="flex-1 py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {step === 'saving' ? (
