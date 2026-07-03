@@ -3,6 +3,20 @@ import ReactDOM from 'react-dom';
 import { UserListItem, STORES, EMPLOYEE_POSITIONS, PointsTransaction } from '../../types';
 import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory } from '../../services/usersService';
 import { BadgesModal } from './BadgesModal';
+import { formatDate } from '../../utils/dateFormatter';
+
+const parseDatePaste = (
+  e: React.ClipboardEvent<HTMLInputElement>,
+  set: (v: string) => void
+) => {
+  const text = e.clipboardData.getData('text').trim();
+  const m = text.match(/^(\d{1,2})[.,](\d{1,2})[.,](\d{4})$/);
+  if (m) {
+    e.preventDefault();
+    const [, d, mo, y] = m;
+    set(`${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`);
+  }
+};
 
 const generatePassword = (): string => {
   const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -19,9 +33,8 @@ const EMPTY_CREATE: CreateUserPayload = {
   phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '', birthday: '',
 };
 
-// 380XXXXXXXXX → 050 809 81 82
 const toDisplay = (phone: string) => {
-  const p = phone.slice(2); // 0XXXXXXXXX
+  const p = phone.startsWith('38') ? phone.slice(2) : phone;
   return `${p.slice(0,3)} ${p.slice(3,6)} ${p.slice(6,8)} ${p.slice(8,10)}`;
 };
 
@@ -303,9 +316,7 @@ export const UsersView: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 text-slate-600">
-                      {u.birthday
-                        ? new Date(u.birthday).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                        : '—'}
+                      {u.birthday ? formatDate(u.birthday) : '—'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-3">
@@ -408,6 +419,7 @@ export const UsersView: React.FC = () => {
                   <FormField label="Дата народження">
                     <input type="date" value={createForm.birthday ?? ''}
                       onChange={(e) => setCreateForm((f) => ({ ...f, birthday: e.target.value }))}
+                      onPaste={(e) => parseDatePaste(e, (v) => setCreateForm((f) => ({ ...f, birthday: v })))}
                       className={inputCls} required />
                   </FormField>
                 </>
@@ -479,6 +491,7 @@ export const UsersView: React.FC = () => {
                   <FormField label="Дата народження">
                     <input type="date" value={editForm.birthday}
                       onChange={(e) => setEditForm((f) => ({ ...f, birthday: e.target.value }))}
+                      onPaste={(e) => parseDatePaste(e, (v) => setEditForm((f) => ({ ...f, birthday: v })))}
                       className={inputCls} />
                   </FormField>
                 </>
@@ -556,7 +569,7 @@ export const UsersView: React.FC = () => {
                             <p className="text-xs text-slate-500">{reportId.fileName}</p>
                           )}
                           <p className="text-xs text-slate-400">
-                            {new Date(tx.createdAt).toLocaleDateString('uk-UA')}
+                            {formatDate(tx.createdAt)}
                           </p>
                         </div>
                         <span className={`text-sm font-bold px-3 py-1 rounded-full ${

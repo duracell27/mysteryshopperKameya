@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { UserListItem, BadgeAward, BadgeId } from '../../types';
 import { getUserBadges, assignBadge, deleteBadge } from '../../services/usersService';
 import { BADGE_CATALOGUE, BADGE_CATEGORIES, YEARLY_BADGE_IDS } from '../../constants/badges';
+import { formatDate } from '../../utils/dateFormatter';
 import { BadgeTile } from '../BadgeTile';
 
 interface BadgesModalProps {
@@ -111,7 +112,7 @@ export const BadgesModal: React.FC<BadgesModalProps> = ({ user, onClose }) => {
                                   {defAwards.map(award => (
                                     <div key={award._id} className="flex items-center justify-between gap-2">
                                       <span className="text-xs text-slate-600">
-                                        {new Date(award.earnedAt).toLocaleDateString('uk-UA')}
+                                        {formatDate(award.earnedAt)}
                                         {award.year && ` (${award.year})`}
                                         {award.manual && <span className="ml-1 text-slate-400">[вручну]</span>}
                                       </span>

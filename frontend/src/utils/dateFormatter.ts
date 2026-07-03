@@ -1,12 +1,11 @@
-// Форматує дату у вигляд дд.мм.рррр
-export const formatDate = (dateString: string): string => {
+export const formatDate = (dateString: string | Date): string => {
   try {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+    const d = new Date(dateString as string);
+    const day   = String(d.getUTCDate()).padStart(2, '0');
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const year  = d.getUTCFullYear();
     return `${day}.${month}.${year}`;
   } catch {
-    return dateString;
+    return String(dateString);
   }
 };

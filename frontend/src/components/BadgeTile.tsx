@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BadgeAward } from '../types';
 import { BadgeDef } from '../constants/badges';
+import { formatDate } from '../utils/dateFormatter';
 
 interface BadgeTileProps {
   def: BadgeDef;
@@ -16,9 +17,7 @@ export const BadgeTile: React.FC<BadgeTileProps> = ({ def, awards }) => {
   const tooltipText = earned
     ? awards
         .map(a => {
-          const date = new Date(a.earnedAt).toLocaleDateString('uk-UA', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-          });
+          const date = formatDate(a.earnedAt);
           return a.year ? `${date} (${a.year})` : date;
         })
         .join('\n')

@@ -17,16 +17,15 @@ router.use((req: AuthRequest, res: Response, next) => {
   next();
 });
 
-function normalizePhone(phone: string): string {
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.startsWith('380')) return cleaned;
-  if (cleaned.startsWith('0')) return '38' + cleaned;
-  return cleaned;
+function normalizePhone(raw: string): string {
+  const d = raw.replace(/\D/g, '');
+  if (d.startsWith('380')) return '0' + d.slice(3);
+  if (d.startsWith('38'))  return '0' + d.slice(2);
+  return d; // already 0XXXXXXXXX or other
 }
 
-// 380XXXXXXXXX → 0XXXXXXXXX
 function toDisplayPhone(phone: string): string {
-  return phone.slice(2); // slice(2) дає "0XXXXXXXXX"
+  return phone.startsWith('38') ? phone.slice(2) : phone;
 }
 
 // GET /api/users
@@ -56,7 +55,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     }
 
     const normalizedPhone = normalizePhone(String(phone));
-    if (await User.findOne({ phone: normalizedPhone })) {
+    if (await User.findOne({ phone: { $in: [normalizedPhone, '38' + normalizedPhone] } })) {
       return res.status(409).json({ message: 'Користувач з таким номером вже існує' });
     }
 
@@ -72,10 +71,9 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     });
 
     try {
-      const displayPhone = toDisplayPhone(normalizedPhone);
       await sendSms(
-        normalizedPhone,
-        `Вітаємо в Камея Таємний.\nВаш доступ до платформи:\nНомер: ${displayPhone}\nПароль: ${password}\nАдреса: mysteryshopper.kameya.if.ua`
+        '38' + normalizedPhone,
+        `Вітаємо в Камея Таємний.\nВаш доступ до платформи:\nНомер: ${normalizedPhone}\nПароль: ${password}\nАдреса: mysteryshopper.kameya.if.ua`
       );
     } catch (smsError) {
       console.error('[SMS] Не вдалось надіслати:', smsError);

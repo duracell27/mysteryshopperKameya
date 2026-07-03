@@ -36,7 +36,9 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype === 'application/pdf') cb(null, true);
+    const isPdfMime = ['application/pdf', 'application/x-pdf', 'application/octet-stream', 'binary/octet-stream'].includes(file.mimetype);
+    const isPdfExt = file.originalname.toLowerCase().endsWith('.pdf');
+    if (isPdfMime && isPdfExt) cb(null, true);
     else cb(new Error('Тільки PDF файли'));
   },
 });
@@ -116,6 +118,11 @@ router.post('/parse', (req: AuthRequest, res: Response) => {
   upload.single('pdf')(req, res, async (err) => {
     if (err) return res.status(400).json({ message: err.message });
     if (!req.file) return res.status(400).json({ message: 'Файл не завантажено' });
+
+    const pdfMagic = req.file.buffer.slice(0, 5).toString('ascii');
+    if (pdfMagic !== '%PDF-') {
+      return res.status(400).json({ message: 'Файл не є валідним PDF.' });
+    }
 
     try {
       const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

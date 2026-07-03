@@ -561,7 +561,7 @@ export const AdminReportsListView: React.FC = () => {
           {selected.learningPlan ? (
             <div className="space-y-3">
               <p className="text-xs text-slate-400">
-                Згенеровано: {new Date(selected.learningPlan.generatedAt).toLocaleDateString('uk-UA')}
+                Згенеровано: {formatDate(selected.learningPlan.generatedAt)}
                 {' · '}
                 {selected.learningPlan.tasks.filter(t => t.isCompleted).length}/{selected.learningPlan.tasks.length} виконано
               </p>
@@ -596,7 +596,7 @@ export const AdminReportsListView: React.FC = () => {
                             </span>
                             {task.completedAt && (
                               <span className="ml-2 text-xs text-green-600">
-                                {new Date(task.completedAt).toLocaleDateString('uk-UA')}
+                                {formatDate(task.completedAt)}
                               </span>
                             )}
                           </div>
@@ -801,10 +801,7 @@ export const AdminReportsListView: React.FC = () => {
                     {reflectionReport.reflection.isOnTime ? '✅ Вчасно' : '⚠️ Не вчасно'}
                   </span>
                   <span className="text-sm text-slate-500">
-                    {new Date(reflectionReport.reflection.submittedAt).toLocaleDateString('uk-UA', {
-                      day: '2-digit', month: '2-digit', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit',
-                    })}
+                    {(() => { const d = new Date(reflectionReport.reflection.submittedAt); return `${formatDate(d.toISOString())} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; })()}
                   </span>
                   <span className={`text-sm font-semibold ${reflectionReport.reflection.bonusPointsAwarded ? 'text-green-600' : 'text-slate-400'}`}>
                     {reflectionReport.reflection.bonusPointsAwarded ? '+10 балів' : '0 балів'}

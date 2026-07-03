@@ -50,7 +50,7 @@ export const LoginPage: React.FC = () => {
                 autoComplete="tel"
               />
               <p className="text-[11px] text-slate-400 mt-1.5 pl-1">
-                Формат: 0508098182 або 380508098182
+                Формат: 0508098182, +380508098182, 050 809 81 82
               </p>
             </div>
 

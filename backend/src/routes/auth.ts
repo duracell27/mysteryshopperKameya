@@ -5,11 +5,11 @@ import { User } from '../models/User';
 
 const router = Router();
 
-function normalizePhone(phone: string): string {
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.startsWith('380')) return cleaned;
-  if (cleaned.startsWith('0')) return '38' + cleaned;
-  return cleaned;
+function normalizePhone(raw: string): string {
+  const d = raw.replace(/\D/g, '');
+  if (d.startsWith('380')) return '0' + d.slice(3);
+  if (d.startsWith('38'))  return '0' + d.slice(2);
+  return d; // already 0XXXXXXXXX or other
 }
 
 router.post('/login', async (req: Request, res: Response) => {
@@ -21,7 +21,9 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const normalizedPhone = normalizePhone(String(phone));
-    const user = await User.findOne({ phone: normalizedPhone });
+    const user = await User.findOne({
+      phone: { $in: [normalizedPhone, '38' + normalizedPhone] },
+    });
 
     if (!user) {
       return res.status(401).json({ message: 'Невірний номер телефону або пароль' });
