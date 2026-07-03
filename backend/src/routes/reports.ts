@@ -285,6 +285,7 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
 
     const badgeOverride = req.body.badgeOverride as
       | { action: 'cancel' | 'replace'; replaceBadgeId?: string }
+      | { action: 'custom'; badgeIds: string[] }
       | undefined;
 
     if (!badgeOverride) {
@@ -305,6 +306,17 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
           },
         },
       }).catch(err => console.error('[badge] replace override failed:', err));
+    } else if (badgeOverride.action === 'custom') {
+      const { badgeIds } = badgeOverride;
+      if (badgeIds.length > 0) {
+        const newBadges = badgeIds.map(badgeId => ({
+          badgeId,
+          earnedAt: new Date(),
+          ...((YEARLY_BADGE_IDS as Set<string>).has(badgeId) ? { year: Number(year) } : {}),
+        }));
+        User.findByIdAndUpdate(userId, { $push: { badges: { $each: newBadges } } })
+          .catch(err => console.error('[badge] custom override failed:', err));
+      }
     }
     // action === 'cancel': skip badge evaluation entirely — nothing to do
 

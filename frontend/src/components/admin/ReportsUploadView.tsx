@@ -39,8 +39,8 @@ export const ReportsUploadView: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [badgePreview, setBadgePreview] = useState<BadgePreview[]>([]);
-  const [badgeOverrideMode, setBadgeOverrideMode] = useState<'award' | 'cancel' | 'replace'>('award');
-  const [replaceBadgeId, setReplaceBadgeId] = useState<BadgeId | ''>('');
+  const [removedAutoIds, setRemovedAutoIds] = useState<Set<BadgeId>>(new Set());
+  const [extraBadgeIds, setExtraBadgeIds] = useState<Array<BadgeId | ''>>([]);
   const [userBadgeIds, setUserBadgeIds] = useState<BadgeId[]>([]);
 
   useEffect(() => {
@@ -100,12 +100,17 @@ export const ReportsUploadView: React.FC = () => {
     setError(null);
     setStep('saving');
     try {
-      const badgeOverride =
-        badgeOverrideMode === 'cancel'
+      const keptAutoIds = badgePreview
+        .filter(b => !removedAutoIds.has(b.badgeId))
+        .map(b => b.badgeId);
+      const validExtras = extraBadgeIds.filter((id): id is BadgeId => id !== '');
+      const hasChanges = removedAutoIds.size > 0 || validExtras.length > 0;
+
+      const badgeOverride = hasChanges
+        ? keptAutoIds.length === 0 && validExtras.length === 0
           ? { action: 'cancel' as const }
-          : badgeOverrideMode === 'replace' && replaceBadgeId
-          ? { action: 'replace' as const, replaceBadgeId }
-          : undefined;
+          : { action: 'custom' as const, badgeIds: [...keptAutoIds, ...validExtras] as BadgeId[] }
+        : undefined;
 
       const result = await confirmReport({
         userId: selectedUserId,
@@ -147,8 +152,8 @@ export const ReportsUploadView: React.FC = () => {
     setAffirmationLoading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
     setBadgePreview([]);
-    setBadgeOverrideMode('award');
-    setReplaceBadgeId('');
+    setRemovedAutoIds(new Set());
+    setExtraBadgeIds([]);
     setUserBadgeIds([]);
   };
 
@@ -253,7 +258,7 @@ export const ReportsUploadView: React.FC = () => {
 
         <button
           onClick={handleConfirm}
-          disabled={step === 'saving' || (badgeOverrideMode === 'replace' && !replaceBadgeId)}
+          disabled={step === 'saving'}
           className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
         >
           {step === 'saving' ? (
@@ -557,75 +562,77 @@ export const ReportsUploadView: React.FC = () => {
             <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-5 space-y-4">
               <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                 <i className="fas fa-medal text-amber-400"></i>
-                Нагорода за цей звіт
+                Нагороди за цей звіт
               </p>
 
               <div className="space-y-2">
-                {badgePreview.map((badge) => (
-                  <div key={badge.badgeId} className="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3">
-                    <i className={`${badge.icon} ${badge.color} text-lg mt-0.5 flex-shrink-0`}></i>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">
-                        {badge.name}{badge.year ? ` (${badge.year})` : ''}
-                      </p>
-                      <p className="text-xs text-slate-500">{badge.condition}</p>
+                {badgePreview.map((badge) => {
+                  const isRemoved = removedAutoIds.has(badge.badgeId);
+                  return (
+                    <div key={badge.badgeId} className={`flex items-center gap-3 rounded-xl px-4 py-3 ${isRemoved ? 'bg-slate-100 opacity-50' : 'bg-slate-50'}`}>
+                      <i className={`${badge.icon} ${isRemoved ? 'text-slate-400' : badge.color} text-lg flex-shrink-0`}></i>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold ${isRemoved ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+                          {badge.name}{badge.year ? ` (${badge.year})` : ''}
+                        </p>
+                        <p className="text-xs text-slate-500">{badge.condition}</p>
+                      </div>
+                      <button
+                        onClick={() => setRemovedAutoIds(prev => {
+                          const next = new Set(prev);
+                          if (isRemoved) next.delete(badge.badgeId);
+                          else next.add(badge.badgeId);
+                          return next;
+                        })}
+                        className={`flex-shrink-0 text-xs px-2 py-1 rounded-lg transition-colors ${
+                          isRemoved
+                            ? 'text-kameya-burgundy border border-kameya-burgundy/30 hover:bg-red-50'
+                            : 'text-slate-400 hover:text-red-500 hover:bg-red-50'
+                        }`}
+                        title={isRemoved ? 'Відновити' : 'Видалити нагороду'}
+                      >
+                        {isRemoved ? <i className="fas fa-rotate-left"></i> : <i className="fas fa-xmark"></i>}
+                      </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              <div className="space-y-2 pt-1">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="badgeOverride"
-                    value="award"
-                    checked={badgeOverrideMode === 'award'}
-                    onChange={() => { setBadgeOverrideMode('award'); setReplaceBadgeId(''); }}
-                    className="accent-kameya-burgundy"
-                  />
-                  <span className="text-sm text-slate-700">Нарахувати (за замовчуванням)</span>
-                </label>
+              {extraBadgeIds.length > 0 && (
+                <div className="space-y-2">
+                  {extraBadgeIds.map((badgeId, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <select
+                        value={badgeId}
+                        onChange={(e) => setExtraBadgeIds(prev => prev.map((id, i) => i === idx ? e.target.value as BadgeId : id))}
+                        className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy"
+                      >
+                        <option value="">Оберіть нагороду...</option>
+                        {BADGE_CATALOGUE
+                          .filter(b => !userBadgeIds.includes(b.badgeId) && !badgePreview.some(p => p.badgeId === b.badgeId))
+                          .map(b => (
+                            <option key={b.badgeId} value={b.badgeId}>{b.name}</option>
+                          ))}
+                      </select>
+                      <button
+                        onClick={() => setExtraBadgeIds(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-slate-400 hover:text-red-500 transition-colors px-2 py-2"
+                        title="Видалити"
+                      >
+                        <i className="fas fa-xmark"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="badgeOverride"
-                    value="cancel"
-                    checked={badgeOverrideMode === 'cancel'}
-                    onChange={() => { setBadgeOverrideMode('cancel'); setReplaceBadgeId(''); }}
-                    className="accent-kameya-burgundy"
-                  />
-                  <span className="text-sm text-slate-700">Скасувати нагороду</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="badgeOverride"
-                    value="replace"
-                    checked={badgeOverrideMode === 'replace'}
-                    onChange={() => setBadgeOverrideMode('replace')}
-                    className="accent-kameya-burgundy"
-                  />
-                  <span className="text-sm text-slate-700">Замінити на інший бейдж</span>
-                </label>
-
-                {badgeOverrideMode === 'replace' && (
-                  <select
-                    value={replaceBadgeId}
-                    onChange={(e) => setReplaceBadgeId(e.target.value as BadgeId)}
-                    className="mt-1 ml-6 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy w-full max-w-xs"
-                  >
-                    <option value="">Оберіть бейдж...</option>
-                    {BADGE_CATALOGUE
-                      .filter(b => !userBadgeIds.includes(b.badgeId))
-                      .map(b => (
-                        <option key={b.badgeId} value={b.badgeId}>{b.name}</option>
-                      ))}
-                  </select>
-                )}
-              </div>
+              <button
+                onClick={() => setExtraBadgeIds(prev => [...prev, ''])}
+                className="text-sm text-kameya-burgundy font-semibold hover:opacity-75 transition-opacity flex items-center gap-1"
+              >
+                <i className="fas fa-plus text-xs"></i>
+                Додати ще нагороду
+              </button>
             </div>
           )}
 
@@ -648,7 +655,7 @@ export const ReportsUploadView: React.FC = () => {
             </button>
             <button
               onClick={handleConfirm}
-              disabled={step === 'saving' || (badgeOverrideMode === 'replace' && !replaceBadgeId)}
+              disabled={step === 'saving'}
               className="flex-1 py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {step === 'saving' ? (

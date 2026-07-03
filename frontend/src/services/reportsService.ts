@@ -47,7 +47,7 @@ export interface ConfirmReportPayload {
   year: number;
   month?: number;
   affirmation?: string;
-  badgeOverride?: { action: 'cancel' | 'replace'; replaceBadgeId?: BadgeId };
+  badgeOverride?: { action: 'cancel' } | { action: 'custom'; badgeIds: BadgeId[] };
 }
 
 export const previewAffirmation = async (userId: string): Promise<string> => {
