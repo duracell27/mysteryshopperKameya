@@ -10,7 +10,8 @@ import { getChunks } from '../services/standardsService';
 import { syncStreakBonuses } from '../services/streakService';
 import { checkAndAwardBirthday } from '../services/birthdayService';
 import { AFFIRMATIONS } from '../constants/affirmations';
-import { evaluateOnReportConfirm, evaluateOnLearningPlanComplete } from '../services/badgeService';
+import { evaluateOnReportConfirm, evaluateOnLearningPlanComplete, computePendingBadges } from '../services/badgeService';
+import { YEARLY_BADGE_IDS } from '../constants/badges';
 
 function getTier(score: number): 'below85' | 'range85to94' | 'range95to99' | 'perfect100' {
   if (score === 100) return 'perfect100';
@@ -276,8 +277,30 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
     // Recalculate streak bonuses after new report is added
     await syncStreakBonuses(userId, Number(year));
 
-    evaluateOnReportConfirm(userId, report._id as import('mongoose').Types.ObjectId)
-      .catch(err => console.error('[badge] report eval failed:', err));
+    const badgeOverride = req.body.badgeOverride as
+      | { action: 'cancel' | 'replace'; replaceBadgeId?: string }
+      | undefined;
+
+    if (!badgeOverride) {
+      evaluateOnReportConfirm(userId, report._id as import('mongoose').Types.ObjectId)
+        .catch(err => console.error('[badge] report eval failed:', err));
+    } else if (badgeOverride.action === 'replace') {
+      const { replaceBadgeId } = badgeOverride;
+      if (!replaceBadgeId) {
+        return res.status(400).json({ message: 'replaceBadgeId обов\'язковий для дії replace' });
+      }
+      const isYearly = (YEARLY_BADGE_IDS as Set<string>).has(replaceBadgeId);
+      User.findByIdAndUpdate(userId, {
+        $push: {
+          badges: {
+            badgeId: replaceBadgeId,
+            earnedAt: new Date(),
+            ...(isYearly ? { year: Number(year) } : {}),
+          },
+        },
+      }).catch(err => console.error('[badge] replace override failed:', err));
+    }
+    // action === 'cancel': skip badge evaluation entirely — nothing to do
 
     return res.status(201).json({ ...report.toObject(), pointsAwarded, totalPoints });
   } catch (error) {
@@ -467,6 +490,29 @@ router.get('/preview-affirmation', async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// GET /api/reports/preview-badges?userId=X&totalScore=Y&quarter=Q&year=Y
+router.get('/preview-badges', async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ message: 'Доступ заборонено' });
+  }
+  const { userId, totalScore, quarter, year } = req.query;
+  if (!userId || totalScore === undefined || !quarter || !year) {
+    return res.status(400).json({ message: 'userId, totalScore, quarter, year обов\'язкові' });
+  }
+  try {
+    const pending = await computePendingBadges(
+      userId as string,
+      Number(totalScore),
+      quarter as string,
+      Number(year),
+    );
+    return res.json(pending);
+  } catch (error) {
+    console.error('[preview-badges] error:', error);
+    return res.status(500).json({ message: 'Помилка обчислення нагород' });
   }
 });
 
