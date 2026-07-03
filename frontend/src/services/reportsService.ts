@@ -1,4 +1,14 @@
-import { AuditResult, LearningTask, PointsTransaction, ScoreInsight } from '../types';
+import { AuditResult, LearningTask, PointsTransaction, ScoreInsight, BadgeId } from '../types';
+import { BADGE_CATALOGUE } from '../constants/badges';
+
+export interface BadgePreview {
+  badgeId: BadgeId;
+  name: string;
+  icon: string;
+  color: string;
+  condition: string;
+  year?: number;
+}
 
 const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}`,
@@ -37,6 +47,7 @@ export interface ConfirmReportPayload {
   year: number;
   month?: number;
   affirmation?: string;
+  badgeOverride?: { action: 'cancel' | 'replace'; replaceBadgeId?: BadgeId };
 }
 
 export const previewAffirmation = async (userId: string): Promise<string> => {
@@ -251,4 +262,39 @@ export const getMyBadges = async (): Promise<import('../types').BadgeAward[]> =>
   const res = await fetch('/api/reports/my/badges', { headers: getAuthHeaders() });
   if (!res.ok) throw new Error('Помилка завантаження бейджів');
   return res.json();
+};
+
+export const previewBadges = async (
+  userId: string,
+  totalScore: number,
+  quarter: string,
+  year: number,
+): Promise<BadgePreview[]> => {
+  try {
+    const params = new URLSearchParams({
+      userId,
+      totalScore: String(totalScore),
+      quarter,
+      year: String(year),
+    });
+    const res = await fetch(`/api/reports/preview-badges?${params}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) return [];
+    const raw: { badgeId: BadgeId; year?: number }[] = await res.json();
+    return raw.flatMap(item => {
+      const def = BADGE_CATALOGUE.find(b => b.badgeId === item.badgeId);
+      if (!def) return [];
+      return [{
+        badgeId: def.badgeId,
+        name: def.name,
+        icon: def.icon,
+        color: def.color,
+        condition: def.condition,
+        year: item.year,
+      }];
+    });
+  } catch {
+    return [];
+  }
 };
