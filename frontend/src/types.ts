@@ -89,11 +89,10 @@ export interface UserListItem {
   store?: string;
   role: 'ADMIN' | 'EMPLOYEE';
   points?: number;
-  birthday?: string;
   createdAt: string;
 }
 
-export type TransactionReason = 'score' | 'reflection' | 'streak' | 'birthday';
+export type TransactionReason = 'score' | 'reflection' | 'streak';
 
 export interface PointsTransaction {
   _id: string;
@@ -106,7 +105,6 @@ export interface PointsTransaction {
   reason?: TransactionReason;
   streakQuarters?: number;
   streakYear?: number;
-  birthdayYear?: number;
   createdAt: string;
 }
 

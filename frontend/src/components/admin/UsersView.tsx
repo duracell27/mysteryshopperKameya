@@ -5,19 +5,6 @@ import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, Upda
 import { BadgesModal } from './BadgesModal';
 import { formatDate } from '../../utils/dateFormatter';
 
-const parseDatePaste = (
-  e: React.ClipboardEvent<HTMLInputElement>,
-  set: (v: string) => void
-) => {
-  const text = e.clipboardData.getData('text').trim();
-  const m = text.match(/^(\d{1,2})[.,](\d{1,2})[.,](\d{4})$/);
-  if (m) {
-    e.preventDefault();
-    const [, d, mo, y] = m;
-    set(`${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`);
-  }
-};
-
 const generatePassword = (): string => {
   const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const lower = 'abcdefghijklmnopqrstuvwxyz';
@@ -30,7 +17,7 @@ const generatePassword = (): string => {
 };
 
 const EMPTY_CREATE: CreateUserPayload = {
-  phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '', birthday: '',
+  phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '',
 };
 
 const toDisplay = (phone: string) => {
@@ -61,7 +48,7 @@ export const UsersView: React.FC = () => {
 
   // Edit
   const [editUser, setEditUser]     = useState<UserListItem | null>(null);
-  const [editForm, setEditForm]     = useState<UpdateUserPayload & { position: string; store: string; birthday: string }>({ name: '', role: 'EMPLOYEE', position: '', store: '', password: '', birthday: '' });
+  const [editForm, setEditForm]     = useState<UpdateUserPayload & { position: string; store: string }>({ name: '', role: 'EMPLOYEE', position: '', store: '', password: '' });
   const [isEditing, setIsEditing]   = useState(false);
   const [editError, setEditError]   = useState('');
 
@@ -78,7 +65,7 @@ export const UsersView: React.FC = () => {
   const [search, setSearch] = useState('');
 
   // Sorting
-  type SortKey = 'name' | 'role' | 'position' | 'store' | 'points' | 'birthday';
+  type SortKey = 'name' | 'role' | 'position' | 'store' | 'points';
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -105,7 +92,6 @@ export const UsersView: React.FC = () => {
     if (sortKey === 'position') { av = (a.position ?? '').toLowerCase(); bv = (b.position ?? '').toLowerCase(); }
     if (sortKey === 'store')    { av = (a.store ?? '').toLowerCase(); bv = (b.store ?? '').toLowerCase(); }
     if (sortKey === 'points')   { av = a.points ?? 0; bv = b.points ?? 0; }
-    if (sortKey === 'birthday') { av = a.birthday ?? ''; bv = b.birthday ?? ''; }
     if (av < bv) return sortDir === 'asc' ? -1 : 1;
     if (av > bv) return sortDir === 'asc' ? 1 : -1;
     return 0;
@@ -150,7 +136,6 @@ export const UsersView: React.FC = () => {
       position: u.position ?? '',
       store: u.store ?? '',
       password: '',
-      birthday: u.birthday ? u.birthday.slice(0, 10) : '',
     });
     setEditError('');
   };
@@ -166,7 +151,6 @@ export const UsersView: React.FC = () => {
         role:     editForm.role,
         position: editForm.role === 'EMPLOYEE' ? editForm.position : undefined,
         store:    editForm.role === 'EMPLOYEE' ? editForm.store    : undefined,
-        birthday: editForm.role === 'EMPLOYEE' ? (editForm.birthday || undefined) : undefined,
         password: editForm.password || undefined,
       };
       const updated = await updateUser(editUser._id, payload);
@@ -273,15 +257,6 @@ export const UsersView: React.FC = () => {
                       </span>
                     </th>
                   ))}
-                  <th
-                    onClick={() => handleSort('birthday')}
-                    className="text-left px-6 py-4 font-semibold text-slate-500 uppercase tracking-wider text-xs cursor-pointer select-none hover:text-slate-800 transition-colors"
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      ДН
-                      <i className={`fas fa-sort${sortKey === 'birthday' ? (sortDir === 'asc' ? '-up text-kameya-burgundy' : '-down text-kameya-burgundy') : ' text-slate-300'} text-xs`}></i>
-                    </span>
-                  </th>
                   <th className="px-6 py-4"></th>
                 </tr>
               </thead>
@@ -314,9 +289,6 @@ export const UsersView: React.FC = () => {
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {u.birthday ? formatDate(u.birthday) : '—'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-3">
@@ -416,12 +388,6 @@ export const UsersView: React.FC = () => {
                       {STORES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </FormField>
-                  <FormField label="Дата народження">
-                    <input type="date" value={createForm.birthday ?? ''}
-                      onChange={(e) => setCreateForm((f) => ({ ...f, birthday: e.target.value }))}
-                      onPaste={(e) => parseDatePaste(e, (v) => setCreateForm((f) => ({ ...f, birthday: v })))}
-                      className={inputCls} required />
-                  </FormField>
                 </>
               )}
 
@@ -488,12 +454,6 @@ export const UsersView: React.FC = () => {
                       {STORES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </FormField>
-                  <FormField label="Дата народження">
-                    <input type="date" value={editForm.birthday}
-                      onChange={(e) => setEditForm((f) => ({ ...f, birthday: e.target.value }))}
-                      onPaste={(e) => parseDatePaste(e, (v) => setEditForm((f) => ({ ...f, birthday: v })))}
-                      className={inputCls} />
-                  </FormField>
                 </>
               )}
 
@@ -554,9 +514,7 @@ export const UsersView: React.FC = () => {
                   </div>
                   {pointsHistory.map((tx) => {
                     const reportId = typeof tx.reportId === 'object' ? tx.reportId : null;
-                    const label = tx.reason === 'birthday'
-                      ? `🎂 День народження ${tx.birthdayYear ?? tx.year}`
-                      : tx.reason === 'streak'
+                    const label = tx.reason === 'streak'
                         ? `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`
                         : tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0)
                           ? `Рефлексія ${tx.quarter ?? ''} ${tx.year}`

@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-export type TransactionReason = 'score' | 'reflection' | 'streak' | 'birthday';
+export type TransactionReason = 'score' | 'reflection' | 'streak';
 
 export interface IPointsTransaction extends Document {
   userId: Types.ObjectId;
@@ -12,7 +12,6 @@ export interface IPointsTransaction extends Document {
   reason: TransactionReason;
   streakQuarters?: number;  // 2 | 3 | 4 — for streak transactions
   streakYear?: number;       // year the streak belongs to
-  birthdayYear?: number;     // year the birthday bonus was awarded for
   createdAt: Date;
 }
 
@@ -24,10 +23,9 @@ const PointsTransactionSchema = new Schema<IPointsTransaction>(
     year:           { type: Number, required: true },
     scorePercent:   { type: Number, required: true },
     pointsAwarded:  { type: Number, required: true },
-    reason:         { type: String, enum: ['score', 'reflection', 'streak', 'birthday'], default: 'score' },
+    reason:         { type: String, enum: ['score', 'reflection', 'streak'], default: 'score' },
     streakQuarters: { type: Number },
     streakYear:     { type: Number },
-    birthdayYear:   { type: Number },
   },
   { timestamps: true }
 );

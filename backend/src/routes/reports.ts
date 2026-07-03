@@ -8,7 +8,6 @@ import { awardPoints } from '../services/pointsService';
 import { PointsTransaction } from '../models/PointsTransaction';
 import { getChunks } from '../services/standardsService';
 import { syncStreakBonuses } from '../services/streakService';
-import { checkAndAwardBirthday } from '../services/birthdayService';
 import { AFFIRMATIONS } from '../constants/affirmations';
 import { evaluateOnReportConfirm, evaluateOnLearningPlanComplete, computePendingBadges } from '../services/badgeService';
 import { YEARLY_BADGE_IDS } from '../constants/badges';
@@ -370,11 +369,6 @@ router.get('/my', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ message: 'Не авторизовано' });
-
-    // Non-blocking birthday check — awards 15 pts if birthday passed this year and not yet awarded
-    checkAndAwardBirthday(userId).catch(err =>
-      console.error('[birthday] check failed:', err)
-    );
 
     const reports = await Report.find({ userId }).sort({ createdAt: -1 });
     return res.json(reports);
