@@ -121,13 +121,15 @@ export const ProgressView: React.FC = () => {
             <i className="fas fa-spinner fa-spin text-2xl text-slate-300" />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6 sm:space-y-0 sm:grid sm:grid-cols-4 sm:gap-x-4 sm:gap-y-6">
             {BADGE_CATEGORIES.map(category => {
               const defs = BADGE_CATALOGUE.filter(b => b.category === category);
+              const colSpans = ['', 'sm:col-span-1', 'sm:col-span-2', 'sm:col-span-3', 'sm:col-span-4'];
+              const innerGrids = ['', 'grid-cols-1', 'grid-cols-2', 'grid-cols-2 sm:grid-cols-3', 'grid-cols-2 sm:grid-cols-4'];
               return (
-                <div key={category}>
+                <div key={category} className={`${colSpans[defs.length]} bg-slate-50 rounded-2xl p-3`}>
                   <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">{category}</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className={`grid ${innerGrids[defs.length]} gap-3`}>
                     {defs.map(def => (
                       <BadgeTile
                         key={def.badgeId}

@@ -47,7 +47,7 @@ export const BadgeTile: React.FC<BadgeTileProps> = ({ def, awards }) => {
 
   return (
     <div
-      className="relative p-4 rounded-2xl bg-slate-50 flex flex-col items-center text-center hover:bg-white transition-all cursor-default select-none"
+      className="relative p-4 rounded-2xl bg-white flex flex-col items-center text-center hover:bg-slate-50 transition-all cursor-default select-none"
       onMouseEnter={show}
       onMouseLeave={hide}
       onTouchStart={handleTouchStart}
