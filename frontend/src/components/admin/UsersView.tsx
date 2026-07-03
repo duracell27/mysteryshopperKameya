@@ -4,6 +4,17 @@ import { UserListItem, STORES, EMPLOYEE_POSITIONS, PointsTransaction } from '../
 import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory } from '../../services/usersService';
 import { BadgesModal } from './BadgesModal';
 
+const generatePassword = (): string => {
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const digits = '0123456789';
+  const all = upper + lower + digits;
+  const rand = (s: string) => s[Math.floor(Math.random() * s.length)];
+  const base = [rand(upper), rand(lower), rand(digits)];
+  for (let i = 3; i < 12; i++) base.push(rand(all));
+  return base.sort(() => Math.random() - 0.5).join('');
+};
+
 const EMPTY_CREATE: CreateUserPayload = {
   phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '', birthday: '',
 };
@@ -358,9 +369,17 @@ export const UsersView: React.FC = () => {
               </FormField>
 
               <FormField label="Пароль">
-                <input type="text" placeholder="Пароль для входу" value={createForm.password}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
-                  className={inputCls} required />
+                <div className="flex gap-2">
+                  <input type="text" placeholder="Пароль для входу" value={createForm.password}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+                    className={inputCls} required />
+                  <button type="button" title="Згенерувати пароль"
+                    onClick={() => setCreateForm((f) => ({ ...f, password: generatePassword() }))}
+                    className="flex-shrink-0 px-3 py-3 bg-slate-100 hover:bg-kameya-burgundy/10 hover:text-kameya-burgundy border border-slate-200 rounded-xl text-slate-500 transition-all"
+                  >
+                    <i className="fas fa-wand-magic-sparkles"></i>
+                  </button>
+                </div>
               </FormField>
 
               {createForm.role === 'EMPLOYEE' && (
