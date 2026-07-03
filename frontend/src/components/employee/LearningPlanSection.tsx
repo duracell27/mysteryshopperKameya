@@ -211,19 +211,31 @@ export const LearningPlanSection: React.FC<Props> = ({
     );
   }
 
+  const isPerfect = lastAudit?.totalScore === 100;
+
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
       <h3 className="font-bold text-lg text-slate-800 mb-6">Ваш план навчання</h3>
       <div className="flex flex-col items-center justify-center py-12 flex-1">
-        <i className="fas fa-book text-5xl text-slate-200 mb-4"></i>
-        <p className="text-slate-500 font-medium">План навчання не обрано</p>
-        <p className="text-xs text-slate-400 mt-2 text-center">Обберіть план навчання, щоб почати</p>
-        <button
-          onClick={onNavigateToTraining}
-          className="mt-6 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-bold hover:bg-red-900 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
-        >
-          Обрати план навчання
-        </button>
+        {isPerfect ? (
+          <>
+            <i className="fas fa-star text-5xl text-amber-300 mb-4"></i>
+            <p className="text-slate-700 font-semibold text-center">При ідеальній перевірці план навчання не потрібен</p>
+            <p className="text-xs text-slate-400 mt-2 text-center">Ви отримали 100% — продовжуйте в тому ж дусі!</p>
+          </>
+        ) : (
+          <>
+            <i className="fas fa-book text-5xl text-slate-200 mb-4"></i>
+            <p className="text-slate-500 font-medium">План навчання не обрано</p>
+            <p className="text-xs text-slate-400 mt-2 text-center">Обберіть план навчання, щоб почати</p>
+            <button
+              onClick={onNavigateToTraining}
+              className="mt-6 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-bold hover:bg-red-900 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+            >
+              Обрати план навчання
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
