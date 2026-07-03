@@ -253,7 +253,7 @@ export const ReportsUploadView: React.FC = () => {
 
         <button
           onClick={handleConfirm}
-          disabled={step === 'saving'}
+          disabled={step === 'saving' || (badgeOverrideMode === 'replace' && !replaceBadgeId)}
           className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
         >
           {step === 'saving' ? (
