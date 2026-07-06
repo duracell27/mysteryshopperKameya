@@ -180,7 +180,8 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
         {/* Sections — full detail, failed sections highlighted */}
         <div className="grid grid-cols-1 gap-4">
           {selected.sections.map((section, idx) => {
-            const failed = section.score < section.maxScore;
+            const isGeneralImpression = section.title.toLowerCase().includes('загальне враження');
+            const failed = !isGeneralImpression && section.score < section.maxScore;
             return (
               <div
                 key={idx}
@@ -253,7 +254,7 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Що я зроблю інакше наступного разу?
+                    Що допомогло отримати такий результат?
                   </label>
                   <textarea
                     value={reflAnswer1}
@@ -265,7 +266,7 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Який пункт був для мене несподіванкою?
+                    Що я зроблю інакше наступного разу?
                   </label>
                   <textarea
                     value={reflAnswer2}

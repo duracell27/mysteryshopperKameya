@@ -20,7 +20,7 @@ export const BadgeTile: React.FC<BadgeTileProps> = ({ def, awards }) => {
           const date = formatDate(a.earnedAt);
           return a.year ? `${date} (${a.year})` : date;
         })
-        .join('\n')
+        .join('\n') + '\n' + def.condition
     : def.condition;
 
   const show = () => { if (hideTimer.current) clearTimeout(hideTimer.current); setShowTooltip(true); };

@@ -104,12 +104,23 @@ export const LearningPlanSection: React.FC<Props> = ({
     return (
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-bold text-lg text-slate-800">Ваш план навчання</h3>
-          {completed === total && (
-            <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
-              <i className="fas fa-circle-check"></i> Завершено
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            <h3 className="font-bold text-lg text-slate-800">Ваш план навчання</h3>
+            {completed === total && (
+              <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
+                <i className="fas fa-circle-check"></i> Завершено
+              </span>
+            )}
+          </div>
+          <a
+            href="https://study.kameya.com.ua/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-kameya-burgundy text-white text-xs font-bold rounded-lg hover:bg-red-900 transition-colors flex-shrink-0"
+          >
+            <i className="fas fa-graduation-cap text-[10px]"></i>
+            Академія Камея
+          </a>
         </div>
 
         <div className="flex items-center justify-between mb-4">
@@ -215,7 +226,18 @@ export const LearningPlanSection: React.FC<Props> = ({
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-      <h3 className="font-bold text-lg text-slate-800 mb-6">Ваш план навчання</h3>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="font-bold text-lg text-slate-800">Ваш план навчання</h3>
+        <a
+          href="https://study.kameya.com.ua/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-kameya-burgundy text-white text-xs font-bold rounded-lg hover:bg-red-900 transition-colors flex-shrink-0"
+        >
+          <i className="fas fa-graduation-cap text-[10px]"></i>
+          Академія Камея
+        </a>
+      </div>
       <div className="flex flex-col items-center justify-center py-12 flex-1">
         {isPerfect ? (
           <>
@@ -229,11 +251,13 @@ export const LearningPlanSection: React.FC<Props> = ({
             <p className="text-slate-500 font-medium">План навчання не обрано</p>
             <p className="text-xs text-slate-400 mt-2 text-center">Обберіть план навчання, щоб почати</p>
             <button
-              onClick={onNavigateToTraining}
-              className="mt-6 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-bold hover:bg-red-900 shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+              disabled
+              title="План навчання ще в розробці"
+              className="mt-6 px-6 py-3 bg-slate-300 text-slate-500 rounded-xl font-bold cursor-not-allowed shadow-sm"
             >
-              Обрати план навчання
+              Генерувати план навчання
             </button>
+            <p className="text-xs text-slate-400 mt-2 text-center">Функціонал ще в розробці</p>
           </>
         )}
       </div>

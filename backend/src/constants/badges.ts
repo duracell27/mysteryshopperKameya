@@ -3,7 +3,6 @@ export type BadgeId =
   | 'first_perfect'
   | 'honor_student'
   | 'student_of_year'
-  | 'clean_form'
   | 'silver_guide'
   | 'gold_series'
   | 'platinum_standard'

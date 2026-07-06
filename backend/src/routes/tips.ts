@@ -9,13 +9,14 @@ router.use(authMiddleware);
 // GET /api/tips/today — отримати пораду дня
 router.get('/today', async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ message: 'Не авторизовано' });
+
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Спробуємо знайти пораду для сьогодні
-    let tip = await Tip.findOne({ date: today });
+    let tip = await Tip.findOne({ userId, date: today });
 
     if (!tip) {
-      // Якщо поради немає, генеруємо її через Claude
       const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
       const response = await anthropic.messages.create({
@@ -31,11 +32,18 @@ router.get('/today', async (req: AuthRequest, res: Response) => {
 
       const content = (response.content[0] as { type: string; text: string }).text.trim();
 
-      // Зберігаємо нову пораду
-      tip = await Tip.create({ date: today, content });
+      try {
+        tip = await Tip.create({ userId, date: today, content });
+      } catch (err: any) {
+        if (err.code === 11000) {
+          tip = await Tip.findOne({ userId, date: today });
+        } else {
+          throw err;
+        }
+      }
     }
 
-    return res.json({ date: tip.date, content: tip.content });
+    return res.json({ date: tip!.date, content: tip!.content });
   } catch (error) {
     console.error('Tip generation error:', error);
     return res.status(500).json({ message: 'Помилка завантаження поради дня' });

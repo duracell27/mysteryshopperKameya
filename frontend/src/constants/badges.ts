@@ -43,14 +43,6 @@ export const BADGE_CATALOGUE: BadgeDef[] = [
     condition: 'Усі плани навчання виконані вчасно за календарний рік',
   },
   {
-    badgeId: 'clean_form',
-    category: 'Якість',
-    name: 'Чиста анкета',
-    icon: 'fas fa-shield-halved',
-    color: 'text-green-500',
-    condition: 'Умова буде оголошена пізніше',
-  },
-  {
     badgeId: 'silver_guide',
     category: 'Серія',
     name: 'Срібний гід',
@@ -84,7 +76,7 @@ export const BADGE_CATALOGUE: BadgeDef[] = [
   },
 ];
 
-export const BADGE_CATEGORIES = ['Старт', 'Навчання', 'Якість', 'Серія', 'Камбек'] as const;
+export const BADGE_CATEGORIES = ['Старт', 'Навчання', 'Серія', 'Камбек'] as const;
 export type BadgeCategory = typeof BADGE_CATEGORIES[number];
 
 export const YEARLY_BADGE_IDS = new Set<BadgeId>([

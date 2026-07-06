@@ -47,42 +47,10 @@ function calcMilestones(reports: { quarter: string; totalScore: number }[]): num
   return milestones;
 }
 
+// Streak bonuses are disabled — function is kept as a no-op to avoid breaking callers.
 export async function syncStreakBonuses(
-  userId: string | Types.ObjectId,
-  year: number,
+  _userId: string | Types.ObjectId,
+  _year: number,
 ): Promise<void> {
-  const reports = await Report.find({ userId, year }, 'quarter totalScore').lean();
-  const shouldHave = calcMilestones(reports);
-
-  const existing = await PointsTransaction.find({
-    userId,
-    reason: 'streak',
-    streakYear: year,
-  });
-
-  // Add missing milestones
-  for (const m of shouldHave) {
-    if (!existing.find(t => t.streakQuarters === m)) {
-      const pts = STREAK_BONUS[m];
-      await PointsTransaction.create({
-        userId,
-        year,
-        scorePercent: 0,
-        pointsAwarded: pts,
-        reason: 'streak',
-        streakQuarters: m,
-        streakYear: year,
-      });
-      await User.findByIdAndUpdate(userId, { $inc: { points: pts } });
-    }
-  }
-
-  // Remove milestones that no longer apply
-  for (const tx of existing) {
-    if (tx.streakQuarters === undefined || shouldHave.includes(tx.streakQuarters)) continue;
-    await PointsTransaction.findByIdAndDelete(tx._id);
-    await User.findByIdAndUpdate(userId, [
-      { $set: { points: { $max: [{ $subtract: ['$points', tx.pointsAwarded] }, 0] } } },
-    ]);
-  }
+  return;
 }
