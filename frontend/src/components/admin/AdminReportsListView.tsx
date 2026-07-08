@@ -41,6 +41,7 @@ export const AdminReportsListView: React.FC = () => {
   const [editTasks, setEditTasks] = useState<LearningTask[]>([]);
   const [planActionLoading, setPlanActionLoading] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
+  const [groupMode, setGroupMode] = useState<'quarter' | 'month'>('quarter');
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
@@ -137,21 +138,46 @@ export const AdminReportsListView: React.FC = () => {
 
   const quarterOrder: Record<string, number> = { Q4: 0, Q3: 1, Q2: 2, Q1: 3 };
 
-  const groupedReports = filtered.reduce<Record<string, ReportWithUser[]>>((acc, report) => {
-    const quarter = report.quarter ?? 'Q1';
-    const year = report.year ?? new Date().getFullYear();
-    const key = `${quarter} ${year}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(report);
-    return acc;
-  }, {});
+  const groupedReports = groupMode === 'month'
+    ? filtered.reduce<Record<string, ReportWithUser[]>>((acc, report) => {
+        const m = report.month;
+        const year = report.year ?? new Date().getFullYear();
+        const key = m ? `${MONTHS_UK[m - 1]} ${year}` : 'Без місяця';
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(report);
+        return acc;
+      }, {})
+    : filtered.reduce<Record<string, ReportWithUser[]>>((acc, report) => {
+        const quarter = report.quarter ?? 'Q1';
+        const year = report.year ?? new Date().getFullYear();
+        const key = `${quarter} ${year}`;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(report);
+        return acc;
+      }, {});
 
-  const sortedGroupKeys = Object.keys(groupedReports).sort((a, b) => {
-    const [qa, ya] = a.split(' ');
-    const [qb, yb] = b.split(' ');
-    if (Number(yb) !== Number(ya)) return Number(yb) - Number(ya);
-    return (quarterOrder[qa] ?? 99) - (quarterOrder[qb] ?? 99);
-  });
+  const sortedGroupKeys = groupMode === 'month'
+    ? Object.keys(groupedReports).sort((a, b) => {
+        if (a === 'Без місяця') return 1;
+        if (b === 'Без місяця') return -1;
+        const parseMonthKey = (k: string) => {
+          const parts = k.split(' ');
+          const year = Number(parts[parts.length - 1]);
+          const monthName = parts.slice(0, -1).join(' ');
+          const month = MONTHS_UK.indexOf(monthName);
+          return { year, month };
+        };
+        const pa = parseMonthKey(a);
+        const pb = parseMonthKey(b);
+        if (pb.year !== pa.year) return pb.year - pa.year;
+        return pb.month - pa.month;
+      })
+    : Object.keys(groupedReports).sort((a, b) => {
+        const [qa, ya] = a.split(' ');
+        const [qb, yb] = b.split(' ');
+        if (Number(yb) !== Number(ya)) return Number(yb) - Number(ya);
+        return (quarterOrder[qa] ?? 99) - (quarterOrder[qb] ?? 99);
+      });
 
   const applyPlanUpdate = (updated: AuditResult) => {
     const merged = { ...selected!, ...updated, userId: selected!.userId } as ReportWithUser;
@@ -837,6 +863,22 @@ export const AdminReportsListView: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Всі звіти</h1>
           <p className="text-sm text-slate-500 mt-1">Збережено звітів: {reports.length}</p>
+        </div>
+
+        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 self-start">
+          {(['quarter', 'month'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setGroupMode(mode)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                groupMode === mode
+                  ? 'bg-white text-kameya-burgundy shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {mode === 'quarter' ? 'По кварталах' : 'По місяцях'}
+            </button>
+          ))}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
