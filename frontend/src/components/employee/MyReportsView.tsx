@@ -75,6 +75,7 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
       if (!current.aiRecommendations) {
         current = await generateAiRecommendations(id);
         setSelected(current);
+        setReports(prev => prev.map(r => (r._id ?? r.id) === id ? current : r));
       }
       const withPlan = await generateLearningPlan(id);
       setSelected(withPlan);
