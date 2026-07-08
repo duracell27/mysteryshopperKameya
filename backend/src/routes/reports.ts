@@ -941,8 +941,8 @@ router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
   try {
     const { answer1, answer2 } = req.body;
 
-    if (!answer1?.trim() || !answer2?.trim()) {
-      return res.status(400).json({ message: 'Обидві відповіді обов\'язкові' });
+    if (!answer1?.trim()) {
+      return res.status(400).json({ message: 'Відповідь на перше питання обов\'язкова' });
     }
 
     const report = await Report.findById(req.params.id);
@@ -958,12 +958,16 @@ router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
       return res.status(409).json({ message: 'Рефлексію вже подано' });
     }
 
+    if (report.totalScore < 100 && !answer2?.trim()) {
+      return res.status(400).json({ message: 'Відповідь на друге питання обов\'язкова' });
+    }
+
     const MS_72H = 72 * 60 * 60 * 1000;
     const isOnTime = Date.now() - report.createdAt.getTime() <= MS_72H;
 
     report.reflection = {
       answer1: answer1.trim(),
-      answer2: answer2.trim(),
+      answer2: report.totalScore >= 100 ? '' : answer2.trim(),
       submittedAt: new Date(),
       isOnTime,
       bonusPointsAwarded: false,
