@@ -59,8 +59,8 @@ planError: string | null
 ```
 Plan data comes from `selected.learningPlan` (already on `AuditResult`).
 
-### Plan Display (read-only)
-Render task groups (by `topicTitle`) with check/cross icons and strikethrough text for completed tasks. No toggle interaction in this view — toggling tasks remains in `LearningPlanSection` on the Dashboard.
+### Plan Display (interactive)
+Render task groups (by `topicTitle`) with checkboxes, textarea for response, and strikethrough for completed tasks — identical UX to `LearningPlanSection`. Employees toggle tasks directly in this view via `PATCH /api/reports/:id/learning-plan/:taskIndex`. The `LearningPlanSection` on the Dashboard (for the most recent audit) continues to work independently; both reflect server state so they stay in sync.
 
 ---
 
