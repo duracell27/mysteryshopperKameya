@@ -110,7 +110,7 @@ const AppContent: React.FC = () => {
   const renderEmployeeScreen = () => {
     switch (currentScreen) {
       case Screen.MY_REPORTS:
-        return <MyReportsView initialSelected={selectedAudit} />;
+        return <MyReportsView initialSelected={selectedAudit} onNavigate={handleNavigate} />;
       case Screen.TRAINING_PLAN:
         return <DevelopmentPlanView />;
       case Screen.QUIZ:

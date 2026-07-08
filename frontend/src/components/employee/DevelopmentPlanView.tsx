@@ -1,33 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { AuditResult } from '../../types';
-import { getMyReports } from '../../services/reportsService';
-import { LearningPlanSection } from './LearningPlanSection';
+import React from 'react';
 
 export const DevelopmentPlanView: React.FC = () => {
-  const [lastAudit, setLastAudit] = useState<AuditResult | undefined>();
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getMyReports()
-      .then(reports => {
-        if (reports.length > 0) setLastAudit(reports[0]);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleUpdated = (updated: AuditResult) => {
-    setLastAudit(updated);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <i className="fas fa-spinner fa-spin text-3xl text-kameya-burgundy"></i>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <header>
@@ -35,12 +8,13 @@ export const DevelopmentPlanView: React.FC = () => {
         <p className="text-slate-500 mt-1">Твій план росту та завдання для навчання</p>
       </header>
 
-      <LearningPlanSection
-        lastAudit={lastAudit}
-        loading={false}
-        onPlanUpdated={handleUpdated}
-        onNavigateToTraining={() => {}}
-      />
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center py-16 gap-4">
+        <i className="fas fa-tools text-5xl text-slate-200"></i>
+        <p className="text-slate-700 font-semibold">План навчання ще в розробці</p>
+        <p className="text-xs text-slate-400 text-center max-w-xs">
+          Незабаром тут з'явиться ваш персональний план навчання
+        </p>
+      </div>
     </div>
   );
 };

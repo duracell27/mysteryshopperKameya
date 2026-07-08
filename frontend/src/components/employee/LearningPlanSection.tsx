@@ -7,9 +7,6 @@ interface Props {
   loading: boolean;
   onPlanUpdated: (updated: AuditResult) => void;
   onNavigateToTraining: () => void;
-  onGeneratePlan?: () => Promise<void>;
-  isGenerating?: boolean;
-  planError?: string | null;
 }
 
 const MIN_RESPONSE = 300;
@@ -23,9 +20,6 @@ export const LearningPlanSection: React.FC<Props> = ({
   loading,
   onPlanUpdated,
   onNavigateToTraining,
-  onGeneratePlan,
-  isGenerating = false,
-  planError = null,
 }) => {
   const [togglingIndex, setTogglingIndex] = useState<number | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
@@ -229,7 +223,6 @@ export const LearningPlanSection: React.FC<Props> = ({
   }
 
   const isPerfect = lastAudit?.totalScore === 100;
-  const isHighScore = (lastAudit?.totalScore ?? 0) >= 95 && (lastAudit?.totalScore ?? 0) < 100;
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
@@ -252,31 +245,10 @@ export const LearningPlanSection: React.FC<Props> = ({
             <p className="text-slate-700 font-semibold text-center">При ідеальній перевірці план навчання не потрібен</p>
             <p className="text-xs text-slate-400 mt-2 text-center">Ви отримали 100% — продовжуйте в тому ж дусі!</p>
           </>
-        ) : isHighScore ? (
-          <>
-            <i className="fas fa-trophy text-5xl text-amber-300 mb-4"></i>
-            <p className="text-slate-700 font-semibold text-center">Відмінний результат!</p>
-            <p className="text-xs text-slate-400 mt-2 text-center">Для результатів від 95% план навчання не формується</p>
-          </>
         ) : (
           <>
             <i className="fas fa-book text-5xl text-slate-200 mb-4"></i>
-            <p className="text-slate-500 font-medium">План навчання не згенеровано</p>
-            <p className="text-xs text-slate-400 mt-2 text-center">Натисніть кнопку, щоб створити план</p>
-            <button
-              onClick={onGeneratePlan}
-              disabled={isGenerating || !onGeneratePlan}
-              className="mt-6 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
-            >
-              {isGenerating ? (
-                <><i className="fas fa-spinner fa-spin"></i> Генерація...</>
-              ) : (
-                <><i className="fas fa-wand-magic-sparkles"></i> Згенерувати план навчання</>
-              )}
-            </button>
-            {planError && (
-              <p className="text-xs text-red-500 mt-3 text-center">{planError}</p>
-            )}
+            <p className="text-slate-500 font-medium">План навчання не сформовано</p>
           </>
         )}
       </div>

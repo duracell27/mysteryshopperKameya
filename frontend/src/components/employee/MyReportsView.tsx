@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { AuditResult, AuditSection, Reflection } from '../../types';
-import { getMyReports, submitReflection, generateAiRecommendations, generateLearningPlan } from '../../services/reportsService';
-import { LearningPlanSection } from './LearningPlanSection';
+import { AuditResult, AuditSection, Reflection, Screen } from '../../types';
+import { getMyReports, submitReflection } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { useAuth } from '../../context/AuthContext';
 import { scoreTextClass, scoreBgBorderClass, formatScore } from '../../utils/scoreColor';
@@ -10,9 +9,10 @@ import confetti from 'canvas-confetti';
 
 interface MyReportsViewProps {
   initialSelected?: AuditResult | null;
+  onNavigate?: (screen: Screen) => void;
 }
 
-export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected }) => {
+export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, onNavigate }) => {
   const { user } = useAuth();
   const [reports, setReports] = useState<AuditResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,8 +25,6 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
   const [reflSubmitting, setReflSubmitting] = useState(false);
   const [reflError, setReflError] = useState('');
   const [reflections, setReflections] = useState<Record<string, Reflection>>({});
-  const [planLoading, setPlanLoading] = useState(false);
-  const [planError, setPlanError] = useState<string | null>(null);
 
   const periodLabel = (report: AuditResult) =>
     report.quarter && report.year ? `${report.quarter} ${report.year}` : formatDate(report.date);
@@ -62,28 +60,6 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
       setReflError(err instanceof Error ? err.message : 'Помилка');
     } finally {
       setReflSubmitting(false);
-    }
-  };
-
-  const handleGeneratePlan = async () => {
-    if (!selected) return;
-    const id = selected._id ?? selected.id ?? '';
-    setPlanLoading(true);
-    setPlanError(null);
-    try {
-      let current = selected;
-      if (!current.aiRecommendations) {
-        current = await generateAiRecommendations(id);
-        setSelected(current);
-        setReports(prev => prev.map(r => (r._id ?? r.id) === id ? current : r));
-      }
-      const withPlan = await generateLearningPlan(id);
-      setSelected(withPlan);
-      setReports(prev => prev.map(r => (r._id ?? r.id) === id ? withPlan : r));
-    } catch (err) {
-      setPlanError(err instanceof Error ? err.message : 'Помилка генерації плану');
-    } finally {
-      setPlanLoading(false);
     }
   };
 
@@ -270,21 +246,25 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
           </div>
         )}
 
-        {reflection && (
-          <LearningPlanSection
-            lastAudit={selected}
-            loading={false}
-            onPlanUpdated={(updated) => {
-              setSelected(updated);
-              setReports(prev => prev.map(r =>
-                (r._id ?? r.id) === (updated._id ?? updated.id) ? updated : r
-              ));
-            }}
-            onNavigateToTraining={() => {}}
-            onGeneratePlan={selected.totalScore < 95 ? handleGeneratePlan : undefined}
-            isGenerating={planLoading}
-            planError={planError}
-          />
+        {selected.totalScore < 100 ? (
+          <button
+            onClick={() => onNavigate?.(Screen.TRAINING_PLAN)}
+            className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+          >
+            <i className="fas fa-graduation-cap"></i>
+            Перейти до плану навчання
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <button
+              disabled
+              className="w-full py-3 bg-slate-200 text-slate-400 rounded-xl font-semibold cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <i className="fas fa-graduation-cap"></i>
+              Перейти до плану навчання
+            </button>
+            <p className="text-xs text-center text-slate-400">Вам план навчання не потрібен</p>
+          </div>
         )}
 
         {/* Reflection modal */}
