@@ -7,6 +7,9 @@ interface Props {
   loading: boolean;
   onPlanUpdated: (updated: AuditResult) => void;
   onNavigateToTraining: () => void;
+  onGeneratePlan?: () => Promise<void>;
+  isGenerating?: boolean;
+  planError?: string | null;
 }
 
 const MIN_RESPONSE = 300;
@@ -20,6 +23,9 @@ export const LearningPlanSection: React.FC<Props> = ({
   loading,
   onPlanUpdated,
   onNavigateToTraining,
+  onGeneratePlan,
+  isGenerating = false,
+  planError = null,
 }) => {
   const [togglingIndex, setTogglingIndex] = useState<number | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
@@ -248,16 +254,22 @@ export const LearningPlanSection: React.FC<Props> = ({
         ) : (
           <>
             <i className="fas fa-book text-5xl text-slate-200 mb-4"></i>
-            <p className="text-slate-500 font-medium">План навчання не обрано</p>
-            <p className="text-xs text-slate-400 mt-2 text-center">Обберіть план навчання, щоб почати</p>
+            <p className="text-slate-500 font-medium">План навчання не згенеровано</p>
+            <p className="text-xs text-slate-400 mt-2 text-center">Натисніть кнопку, щоб створити план</p>
             <button
-              disabled
-              title="План навчання ще в розробці"
-              className="mt-6 px-6 py-3 bg-slate-300 text-slate-500 rounded-xl font-bold cursor-not-allowed shadow-sm"
+              onClick={onGeneratePlan}
+              disabled={isGenerating || !onGeneratePlan}
+              className="mt-6 px-6 py-3 bg-kameya-burgundy text-white rounded-xl font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
             >
-              Генерувати план навчання
+              {isGenerating ? (
+                <><i className="fas fa-spinner fa-spin"></i> Генерація...</>
+              ) : (
+                <><i className="fas fa-wand-magic-sparkles"></i> Згенерувати план навчання</>
+              )}
             </button>
-            <p className="text-xs text-slate-400 mt-2 text-center">Функціонал ще в розробці</p>
+            {planError && (
+              <p className="text-xs text-red-500 mt-3 text-center">{planError}</p>
+            )}
           </>
         )}
       </div>
