@@ -430,7 +430,15 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
     // Build filter for the selected period
     const filter: Record<string, unknown> = { year };
     if (periodType === 'quarter' && quarter) filter.quarter = quarter;
-    if (periodType === 'month' && month) filter.month = month;
+    if (periodType === 'month' && month) {
+      const monthStr = String(month).padStart(2, '0');
+      const datePrefix = `${year}-${monthStr}`;
+      filter.$or = [
+        { month },
+        { month: { $exists: false }, date: { $regex: `^${datePrefix}` } },
+        { month: null, date: { $regex: `^${datePrefix}` } },
+      ];
+    }
 
     const periodReports = await Report.find(filter)
       .populate('userId', 'name store')
