@@ -865,7 +865,7 @@ export const AdminReportsListView: React.FC = () => {
           <p className="text-sm text-slate-500 mt-1">Збережено звітів: {reports.length}</p>
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 self-start">
+        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 w-fit">
           {(['quarter', 'month'] as const).map((mode) => (
             <button
               key={mode}
