@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { AuditResult, AuditSection, Reflection } from '../../types';
-import { getMyReports, submitReflection } from '../../services/reportsService';
+import { getMyReports, submitReflection, generateAiRecommendations, generateLearningPlan } from '../../services/reportsService';
+import { LearningPlanSection } from './LearningPlanSection';
 import { formatDate } from '../../utils/dateFormatter';
 import { useAuth } from '../../context/AuthContext';
 import { scoreTextClass, scoreBgBorderClass, formatScore } from '../../utils/scoreColor';
@@ -24,6 +25,8 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
   const [reflSubmitting, setReflSubmitting] = useState(false);
   const [reflError, setReflError] = useState('');
   const [reflections, setReflections] = useState<Record<string, Reflection>>({});
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
 
   const periodLabel = (report: AuditResult) =>
     report.quarter && report.year ? `${report.quarter} ${report.year}` : formatDate(report.date);
@@ -38,7 +41,11 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
 
   const handleSubmitReflection = async () => {
     if (!selected) return;
-    if (reflAnswer1.trim().length < 10 || reflAnswer2.trim().length < 10) {
+    if (reflAnswer1.trim().length < 10) {
+      setReflError('Будь ласка, дайте розгорнуту відповідь (мін. 10 символів)');
+      return;
+    }
+    if (selected.totalScore < 100 && reflAnswer2.trim().length < 10) {
       setReflError('Будь ласка, дайте розгорнуту відповідь (мін. 10 символів)');
       return;
     }
@@ -55,6 +62,27 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
       setReflError(err instanceof Error ? err.message : 'Помилка');
     } finally {
       setReflSubmitting(false);
+    }
+  };
+
+  const handleGeneratePlan = async () => {
+    if (!selected) return;
+    const id = selected._id ?? selected.id ?? '';
+    setPlanLoading(true);
+    setPlanError(null);
+    try {
+      let current = selected;
+      if (!current.aiRecommendations) {
+        current = await generateAiRecommendations(id);
+        setSelected(current);
+      }
+      const withPlan = await generateLearningPlan(id);
+      setSelected(withPlan);
+      setReports(prev => prev.map(r => (r._id ?? r.id) === id ? withPlan : r));
+    } catch (err) {
+      setPlanError(err instanceof Error ? err.message : 'Помилка генерації плану');
+    } finally {
+      setPlanLoading(false);
     }
   };
 
@@ -241,6 +269,23 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
           </div>
         )}
 
+        {reflection && (
+          <LearningPlanSection
+            lastAudit={selected}
+            loading={false}
+            onPlanUpdated={(updated) => {
+              setSelected(updated);
+              setReports(prev => prev.map(r =>
+                (r._id ?? r.id) === (updated._id ?? updated.id) ? updated : r
+              ));
+            }}
+            onNavigateToTraining={() => {}}
+            onGeneratePlan={selected.totalScore < 100 ? handleGeneratePlan : undefined}
+            isGenerating={planLoading}
+            planError={planError}
+          />
+        )}
+
         {/* Reflection modal */}
         {showReflection && ReactDOM.createPortal(
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
@@ -264,18 +309,20 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy resize-none"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Що я зроблю інакше наступного разу?
-                  </label>
-                  <textarea
-                    value={reflAnswer2}
-                    onChange={(e) => setReflAnswer2(e.target.value)}
-                    rows={3}
-                    placeholder="Ваша відповідь..."
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy resize-none"
-                  />
-                </div>
+                {selected.totalScore < 100 && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Що я зроблю інакше наступного разу?
+                    </label>
+                    <textarea
+                      value={reflAnswer2}
+                      onChange={(e) => setReflAnswer2(e.target.value)}
+                      rows={3}
+                      placeholder="Ваша відповідь..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy resize-none"
+                    />
+                  </div>
+                )}
                 {reflError && (
                   <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-600 flex items-center gap-2">
                     <i className="fas fa-triangle-exclamation"></i>
