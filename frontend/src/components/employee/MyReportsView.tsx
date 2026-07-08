@@ -281,7 +281,7 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected })
               ));
             }}
             onNavigateToTraining={() => {}}
-            onGeneratePlan={selected.totalScore < 100 ? handleGeneratePlan : undefined}
+            onGeneratePlan={selected.totalScore < 95 ? handleGeneratePlan : undefined}
             isGenerating={planLoading}
             planError={planError}
           />

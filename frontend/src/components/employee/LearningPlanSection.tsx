@@ -229,6 +229,7 @@ export const LearningPlanSection: React.FC<Props> = ({
   }
 
   const isPerfect = lastAudit?.totalScore === 100;
+  const isHighScore = (lastAudit?.totalScore ?? 0) >= 95 && (lastAudit?.totalScore ?? 0) < 100;
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
@@ -250,6 +251,12 @@ export const LearningPlanSection: React.FC<Props> = ({
             <i className="fas fa-star text-5xl text-amber-300 mb-4"></i>
             <p className="text-slate-700 font-semibold text-center">При ідеальній перевірці план навчання не потрібен</p>
             <p className="text-xs text-slate-400 mt-2 text-center">Ви отримали 100% — продовжуйте в тому ж дусі!</p>
+          </>
+        ) : isHighScore ? (
+          <>
+            <i className="fas fa-trophy text-5xl text-amber-300 mb-4"></i>
+            <p className="text-slate-700 font-semibold text-center">Відмінний результат!</p>
+            <p className="text-xs text-slate-400 mt-2 text-center">Для результатів від 95% план навчання не формується</p>
           </>
         ) : (
           <>
