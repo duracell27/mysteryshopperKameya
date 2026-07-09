@@ -8,6 +8,17 @@ import { scoreTextClass } from '../../utils/scoreColor';
 
 type Step = 'select' | 'parsing' | 'preview' | 'saving' | 'done';
 
+function calculatePoints(score: number): number {
+  const f = Math.floor(score);
+  if (f === 100) return 100;
+  if (f >= 97)   return 55;
+  if (f >= 93)   return 35;
+  if (f >= 88)   return 18;
+  if (f >= 80)   return 8;
+  if (f >= 70)   return 2;
+  return 0;
+}
+
 const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
 const toDisplay = (phone: string) => {
@@ -42,6 +53,9 @@ export const ReportsUploadView: React.FC = () => {
   const [removedAutoIds, setRemovedAutoIds] = useState<Set<BadgeId>>(new Set());
   const [extraBadgeIds, setExtraBadgeIds] = useState<Array<BadgeId | ''>>([]);
   const [userBadgeIds, setUserBadgeIds] = useState<BadgeId[]>([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [smsEnabled, setSmsEnabled] = useState(true);
+  const [smsSent, setSmsSent] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetchUsers()
@@ -95,7 +109,7 @@ export const ReportsUploadView: React.FC = () => {
     }
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (sendSmsNotification: boolean) => {
     if (!parsed) return;
     setError(null);
     setStep('saving');
@@ -125,13 +139,20 @@ export const ReportsUploadView: React.FC = () => {
         month: selectedMonth,
         ...(affirmationPreview ? { affirmation: affirmationPreview } : {}),
         ...(badgeOverride ? { badgeOverride } : {}),
+        sendSmsNotification,
       });
       setAwardedPoints(result.pointsAwarded);
+      setSmsSent(result.smsSent ?? false);
       setStep('done');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Помилка збереження');
       setStep('preview');
     }
+  };
+
+  const openConfirmModal = () => {
+    setSmsEnabled(true);
+    setShowConfirmModal(true);
   };
 
   const handleReset = () => {
@@ -155,6 +176,9 @@ export const ReportsUploadView: React.FC = () => {
     setRemovedAutoIds(new Set());
     setExtraBadgeIds([]);
     setUserBadgeIds([]);
+    setShowConfirmModal(false);
+    setSmsEnabled(true);
+    setSmsSent(null);
   };
 
   const filteredEmployees = employees.filter((u) => {
@@ -175,6 +199,65 @@ export const ReportsUploadView: React.FC = () => {
       .then(awards => setUserBadgeIds(awards.map(a => a.badgeId)))
       .catch(() => setUserBadgeIds([]));
   };
+
+  // ── Confirm modal ──
+  if (showConfirmModal && parsed) {
+    const pts = calculatePoints(parsed.totalScore);
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-5">
+          <h2 className="text-lg font-bold text-slate-800">Підтвердити збереження?</h2>
+
+          <div className="space-y-2 text-sm text-slate-600">
+            <div className="flex justify-between">
+              <span>Працівник</span>
+              <span className="font-semibold text-slate-800">{selectedEmployee?.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Результат</span>
+              <span className="font-semibold text-slate-800">{Math.round(parsed.totalScore)}%</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Нарахується</span>
+              <span className={`font-semibold ${pts > 0 ? 'text-green-600' : 'text-slate-500'}`}>
+                {pts > 0 ? `+${pts} балів` : 'Бали не нараховуються'}
+              </span>
+            </div>
+          </div>
+
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={smsEnabled}
+              onChange={(e) => setSmsEnabled(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-kameya-burgundy"
+            />
+            <span className="text-sm text-slate-700">
+              Сповістити працівника про нову анкету через SMS
+            </span>
+          </label>
+
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={() => setShowConfirmModal(false)}
+              className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-semibold hover:bg-slate-50 transition-colors"
+            >
+              Скасувати
+            </button>
+            <button
+              onClick={() => {
+                setShowConfirmModal(false);
+                handleConfirm(smsEnabled);
+              }}
+              className="flex-1 py-2.5 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors"
+            >
+              Підтвердити
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Step: done ──
   if (step === 'done') {
@@ -197,6 +280,17 @@ export const ReportsUploadView: React.FC = () => {
             {awardedPoints > 0
               ? `+${awardedPoints} балів нараховано`
               : 'Бали не нараховано (результат < 80%)'}
+          </div>
+        )}
+        {smsSent !== null && (
+          <div className={`px-6 py-3 rounded-xl text-sm font-semibold ${
+            smsSent
+              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+              : 'bg-slate-50 text-slate-500 border border-slate-200'
+          }`}>
+            {smsSent
+              ? <><i className="fas fa-comment-sms mr-2"></i>SMS-сповіщення надіслано</>
+              : 'SMS не надсилалось'}
           </div>
         )}
         <button
@@ -257,7 +351,7 @@ export const ReportsUploadView: React.FC = () => {
         </div>
 
         <button
-          onClick={handleConfirm}
+          onClick={openConfirmModal}
           disabled={step === 'saving'}
           className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
         >
@@ -654,7 +748,7 @@ export const ReportsUploadView: React.FC = () => {
               Детальний звіт
             </button>
             <button
-              onClick={handleConfirm}
+              onClick={openConfirmModal}
               disabled={step === 'saving'}
               className="flex-1 py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
             >
