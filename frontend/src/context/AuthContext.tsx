@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { AuthUser } from '../types';
 import { loginApi } from '../services/authService';
+import { UNAUTHORIZED_EVENT } from '../services/apiFetch';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -40,12 +41,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('kameya_user', JSON.stringify(newUser));
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('kameya_token');
     localStorage.removeItem('kameya_user');
-  };
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener(UNAUTHORIZED_EVENT, logout);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, logout);
+  }, [logout]);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>

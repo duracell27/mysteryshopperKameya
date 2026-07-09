@@ -1,6 +1,4 @@
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}`,
-});
+import { apiFetch } from './apiFetch';
 
 export interface TipOfDay {
   date: string;
@@ -8,7 +6,7 @@ export interface TipOfDay {
 }
 
 export const getTodayTip = async (): Promise<TipOfDay> => {
-  const res = await fetch('/api/tips/today', { headers: getAuthHeaders() });
+  const res = await apiFetch('/api/tips/today');
   if (!res.ok) throw new Error('Помилка завантаження поради дня');
   return res.json();
 };

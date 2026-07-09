@@ -1,12 +1,8 @@
 import { UserListItem, PointsTransaction, BadgeAward } from '../types';
-
-const getAuthHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}`,
-});
+import { apiFetch } from './apiFetch';
 
 export const fetchUsers = async (): Promise<UserListItem[]> => {
-  const res = await fetch('/api/users', { headers: getAuthHeaders() });
+  const res = await apiFetch('/api/users');
   if (!res.ok) throw new Error('Помилка завантаження користувачів');
   return res.json();
 };
@@ -21,9 +17,9 @@ export interface CreateUserPayload {
 }
 
 export const createUser = async (data: CreateUserPayload): Promise<UserListItem> => {
-  const res = await fetch('/api/users', {
+  const res = await apiFetch('/api/users', {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -42,9 +38,9 @@ export interface UpdateUserPayload {
 }
 
 export const updateUser = async (id: string, data: UpdateUserPayload): Promise<UserListItem> => {
-  const res = await fetch(`/api/users/${id}`, {
+  const res = await apiFetch(`/api/users/${id}`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -55,34 +51,24 @@ export const updateUser = async (id: string, data: UpdateUserPayload): Promise<U
 };
 
 export const deleteUser = async (id: string): Promise<void> => {
-  const res = await fetch(`/api/users/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
+  const res = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Помилка видалення');
 };
 
 export const getUserPointsHistory = async (userId: string): Promise<PointsTransaction[]> => {
-  const res = await fetch(`/api/users/${userId}/points`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}` },
-  });
+  const res = await apiFetch(`/api/users/${userId}/points`);
   if (!res.ok) throw new Error('Помилка завантаження історії балів');
   return res.json();
 };
 
 export const syncUserPoints = async (userId: string): Promise<UserListItem> => {
-  const res = await fetch(`/api/users/${userId}/sync-points`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}` },
-  });
+  const res = await apiFetch(`/api/users/${userId}/sync-points`, { method: 'POST' });
   if (!res.ok) throw new Error('Помилка синхронізації');
   return res.json();
 };
 
 export const getUserBadges = async (userId: string): Promise<BadgeAward[]> => {
-  const res = await fetch(`/api/users/${userId}/badges`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}` },
-  });
+  const res = await apiFetch(`/api/users/${userId}/badges`);
   if (!res.ok) throw new Error('Помилка завантаження нагород');
   return res.json();
 };
@@ -94,9 +80,9 @@ export interface AssignBadgePayload {
 }
 
 export const assignBadge = async (userId: string, payload: AssignBadgePayload): Promise<BadgeAward[]> => {
-  const res = await fetch(`/api/users/${userId}/badges`, {
+  const res = await apiFetch(`/api/users/${userId}/badges`, {
     method: 'POST',
-    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...payload, manual: true }),
   });
   if (!res.ok) {
@@ -107,9 +93,6 @@ export const assignBadge = async (userId: string, payload: AssignBadgePayload): 
 };
 
 export const deleteBadge = async (userId: string, awardId: string): Promise<void> => {
-  const res = await fetch(`/api/users/${userId}/badges/${awardId}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}` },
-  });
+  const res = await apiFetch(`/api/users/${userId}/badges/${awardId}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Помилка видалення нагороди');
 };
