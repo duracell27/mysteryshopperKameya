@@ -47,3 +47,11 @@ export const markSystemLogRead = async (id: string): Promise<SystemLogEntry> => 
   if (!res.ok) throw new Error('Помилка оновлення логу');
   return res.json();
 };
+
+export const markAllSystemLogsRead = async (): Promise<void> => {
+  const res = await fetch('/api/notifications/system/read-all', {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error('Помилка масового оновлення логів');
+};

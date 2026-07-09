@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { SystemLogEntry } from '../../types';
-import { getSystemLogs, markSystemLogRead } from '../../services/notificationsService';
+import { getSystemLogs, markSystemLogRead, markAllSystemLogsRead } from '../../services/notificationsService';
 import { timeAgo, formatAbsDateTime } from '../../utils/dateFormatter';
 
 interface SystemNotificationsPanelProps {
@@ -17,6 +17,7 @@ export const SystemNotificationsPanel: React.FC<SystemNotificationsPanelProps> =
   const [logs, setLogs] = useState<SystemLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -38,6 +39,22 @@ export const SystemNotificationsPanel: React.FC<SystemNotificationsPanelProps> =
     return () => document.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
+  const handleMarkAll = async () => {
+    const unreadCount = logs.filter(l => !l.isRead).length;
+    if (unreadCount === 0) return;
+    setMarkingAll(true);
+    try {
+      await markAllSystemLogsRead();
+      setLogs(prev => prev.map(x => ({ ...x, isRead: true })));
+      // decrement badge by the number that were unread
+      for (let i = 0; i < unreadCount; i++) onMarkReadDecrement();
+    } catch {
+      // ignore
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
   const handleClick = async (log: SystemLogEntry) => {
     if (log.isRead) return;
     try {
@@ -55,17 +72,31 @@ export const SystemNotificationsPanel: React.FC<SystemNotificationsPanelProps> =
     <>
       <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
       <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl z-50 flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <i className="fas fa-shield-halved text-kameya-burgundy"></i>
-            <h3 className="text-lg font-bold text-slate-800">Системні сповіщення</h3>
+        <div className="flex flex-col border-b border-slate-100">
+          <div className="flex items-center justify-between p-5 pb-3">
+            <div className="flex items-center gap-2">
+              <i className="fas fa-shield-halved text-kameya-burgundy"></i>
+              <h3 className="text-lg font-bold text-slate-800">Системні сповіщення</h3>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-slate-500"
+            >
+              <i className="fas fa-xmark"></i>
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors text-slate-500"
-          >
-            <i className="fas fa-xmark"></i>
-          </button>
+          {logs.some(l => !l.isRead) && (
+            <div className="px-5 pb-3">
+              <button
+                onClick={handleMarkAll}
+                disabled={markingAll}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
+                <i className={`fas ${markingAll ? 'fa-spinner fa-spin' : 'fa-check-double'}`}></i>
+                Позначити всі переглянутими
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">

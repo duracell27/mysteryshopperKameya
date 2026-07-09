@@ -49,6 +49,17 @@ router.get('/system', async (req: AuthRequest, res: Response) => {
   }
 });
 
+router.patch('/system/read-all', async (req: AuthRequest, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const result = await SystemLog.updateMany({ isRead: false }, { isRead: true });
+    return res.json({ updated: result.modifiedCount });
+  } catch (error) {
+    console.error('system read-all error:', error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 router.patch('/system/:id/read', async (req: AuthRequest, res: Response) => {
   if (!requireAdmin(req, res)) return;
   try {

@@ -870,25 +870,26 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
   // ── List view ──
   return (
     <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Всі звіти</h1>
-          <p className="text-sm text-slate-500 mt-1">Збережено звітів: {reports.length}</p>
-        </div>
-
-        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 w-fit">
-          {(['quarter', 'month'] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setGroupMode(mode)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                groupMode === mode
-                  ? 'bg-white text-kameya-burgundy shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {mode === 'quarter' ? 'По кварталах' : 'По місяцях'}
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Всі звіти</h1>
+            <p className="text-sm text-slate-500 mt-1">Збережено звітів: {reports.length}</p>
+          </div>
+          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 w-fit">
+            {(['quarter', 'month'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setGroupMode(mode)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  groupMode === mode
+                    ? 'bg-white text-kameya-burgundy shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {mode === 'quarter' ? 'По кварталах' : 'По місяцях'}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">

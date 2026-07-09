@@ -20,7 +20,7 @@ interface ISection {
 
 interface IReflection {
   answer1: string;
-  answer2: string;
+  answer2?: string;
   submittedAt: Date;
   isOnTime: boolean;
   bonusPointsAwarded: boolean;
@@ -97,7 +97,7 @@ const SectionSchema = new Schema<ISection>({
 const ReflectionSchema = new Schema<IReflection>(
   {
     answer1:            { type: String, required: true },
-    answer2:            { type: String, required: true },
+    answer2:            { type: String, required: false },
     submittedAt:        { type: Date, required: true },
     isOnTime:           { type: Boolean, required: true },
     bonusPointsAwarded: { type: Boolean, required: true },

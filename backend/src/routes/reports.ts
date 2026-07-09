@@ -1004,7 +1004,7 @@ router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
 
     report.reflection = {
       answer1: answer1.trim(),
-      answer2: report.totalScore >= 100 ? '' : answer2.trim(),
+      ...(report.totalScore < 100 ? { answer2: answer2.trim() } : {}),
       submittedAt: new Date(),
       isOnTime,
       bonusPointsAwarded: false,
