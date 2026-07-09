@@ -12,6 +12,7 @@ import { AFFIRMATIONS } from '../constants/affirmations';
 import { evaluateOnReportConfirm, evaluateOnLearningPlanComplete, computePendingBadges } from '../services/badgeService';
 import { YEARLY_BADGE_IDS } from '../constants/badges';
 import { Notification } from '../models/Notification';
+import { sendSms } from '../services/sms';
 
 function getTier(score: number): 'below85' | 'range85to94' | 'range95to99' | 'perfect100' {
   if (score === 100) return 'perfect100';
@@ -284,6 +285,22 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
     // Recalculate streak bonuses after new report is added
     await syncStreakBonuses(userId, Number(year));
 
+    const sendSmsNotification = req.body.sendSmsNotification === true;
+    let smsSent = false;
+
+    if (sendSmsNotification && user?.phone) {
+      try {
+        await sendSms(
+          '38' + user.phone,
+          'У вас доступна нова анкета для перегляду.\nmysteryshopper.kameya.if.ua',
+        );
+        smsSent = true;
+      } catch (err) {
+        console.error('[SMS] Не вдалось надіслати повідомлення про нову анкету:', err);
+        smsSent = false;
+      }
+    }
+
     const badgeOverride = req.body.badgeOverride as
       | { action: 'cancel' | 'replace'; replaceBadgeId?: string }
       | { action: 'custom'; badgeIds: string[] }
@@ -321,7 +338,7 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
     }
     // action === 'cancel': skip badge evaluation entirely — nothing to do
 
-    return res.status(201).json({ ...report.toObject(), pointsAwarded, totalPoints });
+    return res.status(201).json({ ...report.toObject(), pointsAwarded, totalPoints, smsSent });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Помилка збереження' });
