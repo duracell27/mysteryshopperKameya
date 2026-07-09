@@ -49,6 +49,6 @@ export function scoreBarBgClass(totalScore: number): string {
 
 export function formatScore(totalScore: number): string {
   const s = getScoreStyle(totalScore);
-  const pct = `${Math.floor(totalScore)}%`;
+  const pct = `${totalScore.toFixed(2)}%`;
   return s.icon ? `${s.icon} ${pct}` : pct;
 }

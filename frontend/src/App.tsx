@@ -74,6 +74,7 @@ const AppContent: React.FC = () => {
       setSelectedReportAction(null);
     }
     setCurrentScreen(screen);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNavigateToAuditDetails = (audit: AuditResult) => {

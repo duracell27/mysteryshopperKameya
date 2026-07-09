@@ -22,7 +22,7 @@ const ADMIN_NAV = [
 
 const EMPLOYEE_NAV = [
   { id: Screen.DASHBOARD,     label: 'Дашборд',       icon: 'fa-house' },
-  { id: Screen.MY_REPORTS,    label: 'Мої звіти',     icon: 'fa-magnifying-glass' },
+  { id: Screen.MY_REPORTS,    label: 'Мої звіти',     icon: 'fa-clipboard-list' },
   { id: Screen.TRAINING_PLAN, label: 'План розвитку', icon: 'fa-graduation-cap' },
   { id: Screen.PROGRESS,      label: 'Мій прогрес',   icon: 'fa-trophy' },
 ];
@@ -120,7 +120,7 @@ export const Layout: React.FC<LayoutProps> = ({
           <button
             key={item.id}
             onClick={() => onNavigate(item.id)}
-            className={`relative p-3 rounded-full ${
+            className={`relative px-5 py-2.5 rounded-full transition-all ${
               activeScreen === item.id ? 'text-kameya-burgundy bg-red-50' : 'text-gray-400'
             }`}
           >

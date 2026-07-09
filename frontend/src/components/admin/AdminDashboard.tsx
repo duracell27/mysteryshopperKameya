@@ -226,7 +226,7 @@ export const AdminDashboard: React.FC = () => {
           ) : !stats?.consultantRanking.length ? (
             <p className="text-slate-400 text-sm">Немає даних</p>
           ) : (
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-2">
               {stats.consultantRanking.map((row, i) => (
                 <div key={row.name + i} className="flex items-center gap-3">
                   <span className="text-xs font-bold text-slate-400 w-5 text-right flex-shrink-0">
