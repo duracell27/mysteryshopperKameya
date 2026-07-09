@@ -1,5 +1,6 @@
 import { AuditResult, LearningTask, PointsTransaction, ScoreInsight, BadgeId } from '../types';
 import { BADGE_CATALOGUE } from '../constants/badges';
+import { apiFetch } from './apiFetch';
 
 export interface BadgePreview {
   badgeId: BadgeId;
@@ -10,10 +11,6 @@ export interface BadgePreview {
   year?: number;
 }
 
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('kameya_token') ?? ''}`,
-});
-
 export interface ParsedReport extends AuditResult {
   fileName: string;
 }
@@ -22,9 +19,8 @@ export const parseReport = async (file: File): Promise<ParsedReport> => {
   const formData = new FormData();
   formData.append('pdf', file);
 
-  const res = await fetch('/api/reports/parse', {
+  const res = await apiFetch('/api/reports/parse', {
     method: 'POST',
-    headers: getAuthHeaders(),
     body: formData,
   });
 
@@ -48,12 +44,11 @@ export interface ConfirmReportPayload {
   month?: number;
   affirmation?: string;
   badgeOverride?: { action: 'cancel' } | { action: 'custom'; badgeIds: BadgeId[] };
+  sendSmsNotification?: boolean;
 }
 
 export const previewAffirmation = async (userId: string): Promise<string> => {
-  const res = await fetch(`/api/reports/preview-affirmation?userId=${encodeURIComponent(userId)}`, {
-    headers: getAuthHeaders(),
-  });
+  const res = await apiFetch(`/api/reports/preview-affirmation?userId=${encodeURIComponent(userId)}`);
   if (!res.ok) throw new Error('Помилка отримання афірмації');
   const data = await res.json();
   return data.affirmation as string;
@@ -62,12 +57,13 @@ export const previewAffirmation = async (userId: string): Promise<string> => {
 export interface ConfirmReportResponse extends AuditResult {
   pointsAwarded: number;
   totalPoints: number;
+  smsSent: boolean;
 }
 
 export const confirmReport = async (data: ConfirmReportPayload): Promise<ConfirmReportResponse> => {
-  const res = await fetch('/api/reports/confirm', {
+  const res = await apiFetch('/api/reports/confirm', {
     method: 'POST',
-    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -79,22 +75,19 @@ export const confirmReport = async (data: ConfirmReportPayload): Promise<Confirm
 };
 
 export const getMyReports = async (): Promise<AuditResult[]> => {
-  const res = await fetch('/api/reports/my', { headers: getAuthHeaders() });
+  const res = await apiFetch('/api/reports/my');
   if (!res.ok) throw new Error('Помилка завантаження звітів');
   return res.json();
 };
 
 export const getAllReports = async (): Promise<AuditResult[]> => {
-  const res = await fetch('/api/reports', { headers: getAuthHeaders() });
+  const res = await apiFetch('/api/reports');
   if (!res.ok) throw new Error('Помилка завантаження звітів');
   return res.json();
 };
 
 export const deleteReport = async (reportId: string): Promise<void> => {
-  const res = await fetch(`/api/reports/${reportId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
+  const res = await apiFetch(`/api/reports/${reportId}`, { method: 'DELETE' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || 'Помилка видалення звіту');
@@ -106,9 +99,9 @@ export const submitReflection = async (
   answer1: string,
   answer2: string,
 ): Promise<AuditResult> => {
-  const res = await fetch(`/api/reports/${reportId}/reflection`, {
+  const res = await apiFetch(`/api/reports/${reportId}/reflection`, {
     method: 'POST',
-    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ answer1, answer2 }),
   });
   if (!res.ok) {
@@ -126,14 +119,14 @@ export interface UserRank {
 }
 
 export const getMyRank = async (): Promise<UserRank> => {
-  const res = await fetch('/api/reports/my/rank', { headers: getAuthHeaders() });
+  const res = await apiFetch('/api/reports/my/rank');
   if (!res.ok) throw new Error('Помилка завантаження рейтингу');
   return res.json();
 };
 
 export const getMyPointsHistory = async (): Promise<PointsTransaction[]> => {
-  const res = await fetch("/api/reports/my/transactions", { headers: getAuthHeaders() });
-  if (!res.ok) throw new Error("Помилка завантаження балів");
+  const res = await apiFetch('/api/reports/my/transactions');
+  if (!res.ok) throw new Error('Помилка завантаження балів');
   return res.json();
 };
 
@@ -159,7 +152,7 @@ export const getDashboardStats = async (params?: DashboardParams): Promise<Dashb
   if (params?.year) q.set('year', String(params.year));
   if (params?.quarter) q.set('quarter', params.quarter);
   if (params?.month) q.set('month', String(params.month));
-  const res = await fetch(`/api/reports/stats/dashboard?${q}`, { headers: getAuthHeaders() });
+  const res = await apiFetch(`/api/reports/stats/dashboard?${q}`);
   if (!res.ok) throw new Error('Помилка завантаження статистики');
   return res.json();
 };
@@ -168,9 +161,9 @@ export const updateReportPeriod = async (
   reportId: string,
   data: { quarter?: string; year?: number; month?: number | null },
 ): Promise<AuditResult> => {
-  const res = await fetch(`/api/reports/${reportId}`, {
+  const res = await apiFetch(`/api/reports/${reportId}`, {
     method: 'PATCH',
-    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -181,10 +174,7 @@ export const updateReportPeriod = async (
 };
 
 export const generateAiRecommendations = async (reportId: string): Promise<AuditResult> => {
-  const res = await fetch(`/api/reports/${reportId}/generate-ai`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-  });
+  const res = await apiFetch(`/api/reports/${reportId}/generate-ai`, { method: 'POST' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || 'Помилка генерації рекомендацій');
@@ -193,10 +183,7 @@ export const generateAiRecommendations = async (reportId: string): Promise<Audit
 };
 
 export const generateLearningPlan = async (reportId: string): Promise<AuditResult> => {
-  const res = await fetch(`/api/reports/${reportId}/generate-learning-plan`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-  });
+  const res = await apiFetch(`/api/reports/${reportId}/generate-learning-plan`, { method: 'POST' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || 'Помилка генерації плану навчання');
@@ -205,10 +192,7 @@ export const generateLearningPlan = async (reportId: string): Promise<AuditResul
 };
 
 export const deleteLearningPlan = async (reportId: string): Promise<AuditResult> => {
-  const res = await fetch(`/api/reports/${reportId}/learning-plan`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
+  const res = await apiFetch(`/api/reports/${reportId}/learning-plan`, { method: 'DELETE' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || 'Помилка видалення плану навчання');
@@ -217,9 +201,9 @@ export const deleteLearningPlan = async (reportId: string): Promise<AuditResult>
 };
 
 export const updateLearningPlanTasks = async (reportId: string, tasks: LearningTask[]): Promise<AuditResult> => {
-  const res = await fetch(`/api/reports/${reportId}/learning-plan`, {
+  const res = await apiFetch(`/api/reports/${reportId}/learning-plan`, {
     method: 'PATCH',
-    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tasks }),
   });
   if (!res.ok) {
@@ -230,9 +214,9 @@ export const updateLearningPlanTasks = async (reportId: string, tasks: LearningT
 };
 
 export const toggleLearningTask = async (reportId: string, taskIndex: number, response?: string): Promise<AuditResult> => {
-  const res = await fetch(`/api/reports/${reportId}/learning-plan/${taskIndex}`, {
+  const res = await apiFetch(`/api/reports/${reportId}/learning-plan/${taskIndex}`, {
     method: 'PATCH',
-    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ response }),
   });
   if (!res.ok) {
@@ -246,9 +230,9 @@ export const submitScoreInsight = async (
   reportId: string,
   data: Partial<Pick<ScoreInsight, 'goalText' | 'whatHelpedText'>>,
 ): Promise<AuditResult> => {
-  const res = await fetch(`/api/reports/${reportId}/score-insight`, {
+  const res = await apiFetch(`/api/reports/${reportId}/score-insight`, {
     method: 'POST',
-    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -259,7 +243,7 @@ export const submitScoreInsight = async (
 };
 
 export const getMyBadges = async (): Promise<import('../types').BadgeAward[]> => {
-  const res = await fetch('/api/reports/my/badges', { headers: getAuthHeaders() });
+  const res = await apiFetch('/api/reports/my/badges');
   if (!res.ok) throw new Error('Помилка завантаження бейджів');
   return res.json();
 };
@@ -277,9 +261,7 @@ export const previewBadges = async (
       quarter,
       year: String(year),
     });
-    const res = await fetch(`/api/reports/preview-badges?${params}`, {
-      headers: getAuthHeaders(),
-    });
+    const res = await apiFetch(`/api/reports/preview-badges?${params}`);
     if (!res.ok) return [];
     const raw: { badgeId: BadgeId; year?: number }[] = await res.json();
     return raw.flatMap(item => {
