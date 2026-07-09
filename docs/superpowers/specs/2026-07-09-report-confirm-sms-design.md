@@ -91,7 +91,7 @@ if (sendSmsNotification) {
   try {
     await sendSms(
       '38' + user.phone,
-      'У вас доступна нова анкета для перегляду.\nmystershopper.kameya.if.ua'
+      'У вас доступна нова анкета для перегляду.\nmysteryshopper.kameya.if.ua'
     );
     smsSent = true;
   } catch (err) {
@@ -116,6 +116,9 @@ mysteryshopper.kameya.if.ua
 ```
 
 No points or score mentioned — employee logs in to see details.
+
+### Modal points display edge case
+If `calculatePoints(totalScore) === 0` (score < 70%), modal shows "Бали не нараховуються" instead of "+0 балів". — employee logs in to see details.
 
 ## Files Changed
 - `frontend/src/components/admin/ReportsUploadView.tsx`
