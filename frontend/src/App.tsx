@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
@@ -10,11 +10,14 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { UsersView } from './components/admin/UsersView';
 import { ReportsUploadView } from './components/admin/ReportsUploadView';
 import { AdminReportsListView } from './components/admin/AdminReportsListView';
+import { AdminNotificationsView } from './components/admin/AdminNotificationsView';
+import { SystemNotificationsPanel } from './components/admin/SystemNotificationsPanel';
 import { MyReportsView } from './components/employee/MyReportsView';
 import { LoginPage } from './pages/LoginPage';
 import { Screen, AIAnalysisResult, AuditResult, QuizQuestion } from './types';
 import { MOCK_AUDIT } from './constants';
 import { analyzeAuditResult, generateQuizQuestions } from './services/geminiService';
+import { getUnreadCount, getSystemUnreadCount } from './services/notificationsService';
 
 const AppContent: React.FC = () => {
   const { user, isLoading, logout } = useAuth();
@@ -28,6 +31,12 @@ const AppContent: React.FC = () => {
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
+  // Notifications state (admin only)
+  const [notificationsUnread, setNotificationsUnread] = useState(0);
+  const [systemUnread, setSystemUnread] = useState(0);
+  const [systemPanelOpen, setSystemPanelOpen] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+
   useEffect(() => {
     const savedAnalysis = localStorage.getItem('kameya_analysis');
     if (savedAnalysis) {
@@ -39,6 +48,19 @@ const AppContent: React.FC = () => {
     if (analysis) localStorage.setItem('kameya_analysis', JSON.stringify(analysis));
   }, [analysis]);
 
+  const refreshUnreadCounts = useCallback(() => {
+    if (!isAdmin) return;
+    getUnreadCount().then(setNotificationsUnread).catch(() => {});
+    getSystemUnreadCount().then(setSystemUnread).catch(() => {});
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    refreshUnreadCounts();
+    const interval = setInterval(refreshUnreadCounts, 60000);
+    return () => clearInterval(interval);
+  }, [isAdmin, refreshUnreadCounts]);
+
   const showToast = (message: string) => {
     setToast(message);
     setTimeout(() => setToast(null), 3000);
@@ -46,12 +68,18 @@ const AppContent: React.FC = () => {
 
   const handleNavigate = (screen: Screen) => {
     setSelectedAudit(null);
+    if (screen !== Screen.ADMIN_REPORTS_LIST) setSelectedReportId(null);
     setCurrentScreen(screen);
   };
 
   const handleNavigateToAuditDetails = (audit: AuditResult) => {
     setSelectedAudit(audit);
     setCurrentScreen(Screen.MY_REPORTS);
+  };
+
+  const handleViewReport = (reportId: string) => {
+    setSelectedReportId(reportId);
+    setCurrentScreen(Screen.ADMIN_REPORTS_LIST);
   };
 
   if (isLoading) {
@@ -64,17 +92,26 @@ const AppContent: React.FC = () => {
 
   if (!user) return <LoginPage />;
 
-  // ── Рендер екранів для адміна ──
   const renderAdminScreen = () => {
     switch (currentScreen) {
-      case Screen.ADMIN_USERS:    return <UsersView />;
-      case Screen.ADMIN_REPORTS:       return <ReportsUploadView />;
-      case Screen.ADMIN_REPORTS_LIST:  return <AdminReportsListView />;
-      default:                         return <AdminDashboard />;
+      case Screen.ADMIN_USERS:
+        return <UsersView />;
+      case Screen.ADMIN_REPORTS:
+        return <ReportsUploadView />;
+      case Screen.ADMIN_REPORTS_LIST:
+        return <AdminReportsListView initialReportId={selectedReportId} />;
+      case Screen.ADMIN_NOTIFICATIONS:
+        return (
+          <AdminNotificationsView
+            onViewReport={handleViewReport}
+            onMarkReadDecrement={() => setNotificationsUnread(c => Math.max(0, c - 1))}
+          />
+        );
+      default:
+        return <AdminDashboard />;
     }
   };
 
-  // ── Рендер екранів для працівника ──
   const handleRunAnalysis = async () => {
     setIsAnalyzing(true);
     try {
@@ -128,7 +165,15 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <Layout activeScreen={currentScreen} onNavigate={handleNavigate} user={user} onLogout={logout}>
+    <Layout
+      activeScreen={currentScreen}
+      onNavigate={handleNavigate}
+      user={user}
+      onLogout={logout}
+      notificationsUnread={notificationsUnread}
+      systemUnread={systemUnread}
+      onOpenSystemPanel={() => setSystemPanelOpen(true)}
+    >
       {toast && (
         <div className="fixed top-4 right-4 z-[100] bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl animate-bounce-in flex items-center space-x-2">
           <i className="fas fa-circle-check text-green-400"></i>
@@ -144,6 +189,14 @@ const AppContent: React.FC = () => {
             <p className="text-sm text-slate-500">AI створює практичні запитання на основі ваших слабких місць.</p>
           </div>
         </div>
+      )}
+
+      {isAdmin && (
+        <SystemNotificationsPanel
+          open={systemPanelOpen}
+          onClose={() => setSystemPanelOpen(false)}
+          onMarkReadDecrement={() => setSystemUnread(c => Math.max(0, c - 1))}
+        />
       )}
 
       {isAdmin ? renderAdminScreen() : renderEmployeeScreen()}
