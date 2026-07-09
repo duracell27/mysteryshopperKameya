@@ -7,6 +7,7 @@ export enum Screen {
   ADMIN_USERS = 'ADMIN_USERS',
   ADMIN_REPORTS = 'ADMIN_REPORTS',
   ADMIN_REPORTS_LIST = 'ADMIN_REPORTS_LIST',
+  ADMIN_NOTIFICATIONS = 'ADMIN_NOTIFICATIONS',
   MY_REPORTS = 'MY_REPORTS',
 }
 
@@ -180,4 +181,29 @@ export interface BadgeAward {
   earnedAt: string;
   year?: number;
   manual?: boolean;
+}
+
+export type NotificationType = 'reflection_submitted' | 'plan_generated' | 'plan_completed';
+export type SystemLogType = 'login_success' | 'login_failed';
+
+export interface AdminNotification {
+  _id: string;
+  type: NotificationType;
+  userId: string;
+  reportId: string;
+  userName: string;
+  reportFileName: string;
+  isOnTime: boolean | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface SystemLogEntry {
+  _id: string;
+  type: SystemLogType;
+  phone: string;
+  userName: string | null;
+  ip: string | null;
+  isRead: boolean;
+  createdAt: string;
 }
