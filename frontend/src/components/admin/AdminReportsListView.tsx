@@ -22,9 +22,10 @@ const toDisplay = (phone: string) => {
 
 interface AdminReportsListViewProps {
   initialReportId?: string | null;
+  initialAction?: string | null;
 }
 
-export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ initialReportId }) => {
+export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ initialReportId, initialAction }) => {
   const [reports, setReports] = useState<ReportWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +52,13 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
   useEffect(() => {
     if (!initialReportId || !reports.length) return;
     const target = reports.find(r => (r._id ?? r.id) === initialReportId);
-    if (target) setSelected(target as ReportWithUser);
-  }, [initialReportId, reports]);
+    if (target) {
+      setSelected(target as ReportWithUser);
+      if (initialAction === 'reflection' && target.reflection) {
+        setReflectionReport(target as ReportWithUser);
+      }
+    }
+  }, [initialReportId, initialAction, reports]);
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {

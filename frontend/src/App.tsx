@@ -36,6 +36,7 @@ const AppContent: React.FC = () => {
   const [systemUnread, setSystemUnread] = useState(0);
   const [systemPanelOpen, setSystemPanelOpen] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [selectedReportAction, setSelectedReportAction] = useState<string | null>(null);
 
   useEffect(() => {
     const savedAnalysis = localStorage.getItem('kameya_analysis');
@@ -68,7 +69,10 @@ const AppContent: React.FC = () => {
 
   const handleNavigate = (screen: Screen) => {
     setSelectedAudit(null);
-    if (screen !== Screen.ADMIN_REPORTS_LIST) setSelectedReportId(null);
+    if (screen !== Screen.ADMIN_REPORTS_LIST) {
+      setSelectedReportId(null);
+      setSelectedReportAction(null);
+    }
     setCurrentScreen(screen);
   };
 
@@ -77,8 +81,9 @@ const AppContent: React.FC = () => {
     setCurrentScreen(Screen.MY_REPORTS);
   };
 
-  const handleViewReport = (reportId: string) => {
+  const handleViewReport = (reportId: string, action?: string) => {
     setSelectedReportId(reportId);
+    setSelectedReportAction(action ?? null);
     setCurrentScreen(Screen.ADMIN_REPORTS_LIST);
   };
 
@@ -101,7 +106,7 @@ const AppContent: React.FC = () => {
       case Screen.ADMIN_REPORTS:
         return <ReportsUploadView />;
       case Screen.ADMIN_REPORTS_LIST:
-        return <AdminReportsListView initialReportId={selectedReportId} />;
+        return <AdminReportsListView initialReportId={selectedReportId} initialAction={selectedReportAction} />;
       case Screen.ADMIN_NOTIFICATIONS:
         return (
           <AdminNotificationsView

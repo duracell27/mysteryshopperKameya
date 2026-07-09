@@ -25,7 +25,7 @@ const TYPE_CONFIG = {
 } as const;
 
 interface AdminNotificationsViewProps {
-  onViewReport: (reportId: string) => void;
+  onViewReport: (reportId: string, action?: string) => void;
   onMarkReadDecrement: () => void;
 }
 
@@ -60,7 +60,7 @@ export const AdminNotificationsView: React.FC<AdminNotificationsViewProps> = ({
         // non-blocking — navigate regardless
       }
     }
-    onViewReport(n.reportId);
+    onViewReport(n.reportId, n.type === 'reflection_submitted' ? 'reflection' : undefined);
   };
 
   return (
