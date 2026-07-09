@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import { SystemLog } from '../models/SystemLog';
 
 const router = Router();
 
@@ -21,16 +22,25 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const normalizedPhone = normalizePhone(String(phone));
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      req.ip ??
+      null;
+
     const user = await User.findOne({
       phone: { $in: [normalizedPhone, '38' + normalizedPhone] },
     });
 
     if (!user) {
+      SystemLog.create({ type: 'login_failed', phone: normalizedPhone, userName: null, ip })
+        .catch(() => {});
       return res.status(401).json({ message: 'Невірний номер телефону або пароль' });
     }
 
     const isPasswordValid = await bcrypt.compare(String(password), user.password);
     if (!isPasswordValid) {
+      SystemLog.create({ type: 'login_failed', phone: normalizedPhone, userName: user.name || null, ip })
+        .catch(() => {});
       return res.status(401).json({ message: 'Невірний номер телефону або пароль' });
     }
 
@@ -39,6 +49,9 @@ router.post('/login', async (req: Request, res: Response) => {
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '7d' }
     );
+
+    SystemLog.create({ type: 'login_success', phone: normalizedPhone, userName: user.name || null, ip })
+      .catch(() => {});
 
     return res.json({
       token,
