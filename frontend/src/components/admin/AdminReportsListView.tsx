@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AuditResult, AuditSection, LearningTask, STORES } from '../../types';
 import { getAllReports, deleteReport, generateAiRecommendations, updateReportPeriod, deleteLearningPlan, updateLearningPlanTasks, generateLearningPlan } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
@@ -457,7 +458,6 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
                 <div className="flex items-center gap-2">
                   <i className="fas fa-circle-check text-green-500"></i>
                   <span className="text-sm text-green-700 font-semibold">Отримана вчасно</span>
-                  <span className="text-xs text-slate-400">· +10 балів</span>
                 </div>
                 <button
                   onClick={() => setReflectionReport(selected)}
@@ -473,7 +473,6 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
                 <div className="flex items-center gap-2">
                   <i className="fas fa-circle-xmark text-orange-500"></i>
                   <span className="text-sm text-orange-700 font-semibold">Отримана не вчасно</span>
-                  <span className="text-xs text-slate-400">· 0 балів</span>
                 </div>
                 <button
                   onClick={() => setReflectionReport(selected)}
@@ -502,12 +501,11 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
           })()}
         </div>
 
-        {/* AI Recommendations panel */}
+        {/* AI Recommendations panel — hidden for 100% score */}
+        {selected.totalScore !== 100 && (
         <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
           <p className="text-sm font-semibold text-slate-700 mb-3">AI Рекомендації</p>
-          {selected.totalScore === 100 ? (
-            <p className="text-sm text-slate-500">100% — рекомендації не генеруються</p>
-          ) : selected.aiRecommendations ? (
+          {selected.aiRecommendations ? (
             <div className="space-y-3">
               <p className="text-sm text-slate-600">{selected.aiRecommendations.mainMessage}</p>
               {selected.aiRecommendations.weakPoints.length > 0 && (
@@ -559,6 +557,7 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
           )}
           {aiError && <p className="text-xs text-red-500 mt-2">{aiError}</p>}
         </div>
+        )}
 
         {/* Learning Plan panel */}
         <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
@@ -813,8 +812,8 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
         )}
 
         {/* Reflection answers modal */}
-        {reflectionReport?.reflection && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        {reflectionReport?.reflection && createPortal(
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg">
               <div className="flex items-center justify-between p-6 border-b border-slate-100">
                 <div>
@@ -839,9 +838,6 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
                   <span className="text-sm text-slate-500">
                     {(() => { const d = new Date(reflectionReport.reflection.submittedAt); return `${formatDate(d.toISOString())} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; })()}
                   </span>
-                  <span className={`text-sm font-semibold ${reflectionReport.reflection.bonusPointsAwarded ? 'text-green-600' : 'text-slate-400'}`}>
-                    {reflectionReport.reflection.bonusPointsAwarded ? '+10 балів' : '0 балів'}
-                  </span>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
@@ -862,7 +858,7 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
               </div>
             </div>
           </div>
-        )}
+        , document.body)}
       </div>
     );
   }
