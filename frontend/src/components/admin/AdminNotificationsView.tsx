@@ -14,7 +14,7 @@ const TYPE_CONFIG = {
     icon: 'fa-graduation-cap',
     color: 'text-amber-500',
     bg: 'bg-amber-100',
-    verb: 'згенерував(ла) план навчання до звіту',
+    verb: 'отримав(ла) план навчання до звіту',
   },
   plan_completed: {
     icon: 'fa-circle-check',

@@ -82,6 +82,8 @@ const AppContent: React.FC = () => {
     setCurrentScreen(Screen.ADMIN_REPORTS_LIST);
   };
 
+  const handleCloseSystemPanel = useCallback(() => setSystemPanelOpen(false), []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -194,7 +196,7 @@ const AppContent: React.FC = () => {
       {isAdmin && (
         <SystemNotificationsPanel
           open={systemPanelOpen}
-          onClose={() => setSystemPanelOpen(false)}
+          onClose={handleCloseSystemPanel}
           onMarkReadDecrement={() => setSystemUnread(c => Math.max(0, c - 1))}
         />
       )}

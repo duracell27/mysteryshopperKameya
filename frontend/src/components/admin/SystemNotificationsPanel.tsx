@@ -16,12 +16,14 @@ export const SystemNotificationsPanel: React.FC<SystemNotificationsPanelProps> =
 }) => {
   const [logs, setLogs] = useState<SystemLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
+    setError(false);
     getSystemLogs()
       .then(setLogs)
-      .catch(() => {})
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -67,6 +69,12 @@ export const SystemNotificationsPanel: React.FC<SystemNotificationsPanelProps> =
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+              <i className="fas fa-circle-exclamation"></i>
+              Помилка завантаження логів
+            </div>
+          )}
           {loading ? (
             <div className="space-y-2">
               {[...Array(6)].map((_, i) => (

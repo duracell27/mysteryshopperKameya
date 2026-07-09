@@ -832,6 +832,7 @@ ${weakPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
       deadline,
     };
 
+    const hadPlan = !!report.learningPlan;
     const saved = isAdmin
       ? await Report.findByIdAndUpdate(report._id, { $set: { learningPlan: learningPlanData } }, { new: true })
       : await Report.findOneAndUpdate(
@@ -840,7 +841,7 @@ ${weakPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
           { new: true }
         );
 
-    if (saved) {
+    if (saved && !hadPlan) {
       User.findById(report.userId, 'name').lean()
         .then(u => Notification.create({
           type: 'plan_generated',
@@ -940,13 +941,14 @@ router.patch('/:id/learning-plan/:taskIndex', async (req: AuthRequest, res: Resp
       task.response = response.trim();
     }
 
+    const wasAlreadyDone = report.learningPlan.tasks.every(t => t.isCompleted);
     task.isCompleted = !task.isCompleted;
     task.completedAt = task.isCompleted ? new Date() : undefined;
 
     report.markModified('learningPlan');
     await report.save();
 
-    if (report.learningPlan?.tasks.every(t => t.isCompleted)) {
+    if (!wasAlreadyDone && report.learningPlan?.tasks.every(t => t.isCompleted)) {
       evaluateOnLearningPlanComplete(report.userId.toString(), report._id.toString())
         .catch(err => console.error('[badge] learning plan eval failed:', err));
 
