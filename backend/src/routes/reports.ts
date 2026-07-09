@@ -11,6 +11,7 @@ import { syncStreakBonuses } from '../services/streakService';
 import { AFFIRMATIONS } from '../constants/affirmations';
 import { evaluateOnReportConfirm, evaluateOnLearningPlanComplete, computePendingBadges } from '../services/badgeService';
 import { YEARLY_BADGE_IDS } from '../constants/badges';
+import { Notification } from '../models/Notification';
 
 function getTier(score: number): 'below85' | 'range85to94' | 'range95to99' | 'perfect100' {
   if (score === 100) return 'perfect100';
@@ -839,6 +840,19 @@ ${weakPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
           { new: true }
         );
 
+    if (saved) {
+      User.findById(report.userId, 'name').lean()
+        .then(u => Notification.create({
+          type: 'plan_generated',
+          userId: report.userId,
+          reportId: report._id,
+          userName: (u as any)?.name || 'Невідомий',
+          reportFileName: report.fileName,
+          isOnTime: null,
+        }))
+        .catch(err => console.error('[notification] plan_generated failed:', err));
+    }
+
     return res.json(saved ?? await Report.findById(report._id));
   } catch (error) {
     console.error('generate-learning-plan error:', error);
@@ -935,6 +949,19 @@ router.patch('/:id/learning-plan/:taskIndex', async (req: AuthRequest, res: Resp
     if (report.learningPlan?.tasks.every(t => t.isCompleted)) {
       evaluateOnLearningPlanComplete(report.userId.toString(), report._id.toString())
         .catch(err => console.error('[badge] learning plan eval failed:', err));
+
+      const deadline = report.learningPlan.deadline;
+      const isOnTimePlan = deadline ? new Date() <= new Date(deadline) : null;
+      User.findById(report.userId, 'name').lean()
+        .then(u => Notification.create({
+          type: 'plan_completed',
+          userId: report.userId,
+          reportId: report._id,
+          userName: (u as any)?.name || 'Невідомий',
+          reportFileName: report.fileName,
+          isOnTime: isOnTimePlan,
+        }))
+        .catch(err => console.error('[notification] plan_completed failed:', err));
     }
 
     return res.json(report);
@@ -981,6 +1008,18 @@ router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
       bonusPointsAwarded: false,
     };
     await report.save();
+
+    // fire-and-forget notification
+    User.findById(report.userId, 'name').lean()
+      .then(u => Notification.create({
+        type: 'reflection_submitted',
+        userId: report.userId,
+        reportId: report._id,
+        userName: (u as any)?.name || 'Невідомий',
+        reportFileName: report.fileName,
+        isOnTime,
+      }))
+      .catch(err => console.error('[notification] reflection_submitted failed:', err));
 
     return res.json(report);
   } catch (error) {
