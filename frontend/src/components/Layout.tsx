@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Screen, AuthUser } from '../types';
 
 interface LayoutProps {
@@ -48,6 +48,18 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   const isAdmin = user.role === 'ADMIN';
   const navItems = isAdmin ? ADMIN_NAV : EMPLOYEE_NAV;
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    if (userMenuOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [userMenuOpen]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
@@ -151,13 +163,31 @@ export const Layout: React.FC<LayoutProps> = ({
                 )}
               </button>
             )}
-            <button
-              onClick={onLogout}
-              className="w-8 h-8 rounded-full bg-kameya-burgundy text-white flex items-center justify-center text-xs font-bold"
-              title="Вийти"
-            >
-              {(user.name || user.phone).charAt(0).toUpperCase()}
-            </button>
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen((v) => !v)}
+                className="w-8 h-8 rounded-full bg-kameya-burgundy text-white flex items-center justify-center text-xs font-bold"
+              >
+                {(user.name || user.phone).charAt(0).toUpperCase()}
+              </button>
+              {userMenuOpen && (
+                <div className="absolute right-0 top-10 bg-white rounded-xl shadow-lg border border-gray-100 min-w-[140px] py-1 z-50">
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs font-medium text-gray-800 truncate">{user.name || user.phone}</p>
+                    <p className="text-[11px] text-gray-400 truncate">
+                      {user.role === 'ADMIN' ? 'Адміністратор' : (user.position ?? user.phone)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setUserMenuOpen(false); onLogout(); }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <i className="fas fa-right-from-bracket text-xs"></i>
+                    <span>Вийти</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <div className="max-w-6xl mx-auto p-4 md:p-8">{children}</div>
