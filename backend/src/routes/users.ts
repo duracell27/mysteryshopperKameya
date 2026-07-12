@@ -92,7 +92,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 // PATCH /api/users/:id
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, position, store, password, role } = req.body;
+    const { name, position, store, password, role, phone } = req.body;
     const update: Record<string, unknown> = {};
 
     if (name     !== undefined) update.name     = name;
@@ -100,6 +100,13 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
     if (position !== undefined) update.position = position;
     if (store    !== undefined) update.store    = store;
     if (password) update.password = await bcrypt.hash(String(password), 12);
+
+    if (phone !== undefined) {
+      const normalized = normalizePhone(String(phone));
+      const existing = await User.findOne({ phone: { $in: [normalized, '38' + normalized] }, _id: { $ne: req.params.id } });
+      if (existing) return res.status(409).json({ message: 'Користувач з таким номером вже існує' });
+      update.phone = normalized;
+    }
 
     const query: Record<string, unknown> = { $set: update };
     if (role === 'ADMIN') query.$unset = { position: '', store: '' };

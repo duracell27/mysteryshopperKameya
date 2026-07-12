@@ -48,7 +48,7 @@ export const UsersView: React.FC = () => {
 
   // Edit
   const [editUser, setEditUser]     = useState<UserListItem | null>(null);
-  const [editForm, setEditForm]     = useState<UpdateUserPayload & { position: string; store: string }>({ name: '', role: 'EMPLOYEE', position: '', store: '', password: '' });
+  const [editForm, setEditForm]     = useState<UpdateUserPayload & { position: string; store: string }>({ name: '', phone: '', role: 'EMPLOYEE', position: '', store: '', password: '' });
   const [isEditing, setIsEditing]   = useState(false);
   const [editError, setEditError]   = useState('');
 
@@ -132,6 +132,7 @@ export const UsersView: React.FC = () => {
     setEditUser(u);
     setEditForm({
       name: u.name,
+      phone: u.phone.startsWith('38') ? u.phone.slice(2) : u.phone,
       role: u.role,
       position: u.position ?? '',
       store: u.store ?? '',
@@ -148,6 +149,7 @@ export const UsersView: React.FC = () => {
     try {
       const payload: UpdateUserPayload = {
         name:     editForm.name,
+        phone:    editForm.phone || undefined,
         role:     editForm.role,
         position: editForm.role === 'EMPLOYEE' ? editForm.position : undefined,
         store:    editForm.role === 'EMPLOYEE' ? editForm.store    : undefined,
@@ -418,6 +420,12 @@ export const UsersView: React.FC = () => {
               <FormField label="ПІБ">
                 <input type="text" value={editForm.name}
                   onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  className={inputCls} />
+              </FormField>
+
+              <FormField label="Номер телефону">
+                <input type="tel" placeholder="0XXXXXXXXX" value={editForm.phone ?? ''}
+                  onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
                   className={inputCls} />
               </FormField>
 
