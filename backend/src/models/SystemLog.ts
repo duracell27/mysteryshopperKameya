@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type SystemLogType = 'login_success' | 'login_failed';
+export type SystemLogType = 'login_success' | 'login_failed' | 'password_changed';
 
 export interface ISystemLog extends Document {
   type: SystemLogType;
@@ -13,7 +13,7 @@ export interface ISystemLog extends Document {
 
 const SystemLogSchema = new Schema<ISystemLog>(
   {
-    type:     { type: String, enum: ['login_success', 'login_failed'], required: true },
+    type:     { type: String, enum: ['login_success', 'login_failed', 'password_changed'], required: true },
     phone:    { type: String, required: true },
     userName: { type: String, default: null },
     ip:       { type: String, default: null },

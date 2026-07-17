@@ -524,9 +524,11 @@ export const UsersView: React.FC = () => {
                     const reportId = typeof tx.reportId === 'object' ? tx.reportId : null;
                     const label = tx.reason === 'streak'
                         ? `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`
-                        : tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0)
-                          ? `Рефлексія ${tx.quarter ?? ''} ${tx.year}`
-                          : `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
+                        : tx.reason === 'reflection_penalty'
+                          ? `Не вчасно заповнена рефлексія ${tx.quarter ?? ''} ${tx.year}`
+                          : tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0)
+                            ? `Рефлексія ${tx.quarter ?? ''} ${tx.year}`
+                            : `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
                     return (
                       <div key={tx._id} className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-xl">
                         <div>
@@ -541,9 +543,11 @@ export const UsersView: React.FC = () => {
                         <span className={`text-sm font-bold px-3 py-1 rounded-full ${
                           tx.pointsAwarded > 0
                             ? 'bg-green-100 text-green-700'
-                            : 'bg-slate-200 text-slate-500'
+                            : tx.pointsAwarded < 0
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-slate-200 text-slate-500'
                         }`}>
-                          {tx.pointsAwarded > 0 ? `+${tx.pointsAwarded}` : '0'}
+                          {tx.pointsAwarded > 0 ? `+${tx.pointsAwarded}` : tx.pointsAwarded < 0 ? `${tx.pointsAwarded}` : '0'}
                         </span>
                       </div>
                     );

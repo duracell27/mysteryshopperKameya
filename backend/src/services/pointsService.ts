@@ -13,6 +13,32 @@ export function calculatePoints(totalScore: number): number {
   return 0;
 }
 
+export async function applyReflectionPenalty(params: {
+  userId: Types.ObjectId | string;
+  reportId: Types.ObjectId | string;
+  quarter: string;
+  year: number;
+  scorePercent: number;
+  pointsToDeduct: number;
+}): Promise<void> {
+  const { userId, reportId, quarter, year, scorePercent, pointsToDeduct } = params;
+
+  await PointsTransaction.create({
+    userId,
+    reportId,
+    quarter,
+    year,
+    scorePercent,
+    pointsAwarded: -pointsToDeduct,
+    reason: 'reflection_penalty',
+    note: 'Не вчасно заповнена рефлексія',
+  });
+
+  await User.findByIdAndUpdate(userId, [
+    { $set: { points: { $max: [{ $subtract: ['$points', pointsToDeduct] }, 0] } } },
+  ]);
+}
+
 export async function awardPoints(params: {
   userId: Types.ObjectId | string;
   reportId: Types.ObjectId | string;

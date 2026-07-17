@@ -30,7 +30,8 @@ export const ProgressView: React.FC = () => {
   const lastThree = transactions.slice(0, 3);
 
   const txLabel = (tx: PointsTransaction) => {
-    if (tx.reason === 'streak')   return `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`;
+    if (tx.reason === 'streak')             return `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`;
+    if (tx.reason === 'reflection_penalty') return `Не вчасно заповнена рефлексія ${tx.quarter ?? ''} ${tx.year}`;
     if (tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0))
       return `Рефлексія ${tx.quarter ?? ''} ${tx.year}`;
     return `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
@@ -70,8 +71,8 @@ export const ProgressView: React.FC = () => {
               {lastThree.map((tx) => (
                 <div key={tx._id} className="flex items-center justify-between text-sm">
                   <span className="text-slate-500 truncate">{txLabel(tx)}</span>
-                  <span className={`font-semibold flex-shrink-0 ml-2 ${tx.pointsAwarded > 0 ? 'text-green-600' : 'text-slate-400'}`}>
-                    {tx.pointsAwarded > 0 ? `+${tx.pointsAwarded}` : '0'}
+                  <span className={`font-semibold flex-shrink-0 ml-2 ${tx.pointsAwarded > 0 ? 'text-green-600' : tx.pointsAwarded < 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                    {tx.pointsAwarded > 0 ? `+${tx.pointsAwarded}` : tx.pointsAwarded < 0 ? `${tx.pointsAwarded}` : '0'}
                   </span>
                 </div>
               ))}
@@ -209,9 +210,9 @@ export const ProgressView: React.FC = () => {
                       </p>
                     </div>
                     <span className={`text-sm font-bold px-3 py-1 rounded-full ${
-                      tx.pointsAwarded > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-500'
+                      tx.pointsAwarded > 0 ? 'bg-green-100 text-green-700' : tx.pointsAwarded < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-500'
                     }`}>
-                      {tx.pointsAwarded > 0 ? `+${tx.pointsAwarded}` : '0'}
+                      {tx.pointsAwarded > 0 ? `+${tx.pointsAwarded}` : tx.pointsAwarded < 0 ? `${tx.pointsAwarded}` : '0'}
                     </span>
                   </div>
                 ))

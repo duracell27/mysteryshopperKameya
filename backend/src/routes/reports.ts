@@ -500,7 +500,12 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
       .map(({ name, sum, count }) => ({ name, avg: Math.round((sum / count) * 10) / 10, count }))
       .sort((a, b) => b.avg - a.avg || b.count - a.count);
 
-    return res.json({ year, periodType, periodAvg, reportCount, storeRanking, consultantRanking });
+    const pointsRanking = await User.find(
+      { role: 'EMPLOYEE' },
+      'name store points'
+    ).sort({ points: -1 }).limit(15).lean();
+
+    return res.json({ year, periodType, periodAvg, reportCount, storeRanking, consultantRanking, pointsRanking });
   } catch (error) {
     console.error('dashboard stats error:', error);
     return res.status(500).json({ message: 'Помилка сервера' });

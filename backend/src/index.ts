@@ -7,6 +7,7 @@ import usersRoutes from './routes/users';
 import reportsRoutes from './routes/reports';
 import tipsRoutes from './routes/tips';
 import notificationsRoutes from './routes/notifications';
+import { runReflectionPenaltyCheck } from './services/reflectionPenaltyService';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,4 +27,9 @@ connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Сервер запущено: http://localhost:${PORT}`);
   });
+
+  runReflectionPenaltyCheck().catch(err => console.error('[penalty] initial check failed:', err));
+  setInterval(() => {
+    runReflectionPenaltyCheck().catch(err => console.error('[penalty] check failed:', err));
+  }, 60 * 60 * 1000); // кожну годину
 });

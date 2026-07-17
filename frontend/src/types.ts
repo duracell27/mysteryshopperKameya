@@ -93,7 +93,7 @@ export interface UserListItem {
   createdAt: string;
 }
 
-export type TransactionReason = 'score' | 'reflection' | 'streak';
+export type TransactionReason = 'score' | 'reflection' | 'streak' | 'reflection_penalty';
 
 export interface PointsTransaction {
   _id: string;
@@ -104,6 +104,7 @@ export interface PointsTransaction {
   scorePercent: number;
   pointsAwarded: number;
   reason?: TransactionReason;
+  note?: string;
   streakQuarters?: number;
   streakYear?: number;
   createdAt: string;
@@ -184,7 +185,7 @@ export interface BadgeAward {
 }
 
 export type NotificationType = 'reflection_submitted' | 'plan_generated' | 'plan_completed';
-export type SystemLogType = 'login_success' | 'login_failed';
+export type SystemLogType = 'login_success' | 'login_failed' | 'password_changed';
 
 export interface AdminNotification {
   _id: string;

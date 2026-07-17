@@ -137,6 +137,7 @@ export interface DashboardStats {
   reportCount: number;
   storeRanking: { store: string; avg: number; count: number }[];
   consultantRanking: { name: string; avg: number; count: number }[];
+  pointsRanking: { _id: string; name: string; store?: string; points: number }[];
 }
 
 export interface DashboardParams {

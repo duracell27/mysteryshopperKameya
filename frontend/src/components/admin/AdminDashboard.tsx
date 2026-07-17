@@ -171,11 +171,11 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Рядок 2: два рейтинги ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ── Рядок 2: три рейтинги ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Рейтинг по магазинах */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+        <div className="bg-white py-4 px-3 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
             Рейтинг по відділах
           </p>
           {loading ? (
@@ -215,8 +215,8 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Рейтинг по консультантах */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+        <div className="bg-white py-4 px-3 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
             Рейтинг по консультантах
           </p>
           {loading ? (
@@ -251,6 +251,43 @@ export const AdminDashboard: React.FC = () => {
                   </span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Рейтинг по балах */}
+        <div className="bg-white py-4 px-3 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+            Рейтинг по балах загальний
+          </p>
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8" />)}
+            </div>
+          ) : !stats?.pointsRanking.length ? (
+            <p className="text-slate-400 text-sm">Немає даних</p>
+          ) : (
+            <div className="space-y-2">
+              {stats.pointsRanking.map((row, i) => {
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
+                return (
+                  <div key={row._id} className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-400 w-5 text-right flex-shrink-0">
+                      {medal ?? i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-700 truncate">{row.name}</p>
+                      {row.store && (
+                        <p className="text-xs text-slate-400 truncate">{row.store}</p>
+                      )}
+                    </div>
+                    <span className="text-sm font-bold text-kameya-burgundy flex-shrink-0 flex items-center gap-1">
+                      <i className="fas fa-gem text-xs" />
+                      {row.points}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
