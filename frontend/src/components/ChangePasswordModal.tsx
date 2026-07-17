@@ -43,7 +43,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, 
 
   if (!open || !user) return null;
 
-  const displayPhone = user.phone.startsWith('380') ? user.phone.slice(3) : user.phone;
+  const displayPhone = user.phone.startsWith('380') ? user.phone.slice(2) : user.phone;
 
   const handleSendCode = async () => {
     setError('');
@@ -159,7 +159,8 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, 
             </button>
             <button
               onClick={() => { setCode(''); setError(''); handleSendCode(); }}
-              className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors py-1"
+              disabled={isLoading}
+              className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors py-1 disabled:opacity-40"
             >
               Надіслати код повторно
             </button>
