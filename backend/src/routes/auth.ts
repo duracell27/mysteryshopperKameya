@@ -3,8 +3,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { SystemLog } from '../models/SystemLog';
+import { sendSms } from '../services/sms';
 
 const router = Router();
+
+const resetCodes = new Map<string, { code: string; expiry: number }>();
 
 function normalizePhone(raw: string): string {
   const d = raw.replace(/\D/g, '');
@@ -67,6 +70,72 @@ router.post('/login', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    return res.status(500).json({ message: 'Внутрішня помилка сервера' });
+  }
+});
+
+router.post('/request-reset-code', async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ message: 'Вкажіть номер телефону' });
+
+    const normalizedPhone = normalizePhone(String(phone));
+    const user = await User.findOne({
+      phone: { $in: [normalizedPhone, '38' + normalizedPhone] },
+    });
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    resetCodes.set(normalizedPhone, { code, expiry: Date.now() + 10 * 60 * 1000 });
+
+    await sendSms(
+      '38' + normalizedPhone,
+      `Камея: Ваш код для зміни пароля — ${code}. Дійсний 10 хвилин.`,
+    );
+
+    return res.json({ message: 'Код надіслано' });
+  } catch (error) {
+    console.error('request-reset-code error:', error);
+    return res.status(500).json({ message: 'Внутрішня помилка сервера' });
+  }
+});
+
+router.post('/confirm-reset', async (req: Request, res: Response) => {
+  try {
+    const { phone, code, newPassword } = req.body;
+    if (!phone || !code || !newPassword) {
+      return res.status(400).json({ message: 'Заповніть всі поля' });
+    }
+
+    const normalizedPhone = normalizePhone(String(phone));
+    const entry = resetCodes.get(normalizedPhone);
+
+    if (!entry) {
+      return res.status(400).json({ message: 'Код не знайдено або вже використано' });
+    }
+    if (Date.now() > entry.expiry) {
+      resetCodes.delete(normalizedPhone);
+      return res.status(400).json({ message: 'Код застарів. Запросіть новий.' });
+    }
+    if (entry.code !== String(code)) {
+      return res.status(400).json({ message: 'Невірний код' });
+    }
+    if (String(newPassword).length < 8) {
+      return res.status(400).json({ message: 'Пароль має містити мінімум 8 символів' });
+    }
+
+    const user = await User.findOne({
+      phone: { $in: [normalizedPhone, '38' + normalizedPhone] },
+    });
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+
+    user.password = await bcrypt.hash(String(newPassword), 12);
+    await user.save();
+    resetCodes.delete(normalizedPhone);
+
+    return res.json({ message: 'Пароль змінено' });
+  } catch (error) {
+    console.error('confirm-reset error:', error);
     return res.status(500).json({ message: 'Внутрішня помилка сервера' });
   }
 });
