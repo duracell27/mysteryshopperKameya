@@ -209,7 +209,7 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, o
                         <i className={`fas ${q.isCorrect ? 'fa-check text-green-500' : 'fa-xmark text-red-500'} mt-0.5 flex-shrink-0`}></i>
                         <div className="flex-1">
                           <p className="text-sm font-medium text-slate-800">{q.question}</p>
-                          <p className="text-xs text-slate-500">Відповідь: {q.answer}</p>
+                          <p className="text-xs text-slate-500">Нараховано балів: {q.answer}</p>
                           {q.comment && (
                             <p className="text-xs text-kameya-burgundy mt-1 font-medium italic">— {q.comment}</p>
                           )}
