@@ -34,7 +34,7 @@ function buildChartData(reports: AuditResult[]): ChartPoint[] {
     .map((q) => {
       const r = byQuarter[q];
       const score = Math.floor(r.totalScore);
-      const pts = score === 100 ? 200 : score >= 95 ? 150 : score >= 90 ? 100 : score >= 80 ? 50 : 0;
+      const pts = score === 100 ? 100 : score >= 97 ? 55 : score >= 93 ? 35 : score >= 88 ? 18 : score >= 80 ? 8 : score >= 70 ? 2 : 0;
       return {
         quarter: q,
         score,
@@ -72,7 +72,7 @@ export const ScoreChart: React.FC<ScoreChartProps> = ({ reports }) => {
 
   return (
     <ResponsiveContainer width="100%" height={200}>
-      <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#7B1C3A" stopOpacity={0.18} />

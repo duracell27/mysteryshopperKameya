@@ -371,9 +371,12 @@ router.get('/my/rank', async (req: AuthRequest, res: Response) => {
 
     // Зібрати всіх EMPLOYEE і посортувати за середнім балом
     const employees = await User.find({ role: 'EMPLOYEE' }, '_id').lean();
-    const sorted = [...employees].sort(
-      (a, b) => avgScore(b._id.toString()) - avgScore(a._id.toString())
-    );
+    const countOf = (uid: string) => scoreMap[uid]?.count ?? 0;
+    const sorted = [...employees].sort((a, b) => {
+      const scoreDiff = avgScore(b._id.toString()) - avgScore(a._id.toString());
+      if (scoreDiff !== 0) return scoreDiff;
+      return countOf(b._id.toString()) - countOf(a._id.toString());
+    });
 
     const myIndex = sorted.findIndex(u => u._id.toString() === userId.toString());
     const myRank = myIndex === -1 ? totalUsers : myIndex + 1;
@@ -478,7 +481,7 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
     }
     const storeRanking = Object.entries(storeMap)
       .map(([store, { sum, count }]) => ({ store, avg: Math.round((sum / count) * 10) / 10, count }))
-      .sort((a, b) => b.avg - a.avg);
+      .sort((a, b) => b.avg - a.avg || b.count - a.count);
 
     // ── Consultant ranking ──
     const consultantMap: Record<string, { name: string; sum: number; count: number }> = {};
@@ -495,7 +498,7 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
     }
     const consultantRanking = Object.values(consultantMap)
       .map(({ name, sum, count }) => ({ name, avg: Math.round((sum / count) * 10) / 10, count }))
-      .sort((a, b) => b.avg - a.avg);
+      .sort((a, b) => b.avg - a.avg || b.count - a.count);
 
     return res.json({ year, periodType, periodAvg, reportCount, storeRanking, consultantRanking });
   } catch (error) {

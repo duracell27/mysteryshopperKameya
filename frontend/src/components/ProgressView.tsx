@@ -13,6 +13,7 @@ export const ProgressView: React.FC = () => {
   const [badges, setBadges] = useState<BadgeAward[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+  const [showPointsInfo, setShowPointsInfo] = useState(false);
 
   useEffect(() => {
     Promise.all([getMyRank(), getMyPointsHistory(), getMyBadges()])
@@ -45,6 +46,13 @@ export const ProgressView: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Points card */}
         <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100 flex flex-col relative overflow-hidden group">
+          <button
+            onClick={() => setShowPointsInfo(true)}
+            className="absolute top-8 right-6 w-7 h-7 rounded-full bg-kameya-burgundy/10 hover:bg-kameya-burgundy/20 flex items-center justify-center text-kameya-burgundy transition-colors z-10"
+            title="Як нараховуються бали"
+          >
+            <span className="italic font-serif font-bold text-sm leading-none">i</span>
+          </button>
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 bg-kameya-burgundy/10 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
               <i className="fas fa-gem text-kameya-burgundy text-2xl" />
@@ -144,10 +152,44 @@ export const ProgressView: React.FC = () => {
         )}
       </div>
 
+      {/* Points info modal */}
+      {showPointsInfo && ReactDOM.createPortal(
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setShowPointsInfo(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800">Як нараховуються бали</h3>
+              <button onClick={() => setShowPointsInfo(false)} className="text-slate-400 hover:text-slate-600">
+                <i className="fas fa-xmark text-xl" />
+              </button>
+            </div>
+            <div className="p-6 space-y-3">
+              <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-4">Результат анкети таємного покупця</p>
+              {[
+                { range: '100%', points: 100, color: 'text-amber-500' },
+                { range: '97–99%', points: 55, color: 'text-kameya-burgundy' },
+                { range: '93–96%', points: 35, color: 'text-kameya-burgundy' },
+                { range: '88–92%', points: 18, color: 'text-slate-600' },
+                { range: '80–87%', points: 8, color: 'text-slate-500' },
+                { range: '70–79%', points: 2, color: 'text-slate-400' },
+                { range: 'нижче 70%', points: 0, color: 'text-slate-300' },
+              ].map(({ range, points, color }) => (
+                <div key={range} className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-slate-50">
+                  <span className="text-sm font-medium text-slate-600">{range}</span>
+                  <span className={`text-sm font-bold ${color}`}>
+                    {points > 0 ? `+${points} балів` : '0 балів'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Points history modal */}
       {showHistory && ReactDOM.createPortal(
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setShowHistory(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
               <h3 className="text-lg font-bold text-slate-800">Історія балів</h3>
               <button onClick={() => setShowHistory(false)} className="text-slate-400 hover:text-slate-600">
