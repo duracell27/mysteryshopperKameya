@@ -159,9 +159,120 @@ router.post('/confirm-reset', authMiddleware, async (req: AuthRequest, res: Resp
     await user.save();
     resetCodes.delete(normalizedPhone);
 
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      req.ip ??
+      null;
+    SystemLog.create({ type: 'password_changed', phone: normalizedPhone, userName: user.name || null, ip })
+      .catch(() => {});
+
     return res.json({ message: 'Пароль змінено' });
   } catch (error) {
     console.error('confirm-reset error:', error);
+    return res.status(500).json({ message: 'Внутрішня помилка сервера' });
+  }
+});
+
+router.post('/forgot/request', async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ message: 'Введіть номер телефону' });
+
+    const normalizedPhone = normalizePhone(String(phone));
+    const user = await User.findOne({
+      phone: { $in: [normalizedPhone, '38' + normalizedPhone] },
+    });
+    if (!user) {
+      // Generic message — don't reveal whether number exists
+      return res.json({ message: 'Код надіслано' });
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    resetCodes.set(normalizedPhone, { code, expiry: Date.now() + 10 * 60 * 1000 });
+
+    await sendSms(
+      '38' + normalizedPhone,
+      `Камея: Ваш код для відновлення пароля — ${code}. Дійсний 10 хвилин.`,
+    );
+
+    return res.json({ message: 'Код надіслано' });
+  } catch (error) {
+    console.error('forgot/request error:', error);
+    return res.status(500).json({ message: 'Внутрішня помилка сервера' });
+  }
+});
+
+router.post('/forgot/verify', async (req: Request, res: Response) => {
+  try {
+    const { phone, code } = req.body;
+    if (!phone || !code) return res.status(400).json({ message: 'Заповніть всі поля' });
+
+    const normalizedPhone = normalizePhone(String(phone));
+    const entry = resetCodes.get(normalizedPhone);
+
+    if (!entry) {
+      return res.status(400).json({ message: 'Код не знайдено або вже використано' });
+    }
+    if (Date.now() > entry.expiry) {
+      resetCodes.delete(normalizedPhone);
+      return res.status(400).json({ message: 'Код застарів. Запросіть новий.' });
+    }
+    if (entry.code !== String(code)) {
+      resetCodes.delete(normalizedPhone);
+      return res.status(400).json({ message: 'Невірний код' });
+    }
+
+    return res.json({ message: 'Код підтверджено' });
+  } catch (error) {
+    console.error('forgot/verify error:', error);
+    return res.status(500).json({ message: 'Внутрішня помилка сервера' });
+  }
+});
+
+router.post('/forgot/confirm', async (req: Request, res: Response) => {
+  try {
+    const { phone, code, newPassword } = req.body;
+    if (!phone || !code || !newPassword) {
+      return res.status(400).json({ message: 'Заповніть всі поля' });
+    }
+
+    const normalizedPhone = normalizePhone(String(phone));
+    const entry = resetCodes.get(normalizedPhone);
+
+    if (!entry) {
+      return res.status(400).json({ message: 'Код не знайдено або вже використано' });
+    }
+    if (Date.now() > entry.expiry) {
+      resetCodes.delete(normalizedPhone);
+      return res.status(400).json({ message: 'Код застарів. Запросіть новий.' });
+    }
+    if (entry.code !== String(code)) {
+      resetCodes.delete(normalizedPhone);
+      return res.status(400).json({ message: 'Невірний код' });
+    }
+    if (String(newPassword).length < 8) {
+      return res.status(400).json({ message: 'Пароль має містити мінімум 8 символів' });
+    }
+
+    const user = await User.findOne({
+      phone: { $in: [normalizedPhone, '38' + normalizedPhone] },
+    });
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+
+    user.password = await bcrypt.hash(String(newPassword), 12);
+    await user.save();
+    resetCodes.delete(normalizedPhone);
+
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      req.ip ??
+      null;
+    SystemLog.create({ type: 'password_changed', phone: normalizedPhone, userName: user.name || null, ip })
+      .catch(() => {});
+
+    return res.json({ message: 'Пароль змінено' });
+  } catch (error) {
+    console.error('forgot/confirm error:', error);
     return res.status(500).json({ message: 'Внутрішня помилка сервера' });
   }
 });
