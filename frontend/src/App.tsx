@@ -12,6 +12,7 @@ import { ReportsUploadView } from './components/admin/ReportsUploadView';
 import { AdminReportsListView } from './components/admin/AdminReportsListView';
 import { AdminNotificationsView } from './components/admin/AdminNotificationsView';
 import { SystemNotificationsPanel } from './components/admin/SystemNotificationsPanel';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { MyReportsView } from './components/employee/MyReportsView';
 import { LoginPage } from './pages/LoginPage';
 import { Screen, AIAnalysisResult, AuditResult, QuizQuestion } from './types';
@@ -37,6 +38,7 @@ const AppContent: React.FC = () => {
   const [systemPanelOpen, setSystemPanelOpen] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [selectedReportAction, setSelectedReportAction] = useState<string | null>(null);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useEffect(() => {
     const savedAnalysis = localStorage.getItem('kameya_analysis');
@@ -181,7 +183,12 @@ const AppContent: React.FC = () => {
       notificationsUnread={notificationsUnread}
       systemUnread={systemUnread}
       onOpenSystemPanel={() => setSystemPanelOpen(true)}
+      onChangePassword={() => setChangePasswordOpen(true)}
     >
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
       {toast && (
         <div className="fixed top-4 right-4 z-[100] bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl animate-bounce-in flex items-center space-x-2">
           <i className="fas fa-circle-check text-green-400"></i>
