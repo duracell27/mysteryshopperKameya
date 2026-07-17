@@ -41,6 +41,10 @@ const AppContent: React.FC = () => {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useEffect(() => {
+    if (!user) setChangePasswordOpen(false);
+  }, [user]);
+
+  useEffect(() => {
     const savedAnalysis = localStorage.getItem('kameya_analysis');
     if (savedAnalysis) {
       try { setAnalysis(JSON.parse(savedAnalysis)); } catch { /* ignore */ }
