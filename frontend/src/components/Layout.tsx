@@ -10,6 +10,7 @@ interface LayoutProps {
   notificationsUnread?: number;
   systemUnread?: number;
   onOpenSystemPanel?: () => void;
+  onChangePassword?: () => void;
 }
 
 const ADMIN_NAV = [
@@ -45,6 +46,7 @@ export const Layout: React.FC<LayoutProps> = ({
   notificationsUnread = 0,
   systemUnread = 0,
   onOpenSystemPanel,
+  onChangePassword,
 }) => {
   const isAdmin = user.role === 'ADMIN';
   const navItems = isAdmin ? ADMIN_NAV : EMPLOYEE_NAV;
@@ -116,6 +118,15 @@ export const Layout: React.FC<LayoutProps> = ({
               </p>
             </div>
           </div>
+          {onChangePassword && (
+            <button
+              onClick={onChangePassword}
+              className="w-full text-xs text-white/60 hover:text-white/90 py-2 rounded-lg hover:bg-white/10 transition-colors text-left px-2 flex items-center space-x-2 mb-1"
+            >
+              <i className="fas fa-lock"></i>
+              <span>Змінити пароль</span>
+            </button>
+          )}
           <button
             onClick={onLogout}
             className="w-full text-xs text-white/60 hover:text-white/90 py-2 rounded-lg hover:bg-white/10 transition-colors text-left px-2 flex items-center space-x-2"
@@ -178,6 +189,15 @@ export const Layout: React.FC<LayoutProps> = ({
                       {user.role === 'ADMIN' ? 'Адміністратор' : (user.position ?? user.phone)}
                     </p>
                   </div>
+                  {onChangePassword && (
+                    <button
+                      onClick={() => { setUserMenuOpen(false); onChangePassword(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                    >
+                      <i className="fas fa-lock text-xs"></i>
+                      <span>Змінити пароль</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => { setUserMenuOpen(false); onLogout(); }}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
