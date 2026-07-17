@@ -83,6 +83,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, 
       logout();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Помилка зміни пароля');
+    } finally {
       setIsLoading(false);
     }
   };
