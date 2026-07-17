@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { randomInt } from 'crypto';
 import { User } from '../models/User';
 import { SystemLog } from '../models/SystemLog';
 import { sendSms } from '../services/sms';
@@ -9,6 +10,20 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 const router = Router();
 
 const resetCodes = new Map<string, { code: string; expiry: number }>();
+
+const forgotRateLimit = new Map<string, { count: number; resetAt: number }>();
+
+function checkForgotRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = forgotRateLimit.get(ip);
+  if (!entry || now > entry.resetAt) {
+    forgotRateLimit.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 });
+    return true;
+  }
+  if (entry.count >= 5) return false;
+  entry.count++;
+  return true;
+}
 
 function normalizePhone(raw: string): string {
   const d = raw.replace(/\D/g, '');
@@ -83,7 +98,7 @@ router.post('/request-reset-code', authMiddleware, async (req: AuthRequest, res:
     });
     if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = String(randomInt(100000, 1000000));
     resetCodes.set(normalizedPhone, { code, expiry: Date.now() + 10 * 60 * 1000 });
 
     await sendSms(
@@ -175,6 +190,11 @@ router.post('/confirm-reset', authMiddleware, async (req: AuthRequest, res: Resp
 
 router.post('/forgot/request', async (req: Request, res: Response) => {
   try {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.ip ?? '';
+    if (!checkForgotRateLimit(ip)) {
+      return res.status(429).json({ message: 'Забагато спроб. Спробуйте пізніше.' });
+    }
+
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ message: 'Введіть номер телефону' });
 
@@ -187,8 +207,8 @@ router.post('/forgot/request', async (req: Request, res: Response) => {
       return res.json({ message: 'Код надіслано' });
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    resetCodes.set(normalizedPhone, { code, expiry: Date.now() + 10 * 60 * 1000 });
+    const code = String(randomInt(100000, 1000000));
+    resetCodes.set('forgot:' + normalizedPhone, { code, expiry: Date.now() + 10 * 60 * 1000 });
 
     await sendSms(
       '38' + normalizedPhone,
@@ -204,21 +224,26 @@ router.post('/forgot/request', async (req: Request, res: Response) => {
 
 router.post('/forgot/verify', async (req: Request, res: Response) => {
   try {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.ip ?? '';
+    if (!checkForgotRateLimit(ip)) {
+      return res.status(429).json({ message: 'Забагато спроб. Спробуйте пізніше.' });
+    }
+
     const { phone, code } = req.body;
     if (!phone || !code) return res.status(400).json({ message: 'Заповніть всі поля' });
 
     const normalizedPhone = normalizePhone(String(phone));
-    const entry = resetCodes.get(normalizedPhone);
+    const entry = resetCodes.get('forgot:' + normalizedPhone);
 
     if (!entry) {
       return res.status(400).json({ message: 'Код не знайдено або вже використано' });
     }
     if (Date.now() > entry.expiry) {
-      resetCodes.delete(normalizedPhone);
+      resetCodes.delete('forgot:' + normalizedPhone);
       return res.status(400).json({ message: 'Код застарів. Запросіть новий.' });
     }
     if (entry.code !== String(code)) {
-      resetCodes.delete(normalizedPhone);
+      resetCodes.delete('forgot:' + normalizedPhone);
       return res.status(400).json({ message: 'Невірний код' });
     }
 
@@ -231,23 +256,31 @@ router.post('/forgot/verify', async (req: Request, res: Response) => {
 
 router.post('/forgot/confirm', async (req: Request, res: Response) => {
   try {
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      req.ip ??
+      null;
+    if (!checkForgotRateLimit(ip ?? '')) {
+      return res.status(429).json({ message: 'Забагато спроб. Спробуйте пізніше.' });
+    }
+
     const { phone, code, newPassword } = req.body;
     if (!phone || !code || !newPassword) {
       return res.status(400).json({ message: 'Заповніть всі поля' });
     }
 
     const normalizedPhone = normalizePhone(String(phone));
-    const entry = resetCodes.get(normalizedPhone);
+    const entry = resetCodes.get('forgot:' + normalizedPhone);
 
     if (!entry) {
       return res.status(400).json({ message: 'Код не знайдено або вже використано' });
     }
     if (Date.now() > entry.expiry) {
-      resetCodes.delete(normalizedPhone);
+      resetCodes.delete('forgot:' + normalizedPhone);
       return res.status(400).json({ message: 'Код застарів. Запросіть новий.' });
     }
     if (entry.code !== String(code)) {
-      resetCodes.delete(normalizedPhone);
+      resetCodes.delete('forgot:' + normalizedPhone);
       return res.status(400).json({ message: 'Невірний код' });
     }
     if (String(newPassword).length < 8) {
@@ -261,12 +294,8 @@ router.post('/forgot/confirm', async (req: Request, res: Response) => {
 
     user.password = await bcrypt.hash(String(newPassword), 12);
     await user.save();
-    resetCodes.delete(normalizedPhone);
+    resetCodes.delete('forgot:' + normalizedPhone);
 
-    const ip =
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-      req.ip ??
-      null;
     SystemLog.create({ type: 'password_changed', phone: normalizedPhone, userName: user.name || null, ip })
       .catch(() => {});
 
