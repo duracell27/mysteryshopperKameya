@@ -203,8 +203,7 @@ router.post('/forgot/request', async (req: Request, res: Response) => {
       phone: { $in: [normalizedPhone, '38' + normalizedPhone] },
     });
     if (!user) {
-      // Generic message — don't reveal whether number exists
-      return res.json({ message: 'Код надіслано' });
+      return res.status(404).json({ message: 'Номер телефону не зареєстровано в системі' });
     }
 
     const code = String(randomInt(100000, 1000000));
