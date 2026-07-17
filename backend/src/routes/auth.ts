@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { SystemLog } from '../models/SystemLog';
 import { sendSms } from '../services/sms';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -74,12 +75,9 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/request-reset-code', async (req: Request, res: Response) => {
+router.post('/request-reset-code', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { phone } = req.body;
-    if (!phone) return res.status(400).json({ message: 'Вкажіть номер телефону' });
-
-    const normalizedPhone = normalizePhone(String(phone));
+    const normalizedPhone = normalizePhone(req.user!.phone);
     const user = await User.findOne({
       phone: { $in: [normalizedPhone, '38' + normalizedPhone] },
     });
@@ -100,14 +98,12 @@ router.post('/request-reset-code', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/confirm-reset', async (req: Request, res: Response) => {
+router.post('/verify-reset-code', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { phone, code, newPassword } = req.body;
-    if (!phone || !code || !newPassword) {
-      return res.status(400).json({ message: 'Заповніть всі поля' });
-    }
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: 'Введіть код' });
 
-    const normalizedPhone = normalizePhone(String(phone));
+    const normalizedPhone = normalizePhone(req.user!.phone);
     const entry = resetCodes.get(normalizedPhone);
 
     if (!entry) {
@@ -118,6 +114,36 @@ router.post('/confirm-reset', async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Код застарів. Запросіть новий.' });
     }
     if (entry.code !== String(code)) {
+      resetCodes.delete(normalizedPhone);
+      return res.status(400).json({ message: 'Невірний код' });
+    }
+
+    return res.json({ message: 'Код підтверджено' });
+  } catch (error) {
+    console.error('verify-reset-code error:', error);
+    return res.status(500).json({ message: 'Внутрішня помилка сервера' });
+  }
+});
+
+router.post('/confirm-reset', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { code, newPassword } = req.body;
+    if (!code || !newPassword) {
+      return res.status(400).json({ message: 'Заповніть всі поля' });
+    }
+
+    const normalizedPhone = normalizePhone(req.user!.phone);
+    const entry = resetCodes.get(normalizedPhone);
+
+    if (!entry) {
+      return res.status(400).json({ message: 'Код не знайдено або вже використано' });
+    }
+    if (Date.now() > entry.expiry) {
+      resetCodes.delete(normalizedPhone);
+      return res.status(400).json({ message: 'Код застарів. Запросіть новий.' });
+    }
+    if (entry.code !== String(code)) {
+      resetCodes.delete(normalizedPhone);
       return res.status(400).json({ message: 'Невірний код' });
     }
     if (String(newPassword).length < 8) {

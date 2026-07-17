@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useAuth } from '../context/AuthContext';
-import { requestResetCode, confirmReset } from '../services/passwordResetService';
+import { requestResetCode, verifyResetCode, confirmReset } from '../services/passwordResetService';
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -43,13 +43,13 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, 
 
   if (!open || !user) return null;
 
-  const displayPhone = user.phone.startsWith('38') ? user.phone.slice(2) : user.phone;
+  const displayPhone = user.phone.startsWith('380') ? user.phone.slice(3) : user.phone;
 
   const handleSendCode = async () => {
     setError('');
     setIsLoading(true);
     try {
-      await requestResetCode(user.phone);
+      await requestResetCode();
       setStep(2);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Помилка надсилання коду');
@@ -58,13 +58,21 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, 
     }
   };
 
-  const handleVerifyCode = () => {
+  const handleVerifyCode = async () => {
     if (code.length !== 6) {
       setError('Введіть 6-значний код');
       return;
     }
     setError('');
-    setStep(3);
+    setIsLoading(true);
+    try {
+      await verifyResetCode(code);
+      setStep(3);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Невірний або застарілий код');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSavePassword = async () => {
@@ -79,7 +87,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, 
     setError('');
     setIsLoading(true);
     try {
-      await confirmReset(user.phone, code, newPassword);
+      await confirmReset(code, newPassword);
       logout();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Помилка зміни пароля');
@@ -143,13 +151,14 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ open, 
             {error && <ErrorBanner message={error} />}
             <button
               onClick={handleVerifyCode}
-              disabled={code.length !== 6}
-              className="w-full bg-kameya-burgundy text-white py-3.5 rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-kameya-burgundy/20 disabled:opacity-60"
+              disabled={code.length !== 6 || isLoading}
+              className="w-full bg-kameya-burgundy text-white py-3.5 rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-kameya-burgundy/20 disabled:opacity-60 flex items-center justify-center gap-2"
             >
+              {isLoading && <i className="fas fa-spinner fa-spin" />}
               Далі
             </button>
             <button
-              onClick={() => { setStep(1); setCode(''); setError(''); }}
+              onClick={() => { setCode(''); setError(''); handleSendCode(); }}
               className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors py-1"
             >
               Надіслати код повторно

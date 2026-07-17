@@ -1,5 +1,7 @@
+import { apiFetch } from './apiFetch';
+
 const apiPost = async (path: string, body: object): Promise<void> => {
-  const res = await fetch(path, {
+  const res = await apiFetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -10,11 +12,11 @@ const apiPost = async (path: string, body: object): Promise<void> => {
   }
 };
 
-export const requestResetCode = (phone: string): Promise<void> =>
-  apiPost('/api/auth/request-reset-code', { phone });
+export const requestResetCode = (): Promise<void> =>
+  apiPost('/api/auth/request-reset-code', {});
 
-export const confirmReset = (
-  phone: string,
-  code: string,
-  newPassword: string,
-): Promise<void> => apiPost('/api/auth/confirm-reset', { phone, code, newPassword });
+export const verifyResetCode = (code: string): Promise<void> =>
+  apiPost('/api/auth/verify-reset-code', { code });
+
+export const confirmReset = (code: string, newPassword: string): Promise<void> =>
+  apiPost('/api/auth/confirm-reset', { code, newPassword });
