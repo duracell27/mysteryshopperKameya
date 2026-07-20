@@ -3,13 +3,13 @@ import { User } from '../models/User';
 import { PointsTransaction } from '../models/PointsTransaction';
 
 export function calculatePoints(totalScore: number): number {
-  const floored = Math.floor(totalScore);
-  if (floored === 100) return 100;
-  if (floored >= 97)   return 55;
-  if (floored >= 93)   return 35;
-  if (floored >= 88)   return 18;
-  if (floored >= 80)   return 8;
-  if (floored >= 70)   return 2;
+  const rounded = Math.round(totalScore);
+  if (rounded === 100) return 100;
+  if (rounded >= 97)   return 55;
+  if (rounded >= 93)   return 35;
+  if (rounded >= 88)   return 18;
+  if (rounded >= 80)   return 8;
+  if (rounded >= 70)   return 2;
   return 0;
 }
 

@@ -144,9 +144,9 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, o
           <p className={`text-5xl font-bold ${scoreTextClass(selected.totalScore)}`}>{formatScore(selected.totalScore)}</p>
           <div className="w-full mt-4 bg-slate-200 rounded-full h-2">
             {(() => {
-              const barColor = Math.floor(selected.totalScore) >= 95
+              const barColor = Math.round(selected.totalScore) >= 95
                 ? 'bg-green-500'
-                : Math.floor(selected.totalScore) >= 80
+                : Math.round(selected.totalScore) >= 80
                 ? 'bg-yellow-500'
                 : 'bg-red-500';
               return <div className={`h-2 rounded-full transition-all ${barColor}`} style={{ width: `${selected.totalScore}%` }} />;

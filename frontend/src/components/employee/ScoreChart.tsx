@@ -33,7 +33,7 @@ function buildChartData(reports: AuditResult[]): ChartPoint[] {
     .filter((q) => byQuarter[q])
     .map((q) => {
       const r = byQuarter[q];
-      const score = Math.floor(r.totalScore);
+      const score = Math.round(r.totalScore);
       const pts = score === 100 ? 100 : score >= 97 ? 55 : score >= 93 ? 35 : score >= 88 ? 18 : score >= 80 ? 8 : score >= 70 ? 2 : 0;
       return {
         quarter: q,

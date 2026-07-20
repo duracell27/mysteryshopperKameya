@@ -966,7 +966,7 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
                             <div className="flex items-center gap-4">
                               <div className={`w-14 h-12 rounded-xl flex items-center justify-center border flex-shrink-0 ${style.bgClass} ${style.borderClass}`}>
                                 <span className={`text-sm font-bold ${style.textClass}`}>
-                                  {style.icon ?? `${Math.floor(report.totalScore)}%`}
+                                  {style.icon ?? `${Math.round(report.totalScore)}%`}
                                 </span>
                               </div>
                               <div>

@@ -6,7 +6,7 @@ export interface ScoreStyle {
 }
 
 export function getScoreStyle(totalScore: number): ScoreStyle {
-  const s = Math.floor(totalScore);
+  const s = Math.round(totalScore);
   if (s === 100) return {
     textClass: 'text-green-700',
     bgClass: 'bg-green-50',
@@ -40,7 +40,7 @@ export function scoreBgBorderClass(totalScore: number): string {
 }
 
 export function scoreBarBgClass(totalScore: number): string {
-  const s = Math.floor(totalScore);
+  const s = Math.round(totalScore);
   if (s === 100) return 'bg-green-600';
   if (s >= 95) return 'bg-green-500';
   if (s >= 80) return 'bg-yellow-500';
@@ -49,6 +49,6 @@ export function scoreBarBgClass(totalScore: number): string {
 
 export function formatScore(totalScore: number): string {
   const s = getScoreStyle(totalScore);
-  const pct = `${totalScore.toFixed(2)}%`;
+  const pct = `${Math.round(totalScore)}%`;
   return s.icon ? `${s.icon} ${pct}` : pct;
 }
