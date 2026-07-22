@@ -348,7 +348,7 @@ export const awardLearningPlanPoints = async (
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || 'Помилка нарахування балів');
+    throw new Error((err as any).message || 'Помилка нарахування балів');
   }
   return res.json();
 };

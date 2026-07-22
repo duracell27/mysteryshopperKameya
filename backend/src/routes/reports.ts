@@ -1015,7 +1015,7 @@ router.post('/:id/award-learning-plan-points', async (req: AuthRequest, res: Res
     if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
 
     // Remove previous manual award if exists
-    if (report.learningPlanManualPoints) {
+    if (report.learningPlanManualPoints != null) {
       const prev = await PointsTransaction.findOneAndDelete({
         reportId: report._id,
         reason: 'learning_plan_manual',
@@ -1028,7 +1028,7 @@ router.post('/:id/award-learning-plan-points', async (req: AuthRequest, res: Res
       report.learningPlanManualPoints = undefined;
     }
 
-    if (points) {
+    if (points !== null) {
       await PointsTransaction.create({
         userId: report.userId,
         reportId: report._id,
