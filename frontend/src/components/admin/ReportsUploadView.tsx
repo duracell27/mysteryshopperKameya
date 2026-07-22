@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserListItem, AuditSection, BadgeId } from '../../types';
 import { fetchUsers, getUserBadges } from '../../services/usersService';
-import { parseReport, confirmReport, previewAffirmation, previewBadges, ParsedReport, BadgePreview } from '../../services/reportsService';
+import { parseReport, confirmReport, previewAffirmation, previewBadges, ParsedReport, BadgePreview, uploadAudio, addAudioByUrl, buildAudioLabel } from '../../services/reportsService';
 import { BADGE_CATALOGUE } from '../../constants/badges';
 import { formatDate } from '../../utils/dateFormatter';
 import { scoreTextClass } from '../../utils/scoreColor';
@@ -9,13 +9,12 @@ import { scoreTextClass } from '../../utils/scoreColor';
 type Step = 'select' | 'parsing' | 'preview' | 'saving' | 'done';
 
 function calculatePoints(score: number): number {
-  const f = Math.floor(score);
-  if (f === 100) return 100;
-  if (f >= 97)   return 55;
-  if (f >= 93)   return 35;
-  if (f >= 88)   return 18;
-  if (f >= 80)   return 8;
-  if (f >= 70)   return 2;
+  const rounded = Math.round(score);
+  if (rounded === 100) return 100;
+  if (rounded >= 97)   return 60;
+  if (rounded >= 94)   return 50;
+  if (rounded >= 85)   return 40;
+  if (rounded >= 70)   return 20;
   return 0;
 }
 
@@ -48,6 +47,12 @@ export const ReportsUploadView: React.FC = () => {
   const [affirmationLoading, setAffirmationLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const audioFileRef = useRef<HTMLInputElement>(null);
+
+  type PendingAudio = { type: 'file'; file: File } | { type: 'url'; url: string };
+  const [pendingAudios, setPendingAudios] = useState<PendingAudio[]>([]);
+  const [pendingUrlInput, setPendingUrlInput] = useState('');
+  const [audioUploadWarning, setAudioUploadWarning] = useState<string | null>(null);
 
   const [badgePreview, setBadgePreview] = useState<BadgePreview[]>([]);
   const [removedAutoIds, setRemovedAutoIds] = useState<Set<BadgeId>>(new Set());
@@ -141,6 +146,30 @@ export const ReportsUploadView: React.FC = () => {
         ...(badgeOverride ? { badgeOverride } : {}),
         sendSmsNotification,
       });
+      // Upload any pending audio recordings
+      if (pendingAudios.length > 0 && result._id) {
+        const audioLabel = buildAudioLabel(
+          selectedEmployee?.name ?? '',
+          selectedMonth,
+          selectedYear,
+        );
+        const failed: string[] = [];
+        for (const pa of pendingAudios) {
+          try {
+            if (pa.type === 'file') {
+              await uploadAudio(result._id, pa.file, audioLabel);
+            } else {
+              await addAudioByUrl(result._id, pa.url, audioLabel);
+            }
+          } catch {
+            failed.push(pa.type === 'file' ? pa.file.name : pa.url);
+          }
+        }
+        if (failed.length > 0) {
+          setAudioUploadWarning(`Анкету збережено, але не вдалося завантажити аудіо: ${failed.join(', ')}`);
+        }
+        setPendingAudios([]);
+      }
       setAwardedPoints(result.pointsAwarded);
       setSmsSent(result.smsSent ?? false);
       setStep('done');
@@ -179,6 +208,10 @@ export const ReportsUploadView: React.FC = () => {
     setShowConfirmModal(false);
     setSmsEnabled(true);
     setSmsSent(null);
+    setPendingAudios([]);
+    setPendingUrlInput('');
+    setAudioUploadWarning(null);
+    if (audioFileRef.current) audioFileRef.current.value = '';
   };
 
   const filteredEmployees = employees.filter((u) => {
@@ -291,6 +324,12 @@ export const ReportsUploadView: React.FC = () => {
             {smsSent
               ? <><i className="fas fa-comment-sms mr-2"></i>SMS-сповіщення надіслано</>
               : 'SMS не надсилалось'}
+          </div>
+        )}
+        {audioUploadWarning && (
+          <div className="px-6 py-3 rounded-xl text-sm font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 max-w-sm text-center">
+            <i className="fas fa-triangle-exclamation mr-2" />
+            {audioUploadWarning}
           </div>
         )}
         <button
@@ -729,6 +768,84 @@ export const ReportsUploadView: React.FC = () => {
               </button>
             </div>
           )}
+
+          {/* Pending audio section */}
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2">
+              Аудіозаписи <span className="font-normal text-slate-400">(необов'язково)</span>
+            </h4>
+
+            {pendingAudios.length > 0 && (
+              <ul className="mb-2 space-y-1">
+                {pendingAudios.map((pa, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between text-xs bg-slate-50 rounded px-2 py-1.5"
+                  >
+                    <span className="truncate max-w-[80%] text-slate-600">
+                      {pa.type === 'file' ? pa.file.name : pa.url}
+                    </span>
+                    <button
+                      onClick={() => setPendingAudios((prev) => prev.filter((_, j) => j !== i))}
+                      className="text-red-500 hover:text-red-700 ml-2 shrink-0"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <input
+              ref={audioFileRef}
+              type="file"
+              accept=".mp3,audio/mpeg"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  setPendingAudios((prev) => [...prev, { type: 'file', file: f }]);
+                  if (audioFileRef.current) audioFileRef.current.value = '';
+                }
+              }}
+            />
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => audioFileRef.current?.click()}
+                className="text-sm px-3 py-1.5 border border-dashed border-slate-400 rounded hover:border-kameya-burgundy hover:text-kameya-burgundy transition-colors text-slate-600"
+              >
+                + Обрати MP3 файл
+              </button>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  placeholder="Пряме посилання на MP3..."
+                  value={pendingUrlInput}
+                  onChange={(e) => setPendingUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && pendingUrlInput.trim()) {
+                      setPendingAudios((prev) => [...prev, { type: 'url', url: pendingUrlInput.trim() }]);
+                      setPendingUrlInput('');
+                    }
+                  }}
+                  className="flex-1 text-sm px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-800"
+                />
+                <button
+                  onClick={() => {
+                    if (pendingUrlInput.trim()) {
+                      setPendingAudios((prev) => [...prev, { type: 'url', url: pendingUrlInput.trim() }]);
+                      setPendingUrlInput('');
+                    }
+                  }}
+                  disabled={!pendingUrlInput.trim()}
+                  className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Додати
+                </button>
+              </div>
+            </div>
+          </div>
 
           <div className="flex gap-3">
             <button
