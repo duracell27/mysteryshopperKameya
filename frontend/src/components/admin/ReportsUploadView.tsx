@@ -817,41 +817,39 @@ export const ReportsUploadView: React.FC = () => {
               }}
             />
 
-            <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <input
+                type="url"
+                placeholder="Пряме посилання на MP3..."
+                value={pendingUrlInput}
+                onChange={(e) => setPendingUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && pendingUrlInput.trim()) {
+                    setPendingAudios((prev) => [...prev, { type: 'url', url: pendingUrlInput.trim() }]);
+                    setPendingUrlInput('');
+                  }
+                }}
+                className="flex-1 text-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy transition-colors"
+              />
+              <button
+                onClick={() => {
+                  if (pendingUrlInput.trim()) {
+                    setPendingAudios((prev) => [...prev, { type: 'url', url: pendingUrlInput.trim() }]);
+                    setPendingUrlInput('');
+                  }
+                }}
+                disabled={!pendingUrlInput.trim()}
+                className="px-4 py-2 bg-kameya-burgundy text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-40 transition-opacity"
+              >
+                Додати
+              </button>
               <button
                 onClick={() => audioFileRef.current?.click()}
-                className="flex items-center justify-center gap-2 w-full px-3 py-2.5 border border-dashed border-slate-300 rounded-xl text-sm text-slate-500 hover:border-kameya-burgundy hover:text-kameya-burgundy transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-kameya-burgundy hover:opacity-70 transition-opacity whitespace-nowrap"
               >
                 <i className="fas fa-upload"></i>
-                Завантажити MP3 файл
+                MP3
               </button>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  placeholder="Пряме посилання на MP3..."
-                  value={pendingUrlInput}
-                  onChange={(e) => setPendingUrlInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && pendingUrlInput.trim()) {
-                      setPendingAudios((prev) => [...prev, { type: 'url', url: pendingUrlInput.trim() }]);
-                      setPendingUrlInput('');
-                    }
-                  }}
-                  className="flex-1 text-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy transition-colors"
-                />
-                <button
-                  onClick={() => {
-                    if (pendingUrlInput.trim()) {
-                      setPendingAudios((prev) => [...prev, { type: 'url', url: pendingUrlInput.trim() }]);
-                      setPendingUrlInput('');
-                    }
-                  }}
-                  disabled={!pendingUrlInput.trim()}
-                  className="px-4 py-2 bg-kameya-burgundy text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-40 transition-opacity"
-                >
-                  Додати
-                </button>
-              </div>
             </div>
           </div>
 
