@@ -30,7 +30,6 @@ export const ReportsUploadView: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<UserListItem | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [pdfInputMode, setPdfInputMode] = useState<'file' | 'url'>('file');
   const [pdfUrl, setPdfUrl] = useState('');
   const [step, setStep] = useState<Step>('select');
   const [parsed, setParsed] = useState<ParsedReport | null>(null);
@@ -99,11 +98,11 @@ export const ReportsUploadView: React.FC = () => {
   };
 
   const handleParse = async () => {
-    if (!selectedUserId || (pdfInputMode === 'file' ? !file : !pdfUrl.trim())) return;
+    if (!selectedUserId || (!file && !pdfUrl.trim())) return;
     setError(null);
     setStep('parsing');
     try {
-      const result = pdfInputMode === 'url'
+      const result = pdfUrl.trim()
         ? await parsePdfFromUrl(pdfUrl.trim())
         : await parseReport(file!);
       setParsed(result);
@@ -537,73 +536,54 @@ export const ReportsUploadView: React.FC = () => {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-slate-700">PDF файл</label>
-                <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => setPdfInputMode('file')}
-                    disabled={step === 'parsing'}
-                    className={`px-3 py-1 transition-colors disabled:opacity-50 ${pdfInputMode === 'file' ? 'bg-kameya-burgundy text-white' : 'text-slate-500 hover:bg-slate-50'}`}
-                  >
-                    <i className="fas fa-file-arrow-up mr-1"></i>Файл
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPdfInputMode('url')}
-                    disabled={step === 'parsing'}
-                    className={`px-3 py-1 transition-colors disabled:opacity-50 ${pdfInputMode === 'url' ? 'bg-kameya-burgundy text-white' : 'text-slate-500 hover:bg-slate-50'}`}
-                  >
-                    <i className="fas fa-link mr-1"></i>Посилання
-                  </button>
-                </div>
-              </div>
-
-              {pdfInputMode === 'file' ? (
-                <div
-                  onClick={() => !step.includes('pars') && fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                    file ? 'border-kameya-burgundy bg-red-50' : 'border-slate-200 hover:border-slate-300'
-                  } ${step === 'parsing' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="application/pdf"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    disabled={step === 'parsing'}
-                  />
-                  {file ? (
-                    <div className="space-y-1">
-                      <i className="fas fa-file-pdf text-3xl text-kameya-burgundy"></i>
-                      <p className="text-sm font-medium text-slate-700">{file.name}</p>
-                      <p className="text-xs text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <i className="fas fa-cloud-arrow-up text-3xl text-slate-300"></i>
-                      <p className="text-sm text-slate-500">Натисніть, щоб вибрати PDF файл</p>
-                      <p className="text-xs text-slate-400">Максимум 15 MB</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
+              <label className="block text-sm font-medium text-slate-700 mb-1">PDF файл</label>
+              <div
+                onClick={() => !step.includes('pars') && fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                  file ? 'border-kameya-burgundy bg-red-50' : 'border-slate-200 hover:border-slate-300'
+                } ${step === 'parsing' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
                 <input
-                  type="url"
-                  placeholder="https://example.com/report.pdf"
-                  value={pdfUrl}
-                  onChange={(e) => setPdfUrl(e.target.value)}
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
                   disabled={step === 'parsing'}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy disabled:opacity-50"
                 />
-              )}
+                {file ? (
+                  <div className="space-y-1">
+                    <i className="fas fa-file-pdf text-3xl text-kameya-burgundy"></i>
+                    <p className="text-sm font-medium text-slate-700">{file.name}</p>
+                    <p className="text-xs text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <i className="fas fa-cloud-arrow-up text-3xl text-slate-300"></i>
+                    <p className="text-sm text-slate-500">Натисніть, щоб вибрати PDF файл</p>
+                    <p className="text-xs text-slate-400">Максимум 15 MB</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2 my-2">
+                <div className="flex-1 h-px bg-slate-200" />
+                <span className="text-xs text-slate-400">або</span>
+                <div className="flex-1 h-px bg-slate-200" />
+              </div>
+              <input
+                type="url"
+                placeholder="Пряме посилання на PDF файл"
+                value={pdfUrl}
+                onChange={(e) => { setPdfUrl(e.target.value); if (e.target.value) setFile(null); }}
+                disabled={step === 'parsing'}
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy disabled:opacity-50"
+              />
             </div>
           </div>
 
           <button
             onClick={handleParse}
-            disabled={!selectedUserId || (pdfInputMode === 'file' ? !file : !pdfUrl.trim()) || step === 'parsing'}
+            disabled={!selectedUserId || (!file && !pdfUrl.trim()) || step === 'parsing'}
             className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {step === 'parsing' ? (
