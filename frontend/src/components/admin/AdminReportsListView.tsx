@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AuditResult, AuditSection, LearningTask, STORES } from '../../types';
-import { getAllReports, deleteReport, generateAiRecommendations, updateReportPeriod, deleteLearningPlan, updateLearningPlanTasks, generateLearningPlan } from '../../services/reportsService';
+import { getAllReports, deleteReport, generateAiRecommendations, updateReportPeriod, deleteLearningPlan, updateLearningPlanTasks, generateLearningPlan, awardLearningPlanPoints } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { scoreTextClass, scoreBgBorderClass, formatScore, getScoreStyle } from '../../utils/scoreColor';
 import { AudioRecordingsPanel } from './AudioRecordingsPanel';
@@ -48,6 +48,9 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
   const [editTasks, setEditTasks] = useState<LearningTask[]>([]);
   const [planActionLoading, setPlanActionLoading] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
+  const [manualPointsLoading, setManualPointsLoading] = useState(false);
+  const [manualPointsError, setManualPointsError] = useState<string | null>(null);
+  const [showManualPointsPicker, setShowManualPointsPicker] = useState(false);
   const [groupMode, setGroupMode] = useState<'quarter' | 'month'>('quarter');
 
   useEffect(() => {
@@ -85,6 +88,11 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
       .catch(() => setError('Не вдалося завантажити звіти'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setShowManualPointsPicker(false);
+    setManualPointsError(null);
+  }, [selected?._id, selected?.id]);
 
   const getUserName = (r: ReportWithUser) => {
     if (typeof r.userId === 'object') return r.userId.name;
@@ -201,6 +209,21 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
     const merged = { ...selected!, ...updated, userId: selected!.userId } as ReportWithUser;
     setSelected(merged);
     setReports(prev => prev.map(r => (r._id ?? r.id) === (merged._id ?? merged.id) ? merged : r));
+  };
+
+  const handleAwardManualPoints = async (points: 5 | 10 | null) => {
+    if (!selected) return;
+    setManualPointsError(null);
+    setManualPointsLoading(true);
+    try {
+      const updated = await awardLearningPlanPoints(selected._id ?? selected.id ?? '', points);
+      applyPlanUpdate(updated);
+      setShowManualPointsPicker(false);
+    } catch (err) {
+      setManualPointsError(err instanceof Error ? err.message : 'Помилка нарахування балів');
+    } finally {
+      setManualPointsLoading(false);
+    }
   };
 
   const handleDeletePlan = async () => {
@@ -670,6 +693,74 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
           )}
 
           {planError && <p className="text-xs text-red-500 mt-2">{planError}</p>}
+
+          {/* Manual points award */}
+          <div className="mt-3 pt-3 border-t border-slate-100">
+            {selected?.learningPlanManualPoints ? (
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-green-600 flex items-center gap-1.5">
+                  <i className="fas fa-circle-check"></i>
+                  Нараховано {selected.learningPlanManualPoints} балів вручну
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setManualPointsError(null); setShowManualPointsPicker(true); }}
+                    disabled={manualPointsLoading}
+                    className="text-slate-400 hover:text-kameya-burgundy transition-colors disabled:opacity-40"
+                    title="Змінити нарахування"
+                  >
+                    <i className="fas fa-pen text-xs"></i>
+                  </button>
+                  <button
+                    onClick={() => handleAwardManualPoints(null)}
+                    disabled={manualPointsLoading}
+                    className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                    title="Видалити нарахування"
+                  >
+                    {manualPointsLoading ? <i className="fas fa-spinner fa-spin text-xs"></i> : <i className="fas fa-trash-can text-xs"></i>}
+                  </button>
+                </div>
+              </div>
+            ) : !showManualPointsPicker ? (
+              <button
+                onClick={() => { setManualPointsError(null); setShowManualPointsPicker(true); }}
+                disabled={manualPointsLoading}
+                className="text-xs text-kameya-burgundy font-semibold hover:opacity-75 flex items-center gap-1 disabled:opacity-40"
+              >
+                <i className="fas fa-plus-circle"></i>
+                Нарахувати бали вручну
+              </button>
+            ) : null}
+
+            {showManualPointsPicker && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-slate-500">Оберіть кількість балів:</span>
+                <button
+                  onClick={() => handleAwardManualPoints(5)}
+                  disabled={manualPointsLoading}
+                  className="px-3 py-1 text-xs font-bold rounded-lg border-2 border-kameya-burgundy text-kameya-burgundy hover:bg-kameya-burgundy hover:text-white transition-colors disabled:opacity-40"
+                >
+                  {manualPointsLoading ? <i className="fas fa-spinner fa-spin"></i> : '5 балів'}
+                </button>
+                <button
+                  onClick={() => handleAwardManualPoints(10)}
+                  disabled={manualPointsLoading}
+                  className="px-3 py-1 text-xs font-bold rounded-lg border-2 border-kameya-burgundy text-kameya-burgundy hover:bg-kameya-burgundy hover:text-white transition-colors disabled:opacity-40"
+                >
+                  {manualPointsLoading ? <i className="fas fa-spinner fa-spin"></i> : '10 балів'}
+                </button>
+                <button
+                  onClick={() => { setShowManualPointsPicker(false); setManualPointsError(null); }}
+                  disabled={manualPointsLoading}
+                  className="text-xs text-slate-400 hover:text-slate-600 disabled:opacity-40"
+                >
+                  Скасувати
+                </button>
+              </div>
+            )}
+
+            {manualPointsError && <p className="text-xs text-red-500 mt-1">{manualPointsError}</p>}
+          </div>
         </div>
 
         {/* Audio Recordings panel */}
