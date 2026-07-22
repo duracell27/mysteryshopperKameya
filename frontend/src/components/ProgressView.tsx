@@ -182,6 +182,11 @@ export const ProgressView: React.FC = () => {
                   </span>
                 </div>
               ))}
+              <p className="text-xs text-slate-400 uppercase tracking-widest font-bold pt-3">Проходження плану навчання</p>
+              <div className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-slate-50">
+                <span className="text-sm font-medium text-slate-600">Нараховує адміністратор</span>
+                <span className="text-sm font-bold text-kameya-burgundy">+5 або +10 балів</span>
+              </div>
             </div>
           </div>
         </div>,
