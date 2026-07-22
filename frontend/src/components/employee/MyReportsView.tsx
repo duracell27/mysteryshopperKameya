@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { AuditResult, AuditSection, Reflection, Screen } from '../../types';
-import { getMyReports, submitReflection } from '../../services/reportsService';
+import { getMyReports, submitReflection, getAudioStreamUrl } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { useAuth } from '../../context/AuthContext';
 import { scoreTextClass, scoreBgBorderClass, formatScore } from '../../utils/scoreColor';
@@ -243,6 +243,27 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, o
               <i className="fas fa-pen-to-square"></i>
               Ознайомився
             </button>
+          </div>
+        )}
+
+        {/* Audio recordings */}
+        {(selected.audioRecordings?.length ?? 0) > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-gray-700">
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
+              Аудіозаписи
+            </h4>
+            <div className="space-y-3">
+              {selected.audioRecordings!.map((rec) => (
+                <div key={rec._id} className="flex flex-col gap-1">
+                  <span className="text-xs text-slate-500 dark:text-gray-400">{rec.label}</span>
+                  <audio
+                    controls
+                    className="w-full"
+                    src={getAudioStreamUrl(selected._id ?? selected.id ?? '', rec._id)}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
