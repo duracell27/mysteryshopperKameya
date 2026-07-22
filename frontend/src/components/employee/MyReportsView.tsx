@@ -248,19 +248,25 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, o
 
         {/* Audio recordings */}
         {(selected.audioRecordings?.length ?? 0) > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-gray-700">
-            <h4 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
-              Аудіозаписи
-            </h4>
-            <div className="space-y-3">
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <div className="flex items-center gap-2 mb-3">
+              <i className="fas fa-microphone text-kameya-burgundy text-sm"></i>
+              <h4 className="text-sm font-semibold text-slate-700">Аудіозаписи</h4>
+            </div>
+            <div className="space-y-2">
               {selected.audioRecordings!.map((rec) => (
-                <div key={rec._id} className="flex flex-col gap-1">
-                  <span className="text-xs text-slate-500 dark:text-gray-400">{rec.label}</span>
-                  <audio
-                    controls
-                    className="w-full"
-                    src={getAudioStreamUrl(selected._id ?? selected.id ?? '', rec._id)}
-                  />
+                <div key={rec._id} className="bg-slate-50 border border-slate-100 rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
+                    <i className="fas fa-file-audio text-kameya-burgundy text-xs flex-shrink-0"></i>
+                    <span className="text-xs font-medium text-slate-700 truncate">{rec.label}</span>
+                  </div>
+                  <div className="px-3 pb-2.5">
+                    <audio
+                      controls
+                      className="w-full h-8"
+                      src={getAudioStreamUrl(selected._id ?? selected.id ?? '', rec._id)}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
