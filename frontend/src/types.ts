@@ -95,7 +95,7 @@ export interface UserListItem {
   createdAt: string;
 }
 
-export type TransactionReason = 'score' | 'reflection' | 'streak' | 'reflection_penalty';
+export type TransactionReason = 'score' | 'reflection' | 'streak' | 'reflection_penalty' | 'learning_plan_manual';
 
 export interface PointsTransaction {
   _id: string;

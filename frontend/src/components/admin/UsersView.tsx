@@ -526,9 +526,11 @@ export const UsersView: React.FC = () => {
                         ? `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`
                         : tx.reason === 'reflection_penalty'
                           ? `Не вчасно заповнена рефлексія ${tx.quarter ?? ''} ${tx.year}`
-                          : tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0)
-                            ? `Рефлексія ${tx.quarter ?? ''} ${tx.year}`
-                            : `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
+                          : tx.reason === 'learning_plan_manual'
+                            ? (tx.note ?? `За проходження плану навчання ${tx.quarter ?? ''} ${tx.year}`)
+                            : tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0)
+                              ? `Рефлексія ${tx.quarter ?? ''} ${tx.year}`
+                              : `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
                     return (
                       <div key={tx._id} className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-xl">
                         <div>

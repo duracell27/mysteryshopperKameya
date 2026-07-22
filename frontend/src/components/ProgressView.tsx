@@ -30,8 +30,9 @@ export const ProgressView: React.FC = () => {
   const lastThree = transactions.slice(0, 3);
 
   const txLabel = (tx: PointsTransaction) => {
-    if (tx.reason === 'streak')             return `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`;
-    if (tx.reason === 'reflection_penalty') return `Не вчасно заповнена рефлексія ${tx.quarter ?? ''} ${tx.year}`;
+    if (tx.reason === 'streak')                return `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`;
+    if (tx.reason === 'reflection_penalty')    return `Не вчасно заповнена рефлексія ${tx.quarter ?? ''} ${tx.year}`;
+    if (tx.reason === 'learning_plan_manual')  return tx.note ?? `За проходження плану навчання ${tx.quarter ?? ''} ${tx.year}`;
     if (tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0))
       return `Рефлексія ${tx.quarter ?? ''} ${tx.year}`;
     return `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
