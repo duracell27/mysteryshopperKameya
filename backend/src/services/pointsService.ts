@@ -5,11 +5,10 @@ import { PointsTransaction } from '../models/PointsTransaction';
 export function calculatePoints(totalScore: number): number {
   const rounded = Math.round(totalScore);
   if (rounded === 100) return 100;
-  if (rounded >= 97)   return 55;
-  if (rounded >= 93)   return 35;
-  if (rounded >= 88)   return 18;
-  if (rounded >= 80)   return 8;
-  if (rounded >= 70)   return 2;
+  if (rounded >= 97)   return 60;
+  if (rounded >= 94)   return 50;
+  if (rounded >= 85)   return 40;
+  if (rounded >= 70)   return 20;
   return 0;
 }
 

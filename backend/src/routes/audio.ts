@@ -29,9 +29,13 @@ const audioUpload = multer({
 function downloadMp3(url: string, destPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
-    const timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 30_000);
+    let req: http.ClientRequest | undefined;
+    const timeoutId = setTimeout(() => {
+      req?.destroy();
+      reject(new Error('TIMEOUT'));
+    }, 30_000);
 
-    const request = client.get(url, (response) => {
+    req = client.get(url, (response) => {
       clearTimeout(timeoutId);
 
       if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400) {
@@ -50,9 +54,10 @@ function downloadMp3(url: string, destPath: string): Promise<void> {
       response.pipe(out);
       out.on('finish', resolve);
       out.on('error', (e) => { fs.unlink(destPath, () => {}); reject(e); });
+      response.on('error', (e) => { out.destroy(); fs.unlink(destPath, () => {}); reject(e); });
     });
 
-    request.on('error', (e) => { clearTimeout(timeoutId); reject(e); });
+    req.on('error', (e) => { clearTimeout(timeoutId); reject(e); });
   });
 }
 
