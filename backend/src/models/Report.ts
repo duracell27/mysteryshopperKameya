@@ -56,6 +56,13 @@ interface ILearningPlan {
   deadline: Date;
 }
 
+interface IAudioRecording {
+  label: string;
+  filename: string;
+  originalName: string;
+  uploadedAt: Date;
+}
+
 export interface IReport extends Document {
   userId: Types.ObjectId;
   auditId: string;
@@ -73,6 +80,7 @@ export interface IReport extends Document {
   scoreInsight?: IScoreInsight;
   learningPlan?: ILearningPlan;
   affirmation?: string;
+  audioRecordings?: IAudioRecording[];
   createdAt: Date;
 }
 
@@ -141,6 +149,13 @@ const LearningPlanSchema = new Schema<ILearningPlan>({
   deadline:    { type: Date, required: true },
 }, { _id: false });
 
+const AudioRecordingSchema = new Schema<IAudioRecording>({
+  label:        { type: String, required: true },
+  filename:     { type: String, required: true },
+  originalName: { type: String, required: true },
+  uploadedAt:   { type: Date,   required: true },
+});
+
 const ReportSchema = new Schema<IReport>({
   userId:     { type: Schema.Types.ObjectId, ref: 'User', required: true },
   auditId:    { type: String, default: '' },
@@ -158,6 +173,7 @@ const ReportSchema = new Schema<IReport>({
   scoreInsight:      { type: ScoreInsightSchema, default: undefined },
   learningPlan:      { type: LearningPlanSchema, default: undefined },
   affirmation: { type: String },
+  audioRecordings: { type: [AudioRecordingSchema], default: [] },
 }, { timestamps: true });
 
 export const Report = mongoose.model<IReport>('Report', ReportSchema);
