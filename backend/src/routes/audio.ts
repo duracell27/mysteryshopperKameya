@@ -58,4 +58,90 @@ function downloadMp3(url: string, destPath: string): Promise<void> {
 
 const router = Router({ mergeParams: true });
 
+// POST /upload — admin uploads MP3 file directly
+router.post('/upload', authMiddleware, (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ message: 'Доступ заборонено' });
+  }
+
+  audioUpload.single('audio')(req, res, async (err) => {
+    if (err) return res.status(400).json({ message: err.message });
+    if (!req.file) return res.status(400).json({ message: 'Файл не завантажено' });
+
+    const { label } = req.body as { label?: string };
+    if (!label?.trim()) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ message: 'label обов\'язковий' });
+    }
+
+    try {
+      const report = await Report.findById((req.params as any).reportId);
+      if (!report) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(404).json({ message: 'Звіт не знайдено' });
+      }
+
+      (report.audioRecordings as any[]).push({
+        label:        label.trim(),
+        filename:     req.file.filename,
+        originalName: req.file.originalname,
+        uploadedAt:   new Date(),
+      });
+      report.markModified('audioRecordings');
+      await report.save();
+
+      return res.json(report);
+    } catch (error) {
+      console.error('audio upload error:', error);
+      fs.unlink(req.file.path, () => {});
+      return res.status(500).json({ message: 'Помилка збереження' });
+    }
+  });
+});
+
+// POST /url — admin provides direct MP3 URL; server downloads and stores locally
+router.post('/url', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ message: 'Доступ заборонено' });
+  }
+
+  const { url, label } = req.body as { url?: string; label?: string };
+  if (!url?.trim())   return res.status(400).json({ message: 'url обов\'язковий' });
+  if (!label?.trim()) return res.status(400).json({ message: 'label обов\'язковий' });
+
+  const report = await Report.findById((req.params as any).reportId).catch(() => null);
+  if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+
+  const filename = `${randomUUID()}.mp3`;
+  const destPath = path.join(AUDIO_DIR, filename);
+
+  try {
+    await downloadMp3(url.trim(), destPath);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg === 'TIMEOUT')   return res.status(408).json({ message: 'Таймаут завантаження файлу (30 сек)' });
+    if (msg === 'NOT_AUDIO') return res.status(400).json({ message: 'Посилання не веде до MP3 файлу' });
+    return res.status(400).json({ message: 'Не вдалося завантажити файл за посиланням' });
+  }
+
+  try {
+    const originalName = url.split('/').pop()?.split('?')[0] || 'audio.mp3';
+
+    (report.audioRecordings as any[]).push({
+      label:        label.trim(),
+      filename,
+      originalName,
+      uploadedAt:   new Date(),
+    });
+    report.markModified('audioRecordings');
+    await report.save();
+
+    return res.json(report);
+  } catch (error) {
+    console.error('audio url save error:', error);
+    fs.unlink(destPath, () => {});
+    return res.status(500).json({ message: 'Помилка збереження' });
+  }
+});
+
 export default router;
