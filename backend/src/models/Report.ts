@@ -81,6 +81,7 @@ export interface IReport extends Document {
   learningPlan?: ILearningPlan;
   affirmation?: string;
   audioRecordings?: IAudioRecording[];
+  learningPlanManualPoints?: 5 | 10;
   createdAt: Date;
 }
 
@@ -174,6 +175,7 @@ const ReportSchema = new Schema<IReport>({
   learningPlan:      { type: LearningPlanSchema, default: undefined },
   affirmation: { type: String },
   audioRecordings: { type: [AudioRecordingSchema], default: [] },
+  learningPlanManualPoints: { type: Number, enum: [5, 10] },
 }, { timestamps: true });
 
 export const Report = mongoose.model<IReport>('Report', ReportSchema);
