@@ -73,78 +73,121 @@ export const AudioRecordingsPanel: React.FC<AudioRecordingsPanelProps> = ({
     }
   };
 
+  const count = recordings.length;
+  const countLabel = count === 1 ? '1 запис' : count < 5 ? `${count} записи` : `${count} записів`;
+
   return (
-    <div className="mt-4">
-      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        Аудіозаписи
-      </h4>
+    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-gray-700">
 
-      {recordings.length === 0 && (
-        <p className="text-sm text-gray-400 mb-3">Записів немає</p>
-      )}
-
-      <div className="space-y-2 mb-3">
-        {recordings.map((rec) => (
-          <div
-            key={rec._id}
-            className="flex flex-col gap-1 p-2 bg-gray-50 dark:bg-gray-800 rounded"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[60%]">
-                {rec.label}
-              </span>
-              {deleteConfirmId === rec._id ? (
-                <div className="flex gap-2 text-xs">
-                  <button
-                    onClick={() => handleDelete(rec._id)}
-                    disabled={loading}
-                    className="text-red-600 hover:underline"
-                  >
-                    Підтвердити
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirmId(null)}
-                    className="text-gray-500 hover:underline"
-                  >
-                    Скасувати
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setDeleteConfirmId(rec._id)}
-                  disabled={loading}
-                  className="text-xs text-red-500 hover:text-red-700"
-                >
-                  Видалити
-                </button>
-              )}
-            </div>
-            <audio
-              controls
-              className="w-full h-8"
-              src={getAudioStreamUrl(reportId, rec._id)}
-            />
-          </div>
-        ))}
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <i className="fas fa-microphone text-kameya-burgundy text-sm" />
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-gray-300">
+          Аудіозаписи
+        </h4>
+        {count > 0 && (
+          <span className="ml-auto text-xs text-slate-400">{countLabel}</span>
+        )}
       </div>
 
-      {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+      {/* Recordings list */}
+      {count === 0 ? (
+        <div className="flex items-center gap-2.5 text-sm text-slate-400 bg-slate-50 dark:bg-gray-800 rounded-xl px-4 py-3 mb-3">
+          <i className="fas fa-music text-slate-300 dark:text-gray-600" />
+          <span>Записів немає</span>
+        </div>
+      ) : (
+        <div className="space-y-2 mb-3">
+          {recordings.map((rec) => (
+            <div
+              key={rec._id}
+              className="bg-slate-50 dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <i className="fas fa-file-audio text-kameya-burgundy text-xs flex-shrink-0" />
+                  <span className="text-xs font-medium text-slate-700 dark:text-gray-300 truncate">
+                    {rec.label}
+                  </span>
+                </div>
+
+                {deleteConfirmId === rec._id ? (
+                  <div className="flex items-center gap-2 text-xs flex-shrink-0 ml-3">
+                    <button
+                      onClick={() => handleDelete(rec._id)}
+                      disabled={loading}
+                      className="text-red-600 font-semibold hover:opacity-75 disabled:opacity-40 transition-opacity"
+                    >
+                      Видалити
+                    </button>
+                    <span className="text-slate-300 dark:text-gray-600">|</span>
+                    <button
+                      onClick={() => setDeleteConfirmId(null)}
+                      disabled={loading}
+                      className="text-slate-500 hover:opacity-75 disabled:opacity-40 transition-opacity"
+                    >
+                      Скасувати
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDeleteConfirmId(rec._id)}
+                    disabled={loading}
+                    title="Видалити запис"
+                    className="flex-shrink-0 ml-3 w-6 h-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-40"
+                  >
+                    <i className="fas fa-trash-alt text-xs" />
+                  </button>
+                )}
+              </div>
+
+              <div className="px-3 pb-2.5">
+                <audio
+                  controls
+                  className="w-full h-8"
+                  src={getAudioStreamUrl(reportId, rec._id)}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg px-3 py-2 mb-3">
+          <i className="fas fa-exclamation-circle flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Upload controls */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".mp3,audio/mpeg"
+        className="hidden"
+        onChange={handleFileChange}
+        disabled={loading}
+      />
 
       <div className="flex flex-col gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".mp3,audio/mpeg"
-          className="hidden"
-          onChange={handleFileChange}
-          disabled={loading}
-        />
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={loading}
-          className="text-sm px-3 py-1.5 border border-dashed border-gray-400 rounded hover:border-blue-500 hover:text-blue-600 transition-colors text-gray-600 dark:text-gray-300 disabled:opacity-50"
+          className="flex items-center justify-center gap-2 w-full px-3 py-2.5 border border-dashed border-slate-300 dark:border-gray-600 rounded-xl text-sm text-slate-500 dark:text-gray-400 hover:border-kameya-burgundy hover:text-kameya-burgundy dark:hover:text-kameya-burgundy transition-colors disabled:opacity-50"
         >
-          {loading ? 'Завантаження...' : '+ Обрати MP3 файл'}
+          {loading ? (
+            <>
+              <i className="fas fa-spinner fa-spin" />
+              <span>Завантаження...</span>
+            </>
+          ) : (
+            <>
+              <i className="fas fa-upload" />
+              <span>Завантажити MP3 файл</span>
+            </>
+          )}
         </button>
 
         <div className="flex gap-2">
@@ -153,14 +196,14 @@ export const AudioRecordingsPanel: React.FC<AudioRecordingsPanelProps> = ({
             placeholder="Пряме посилання на MP3..."
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleAddUrl(); }}
             disabled={loading}
-            className="flex-1 text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+            className="flex-1 text-sm px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-600 rounded-xl text-slate-800 dark:text-gray-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy disabled:opacity-50 transition-colors"
           />
           <button
             onClick={handleAddUrl}
             disabled={loading || !urlInput.trim()}
-            className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-kameya-burgundy text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-40 transition-opacity"
           >
             Додати
           </button>

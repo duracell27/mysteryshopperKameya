@@ -770,26 +770,33 @@ export const ReportsUploadView: React.FC = () => {
           )}
 
           {/* Pending audio section */}
-          <div className="mt-4 pt-4 border-t border-slate-200">
-            <h4 className="text-sm font-semibold text-slate-700 mb-2">
-              Аудіозаписи <span className="font-normal text-slate-400">(необов'язково)</span>
-            </h4>
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-2 mb-3">
+              <i className="fas fa-microphone text-kameya-burgundy text-sm"></i>
+              <h4 className="text-sm font-semibold text-slate-700">
+                Аудіозаписи
+              </h4>
+              <span className="text-xs text-slate-400 font-normal">(необов'язково)</span>
+            </div>
 
             {pendingAudios.length > 0 && (
-              <ul className="mb-2 space-y-1">
+              <ul className="mb-2 space-y-1.5">
                 {pendingAudios.map((pa, i) => (
                   <li
                     key={i}
-                    className="flex items-center justify-between text-xs bg-slate-50 rounded px-2 py-1.5"
+                    className="flex items-center justify-between text-xs bg-slate-50 border border-slate-100 rounded-xl px-3 py-2"
                   >
-                    <span className="truncate max-w-[80%] text-slate-600">
-                      {pa.type === 'file' ? pa.file.name : pa.url}
-                    </span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <i className="fas fa-file-audio text-kameya-burgundy flex-shrink-0"></i>
+                      <span className="truncate text-slate-600">
+                        {pa.type === 'file' ? pa.file.name : pa.url}
+                      </span>
+                    </div>
                     <button
                       onClick={() => setPendingAudios((prev) => prev.filter((_, j) => j !== i))}
-                      className="text-red-500 hover:text-red-700 ml-2 shrink-0"
+                      className="flex-shrink-0 ml-2 w-5 h-5 flex items-center justify-center rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                     >
-                      ✕
+                      <i className="fas fa-times text-xs"></i>
                     </button>
                   </li>
                 ))}
@@ -813,9 +820,10 @@ export const ReportsUploadView: React.FC = () => {
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => audioFileRef.current?.click()}
-                className="text-sm px-3 py-1.5 border border-dashed border-slate-400 rounded hover:border-kameya-burgundy hover:text-kameya-burgundy transition-colors text-slate-600"
+                className="flex items-center justify-center gap-2 w-full px-3 py-2.5 border border-dashed border-slate-300 rounded-xl text-sm text-slate-500 hover:border-kameya-burgundy hover:text-kameya-burgundy transition-colors"
               >
-                + Обрати MP3 файл
+                <i className="fas fa-upload"></i>
+                Завантажити MP3 файл
               </button>
               <div className="flex gap-2">
                 <input
@@ -829,7 +837,7 @@ export const ReportsUploadView: React.FC = () => {
                       setPendingUrlInput('');
                     }
                   }}
-                  className="flex-1 text-sm px-2 py-1.5 border border-slate-300 rounded bg-white text-slate-800"
+                  className="flex-1 text-sm px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy transition-colors"
                 />
                 <button
                   onClick={() => {
@@ -839,7 +847,7 @@ export const ReportsUploadView: React.FC = () => {
                     }
                   }}
                   disabled={!pendingUrlInput.trim()}
-                  className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-kameya-burgundy text-white text-sm font-semibold rounded-xl hover:opacity-90 disabled:opacity-40 transition-opacity"
                 >
                   Додати
                 </button>
