@@ -49,6 +49,7 @@ export interface AuditResult {
   scoreInsight?: ScoreInsight;
   learningPlan?: LearningPlan;
   affirmation?: string;
+  audioRecordings?: AudioRecording[];
 }
 
 export interface DailyTask {
@@ -146,6 +147,14 @@ export interface LearningPlan {
   tasks: LearningTask[];
   generatedAt: string;
   deadline?: string;
+}
+
+export interface AudioRecording {
+  _id: string;
+  label: string;
+  filename: string;
+  originalName: string;
+  uploadedAt: string;
 }
 
 export const STORES = [

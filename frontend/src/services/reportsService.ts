@@ -1,4 +1,4 @@
-import { AuditResult, LearningTask, PointsTransaction, ScoreInsight, BadgeId } from '../types';
+import { AuditResult, AudioRecording, LearningTask, PointsTransaction, ScoreInsight, BadgeId } from '../types';
 import { BADGE_CATALOGUE } from '../constants/badges';
 import { apiFetch } from './apiFetch';
 
@@ -281,3 +281,61 @@ export const previewBadges = async (
     return [];
   }
 };
+
+const MONTHS_UK_AUDIO = [
+  'Січень','Лютий','Березень','Квітень','Травень','Червень',
+  'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень',
+];
+
+export function buildAudioLabel(employeeName: string, month: number, year: number): string {
+  return `${employeeName} - ${MONTHS_UK_AUDIO[month - 1] ?? month} ${year}`;
+}
+
+export function getAudioStreamUrl(reportId: string, audioId: string): string {
+  const token = localStorage.getItem('kameya_token') ?? '';
+  return `/api/reports/${reportId}/audio/${audioId}/stream?token=${encodeURIComponent(token)}`;
+}
+
+export const uploadAudio = async (reportId: string, file: File, label: string): Promise<AuditResult> => {
+  const formData = new FormData();
+  formData.append('audio', file);
+  formData.append('label', label);
+  const res = await apiFetch(`/api/reports/${reportId}/audio/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).message || 'Помилка завантаження аудіо');
+  }
+  return res.json();
+};
+
+export const addAudioByUrl = async (
+  reportId: string,
+  url: string,
+  label: string,
+): Promise<AuditResult> => {
+  const res = await apiFetch(`/api/reports/${reportId}/audio/url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, label }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).message || 'Помилка завантаження аудіо за посиланням');
+  }
+  return res.json();
+};
+
+export const deleteAudio = async (reportId: string, audioId: string): Promise<AuditResult> => {
+  const res = await apiFetch(`/api/reports/${reportId}/audio/${audioId}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).message || 'Помилка видалення аудіо');
+  }
+  return res.json();
+};
+
+// Re-export AudioRecording so consumers can import from this module
+export type { AudioRecording };
