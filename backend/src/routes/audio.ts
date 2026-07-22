@@ -144,4 +144,104 @@ router.post('/url', authMiddleware, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /:audioId/stream?token= — streams MP3 with Range support; auth via query param
+router.get('/:audioId/stream', async (req: Request, res: Response) => {
+  const tokenParam = req.query.token as string | undefined;
+  if (!tokenParam) return res.status(401).json({ message: 'Не авторизовано' });
+
+  let decoded: { userId: string; role: string };
+  try {
+    decoded = jwt.verify(
+      tokenParam,
+      process.env.JWT_SECRET || 'fallback-secret',
+    ) as { userId: string; role: string };
+  } catch {
+    return res.status(401).json({ message: 'Невалідний токен' });
+  }
+
+  try {
+    const report = await Report.findById((req.params as any).reportId);
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+
+    const isOwner = report.userId.toString() === decoded.userId;
+    const isAdmin = decoded.role === 'ADMIN';
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Доступ заборонено' });
+
+    const recording = (report.audioRecordings as any[]).find(
+      (a) => a._id?.toString() === req.params.audioId,
+    );
+    if (!recording) return res.status(404).json({ message: 'Запис не знайдено' });
+
+    const filePath = path.join(AUDIO_DIR, recording.filename);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'Файл не знайдено на диску' });
+
+    const stat     = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const range    = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10) || 0;
+      const end   = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start > end || end >= fileSize) {
+        res.setHeader('Content-Range', `bytes */${fileSize}`);
+        return res.status(416).end();
+      }
+
+      res.writeHead(206, {
+        'Content-Range':  `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges':  'bytes',
+        'Content-Length': end - start + 1,
+        'Content-Type':   'audio/mpeg',
+      });
+      fs.createReadStream(filePath, { start, end }).pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': fileSize,
+        'Content-Type':   'audio/mpeg',
+        'Accept-Ranges':  'bytes',
+      });
+      fs.createReadStream(filePath).pipe(res);
+    }
+  } catch (error) {
+    console.error('audio stream error:', error);
+    return res.status(500).json({ message: 'Помилка стримінгу' });
+  }
+});
+
+// DELETE /:audioId — admin only; removes file from disk and subdoc from DB
+router.delete('/:audioId', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ message: 'Доступ заборонено' });
+  }
+
+  try {
+    const report = await Report.findById((req.params as any).reportId);
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+
+    const recording = (report.audioRecordings as any[]).find(
+      (a) => a._id?.toString() === req.params.audioId,
+    );
+    if (!recording) return res.status(404).json({ message: 'Запис не знайдено' });
+
+    fs.unlink(path.join(AUDIO_DIR, recording.filename), (err) => {
+      if (err && (err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.error('audio unlink error:', err);
+      }
+    });
+
+    (report as any).audioRecordings = (report.audioRecordings as any[]).filter(
+      (a) => a._id?.toString() !== req.params.audioId,
+    );
+    report.markModified('audioRecordings');
+    await report.save();
+
+    return res.json(report);
+  } catch (error) {
+    console.error('audio delete error:', error);
+    return res.status(500).json({ message: 'Помилка видалення' });
+  }
+});
+
 export default router;
