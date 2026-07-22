@@ -998,6 +998,60 @@ router.patch('/:id/learning-plan/:taskIndex', async (req: AuthRequest, res: Resp
   }
 });
 
+// POST /api/reports/:id/award-learning-plan-points — admin manual points for learning plan
+router.post('/:id/award-learning-plan-points', async (req: AuthRequest, res: Response) => {
+  try {
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Тільки для адміністраторів' });
+    }
+
+    const { points } = req.body as { points: 5 | 10 | null };
+
+    if (points !== null && points !== 5 && points !== 10) {
+      return res.status(400).json({ message: 'Допустимі значення балів: 5, 10 або null' });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
+
+    // Remove previous manual award if exists
+    if (report.learningPlanManualPoints) {
+      const prev = await PointsTransaction.findOneAndDelete({
+        reportId: report._id,
+        reason: 'learning_plan_manual',
+      });
+      if (prev) {
+        await User.findByIdAndUpdate(report.userId, [
+          { $set: { points: { $max: [{ $subtract: ['$points', prev.pointsAwarded] }, 0] } } },
+        ]);
+      }
+      report.learningPlanManualPoints = undefined;
+    }
+
+    if (points) {
+      await PointsTransaction.create({
+        userId: report.userId,
+        reportId: report._id,
+        quarter: report.quarter,
+        year: report.year,
+        scorePercent: 0,
+        pointsAwarded: points,
+        reason: 'learning_plan_manual',
+        note: `За проходження плану навчання ${report.quarter} ${report.year}`,
+      });
+
+      await User.findByIdAndUpdate(report.userId, { $inc: { points } });
+      report.learningPlanManualPoints = points;
+    }
+
+    await report.save();
+    return res.json(report);
+  } catch (error) {
+    console.error('award-learning-plan-points error:', error);
+    return res.status(500).json({ message: 'Помилка нарахування балів' });
+  }
+});
+
 // POST /api/reports/:id/reflection — employee submits reflection
 router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
   try {
