@@ -223,32 +223,9 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, o
           })}
         </div>
 
-        {/* Reflection section */}
-        {reflection ? (
-          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-            <i className="fas fa-circle-check text-green-500"></i>
-            <div>
-              <p className="text-sm font-semibold text-green-700">Рефлексію подано</p>
-              <p className="text-xs text-green-600">
-                {new Date(reflection.submittedAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <button
-              onClick={() => setShowReflection(true)}
-              className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
-            >
-              <i className="fas fa-pen-to-square"></i>
-              Ознайомився
-            </button>
-          </div>
-        )}
-
         {/* Audio recordings */}
         {(selected.audioRecordings?.length ?? 0) > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-200">
+          <div className="pt-4 border-t border-slate-200">
             <div className="flex items-center gap-2 mb-3">
               <i className="fas fa-microphone text-kameya-burgundy text-sm"></i>
               <h4 className="text-sm font-semibold text-slate-700">Аудіозаписи</h4>
@@ -270,6 +247,29 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, o
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Reflection section */}
+        {reflection ? (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+            <i className="fas fa-circle-check text-green-500"></i>
+            <div>
+              <p className="text-sm font-semibold text-green-700">Рефлексію подано</p>
+              <p className="text-xs text-green-600">
+                {new Date(reflection.submittedAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <button
+              onClick={() => setShowReflection(true)}
+              className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+            >
+              <i className="fas fa-pen-to-square"></i>
+              Ознайомився
+            </button>
           </div>
         )}
 
