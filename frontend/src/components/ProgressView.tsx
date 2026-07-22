@@ -167,13 +167,12 @@ export const ProgressView: React.FC = () => {
             <div className="p-6 space-y-3">
               <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-4">Результат анкети таємного покупця</p>
               {[
-                { range: '100%', points: 100, color: 'text-amber-500' },
-                { range: '97–99%', points: 55, color: 'text-kameya-burgundy' },
-                { range: '93–96%', points: 35, color: 'text-kameya-burgundy' },
-                { range: '88–92%', points: 18, color: 'text-slate-600' },
-                { range: '80–87%', points: 8, color: 'text-slate-500' },
-                { range: '70–79%', points: 2, color: 'text-slate-400' },
-                { range: 'нижче 70%', points: 0, color: 'text-slate-300' },
+                { range: '100%',      points: 100, color: 'text-amber-500' },
+                { range: '97–99%',    points: 60,  color: 'text-kameya-burgundy' },
+                { range: '94–96%',    points: 50,  color: 'text-kameya-burgundy' },
+                { range: '85–93%',    points: 40,  color: 'text-slate-600' },
+                { range: '70–84%',    points: 20,  color: 'text-slate-500' },
+                { range: 'нижче 70%', points: 0,   color: 'text-slate-300' },
               ].map(({ range, points, color }) => (
                 <div key={range} className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-slate-50">
                   <span className="text-sm font-medium text-slate-600">{range}</span>
