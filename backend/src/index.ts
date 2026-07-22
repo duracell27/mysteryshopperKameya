@@ -21,8 +21,8 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
-app.use('/api/reports', reportsRoutes);
 app.use('/api/reports/:reportId/audio', audioRoutes);
+app.use('/api/reports', reportsRoutes);
 app.use('/api/tips', tipsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 
