@@ -4,6 +4,7 @@ import { AuditResult, AuditSection, LearningTask, STORES } from '../../types';
 import { getAllReports, deleteReport, generateAiRecommendations, updateReportPeriod, deleteLearningPlan, updateLearningPlanTasks, generateLearningPlan } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { scoreTextClass, scoreBgBorderClass, formatScore, getScoreStyle } from '../../utils/scoreColor';
+import { AudioRecordingsPanel } from './AudioRecordingsPanel';
 
 const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
@@ -670,6 +671,26 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
 
           {planError && <p className="text-xs text-red-500 mt-2">{planError}</p>}
         </div>
+
+        {/* Audio Recordings panel */}
+        <AudioRecordingsPanel
+          reportId={selected._id ?? selected.id ?? ''}
+          recordings={selected.audioRecordings ?? []}
+          employeeName={
+            typeof selected.userId === 'object' && selected.userId !== null
+              ? (selected.userId as { name: string }).name
+              : '?'
+          }
+          month={
+            selected.month ??
+            (parseInt((selected.date ?? '').slice(5, 7), 10) ||
+            new Date().getMonth() + 1)
+          }
+          year={selected.year ?? new Date().getFullYear()}
+          onUpdate={(recs) =>
+            setSelected((prev) => (prev ? { ...prev, audioRecordings: recs } : prev))
+          }
+        />
 
         {/* Period edit modal */}
         {showPeriodEdit && (
