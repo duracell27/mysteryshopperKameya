@@ -50,6 +50,7 @@ export interface AuditResult {
   learningPlan?: LearningPlan;
   affirmation?: string;
   audioRecordings?: AudioRecording[];
+  learningPlanManualPoints?: 5 | 10;
 }
 
 export interface DailyTask {

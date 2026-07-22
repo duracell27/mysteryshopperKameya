@@ -337,5 +337,21 @@ export const deleteAudio = async (reportId: string, audioId: string): Promise<Au
   return res.json();
 };
 
+export const awardLearningPlanPoints = async (
+  reportId: string,
+  points: 5 | 10 | null,
+): Promise<AuditResult> => {
+  const res = await apiFetch(`/api/reports/${reportId}/award-learning-plan-points`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ points }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Помилка нарахування балів');
+  }
+  return res.json();
+};
+
 // Re-export AudioRecording so consumers can import from this module
 export type { AudioRecording };
