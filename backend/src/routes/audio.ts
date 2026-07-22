@@ -195,14 +195,24 @@ router.get('/:audioId/stream', async (req: Request, res: Response) => {
         'Content-Length': end - start + 1,
         'Content-Type':   'audio/mpeg',
       });
-      fs.createReadStream(filePath, { start, end }).pipe(res);
+      const stream = fs.createReadStream(filePath, { start, end });
+      stream.on('error', (e) => {
+        console.error('audio stream read error:', e);
+        if (!res.headersSent) res.status(500).end();
+      });
+      stream.pipe(res);
     } else {
       res.writeHead(200, {
         'Content-Length': fileSize,
         'Content-Type':   'audio/mpeg',
         'Accept-Ranges':  'bytes',
       });
-      fs.createReadStream(filePath).pipe(res);
+      const stream = fs.createReadStream(filePath);
+      stream.on('error', (e) => {
+        console.error('audio stream read error:', e);
+        if (!res.headersSent) res.status(500).end();
+      });
+      stream.pipe(res);
     }
   } catch (error) {
     console.error('audio stream error:', error);
