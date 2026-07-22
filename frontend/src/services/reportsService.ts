@@ -15,6 +15,19 @@ export interface ParsedReport extends AuditResult {
   fileName: string;
 }
 
+export const parsePdfFromUrl = async (url: string): Promise<ParsedReport> => {
+  const res = await apiFetch('/api/reports/parse-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).message || 'Помилка аналізу PDF за посиланням');
+  }
+  return res.json();
+};
+
 export const parseReport = async (file: File): Promise<ParsedReport> => {
   const formData = new FormData();
   formData.append('pdf', file);

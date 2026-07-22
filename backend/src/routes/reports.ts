@@ -1,4 +1,6 @@
 import { Router, Response } from 'express';
+import https from 'https';
+import http from 'http';
 import multer from 'multer';
 import Anthropic from '@anthropic-ai/sdk';
 import { Report } from '../models/Report';
@@ -109,6 +111,26 @@ const EXTRACTION_PROMPT = `Ти отримав PDF файл зі звітом т
 }
 
 ОБОВ'ЯЗКОВО: Поверни ТІЛЬКИ JSON, нічого більше! Не залишай поле "answer" порожнім!`;
+
+function downloadBuffer(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? https : http;
+    const req = client.get(url, (response) => {
+      if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        return downloadBuffer(response.headers.location).then(resolve).catch(reject);
+      }
+      if (response.statusCode !== 200) {
+        return reject(new Error(`HTTP ${response.statusCode}`));
+      }
+      const chunks: Buffer[] = [];
+      response.on('data', (chunk: Buffer) => chunks.push(chunk));
+      response.on('end', () => resolve(Buffer.concat(chunks)));
+      response.on('error', reject);
+    });
+    req.on('error', reject);
+    req.setTimeout(30000, () => { req.destroy(); reject(new Error('Timeout')); });
+  });
+}
 
 // POST /api/reports/parse — надсилаємо PDF до Claude, повертаємо розпізнані дані
 router.post('/parse', (req: AuthRequest, res: Response) => {
@@ -228,6 +250,90 @@ router.post('/parse', (req: AuthRequest, res: Response) => {
       return res.status(500).json({ message: 'Помилка аналізу PDF. Перевірте формат файлу.' });
     }
   });
+});
+
+// POST /api/reports/parse-url — завантажує PDF за прямим посиланням і аналізує Claude AI
+router.post('/parse-url', async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ message: 'Доступ заборонено' });
+  }
+
+  const { url } = req.body as { url?: string };
+  if (!url?.trim()) return res.status(400).json({ message: 'url обов\'язковий' });
+
+  let buffer: Buffer;
+  try {
+    buffer = await downloadBuffer(url.trim());
+  } catch {
+    return res.status(400).json({ message: 'Не вдалося завантажити файл за посиланням' });
+  }
+
+  const pdfMagic = buffer.slice(0, 5).toString('ascii');
+  if (pdfMagic !== '%PDF-') {
+    return res.status(400).json({ message: 'Посилання не веде до PDF файлу' });
+  }
+
+  try {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8192,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'document',
+            source: {
+              type: 'base64',
+              media_type: 'application/pdf',
+              data: buffer.toString('base64'),
+            },
+          } as never,
+          {
+            type: 'text',
+            text: EXTRACTION_PROMPT,
+          },
+        ],
+      }],
+    });
+
+    const raw = (response.content[0] as { type: string; text: string }).text.trim();
+    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      try {
+        let inString = false;
+        let escaped = false;
+        let result = '';
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+          const nextChar = text[i + 1];
+          if (escaped) { result += char; escaped = false; continue; }
+          if (char === '\\') { result += char; escaped = true; continue; }
+          if (char === '"') { inString = !inString; result += char; continue; }
+          if (inString && (char === '\n' || char === '\r')) {
+            result += '\\n';
+            if ((char === '\r' && nextChar === '\n') || (char === '\n' && nextChar === '\r')) i++;
+            continue;
+          }
+          result += char;
+        }
+        parsed = JSON.parse(result);
+      } catch {
+        return res.status(500).json({ message: 'Claude повернув невалідний JSON. Спробуйте інший файл або перевірте формат PDF.' });
+      }
+    }
+
+    const fileName = url.trim().split('/').pop()?.split('?')[0] || 'report.pdf';
+    return res.json({ ...parsed, fileName });
+  } catch (error) {
+    console.error('Claude parse-url error:', error);
+    return res.status(500).json({ message: 'Помилка аналізу PDF. Перевірте формат файлу.' });
+  }
 });
 
 // POST /api/reports/confirm — адмін підтверджує, зберігаємо до бази
