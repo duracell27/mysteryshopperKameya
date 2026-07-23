@@ -1105,6 +1105,22 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
                                 if (rs === 'missed') return <span className="text-xs text-red-400 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Не заповнено</span>;
                                 return <span className="text-xs text-slate-400 flex items-center gap-1"><i className="fas fa-clock"></i> Не заповнено</span>;
                               })()}
+                              {(report.audioRecordings?.length ?? 0) > 0 && (
+                                <span className="text-xs text-kameya-burgundy flex items-center gap-1" title={`Аудіо: ${report.audioRecordings!.length} файл(ів)`}>
+                                  <i className="fas fa-microphone"></i> {report.audioRecordings!.length}
+                                </span>
+                              )}
+                              {(() => {
+                                if (report.learningPlanManualPoints) {
+                                  return <span className="text-xs text-green-600 flex items-center gap-1" title="Нараховано бали за план навчання вручну"><i className="fas fa-graduation-cap"></i> +{report.learningPlanManualPoints}б</span>;
+                                }
+                                const plan = report.learningPlan;
+                                if (!plan) return null;
+                                const done = plan.tasks.filter(t => t.isCompleted).length;
+                                const total = plan.tasks.length;
+                                if (done === total) return <span className="text-xs text-green-600 flex items-center gap-1" title="План навчання виконано"><i className="fas fa-graduation-cap"></i> ✓</span>;
+                                return <span className="text-xs text-amber-500 flex items-center gap-1" title={`План навчання: ${done}/${total} виконано`}><i className="fas fa-graduation-cap"></i> {done}/{total}</span>;
+                              })()}
                               <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
                             </div>
                           </button>
