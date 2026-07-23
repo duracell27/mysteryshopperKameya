@@ -1088,39 +1088,56 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              {report.aiRecommendations && !report.scoreInsight && (
-                                <span className="text-xs text-amber-500 flex items-center gap-1">
-                                  <i className="fas fa-wand-magic-sparkles"></i> Без відповіді
-                                </span>
-                              )}
-                              {report.aiRecommendations && report.scoreInsight && (
-                                <span className="text-xs text-green-600 flex items-center gap-1">
-                                  <i className="fas fa-circle-check"></i> Відповів
-                                </span>
-                              )}
-                              {(() => {
-                                const rs = getReflectionStatus(report);
-                                if (rs === 'on-time') return <span className="text-xs text-green-600 flex items-center gap-1"><i className="fas fa-circle-check"></i> Заповнено · вчасно</span>;
-                                if (rs === 'late') return <span className="text-xs text-orange-500 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Заповнено · не вчасно</span>;
-                                if (rs === 'missed') return <span className="text-xs text-red-400 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Не заповнено</span>;
-                                return <span className="text-xs text-slate-400 flex items-center gap-1"><i className="fas fa-clock"></i> Не заповнено</span>;
-                              })()}
-                              {(report.audioRecordings?.length ?? 0) > 0 && (
-                                <span className="text-xs text-kameya-burgundy flex items-center gap-1" title={`Аудіо: ${report.audioRecordings!.length} файл(ів)`}>
-                                  <i className="fas fa-microphone"></i> {report.audioRecordings!.length}
-                                </span>
-                              )}
-                              {(() => {
-                                if (report.learningPlanManualPoints) {
-                                  return <span className="text-xs text-green-600 flex items-center gap-1" title="Нараховано бали за план навчання вручну"><i className="fas fa-graduation-cap"></i> +{report.learningPlanManualPoints}б</span>;
-                                }
-                                const plan = report.learningPlan;
-                                if (!plan) return null;
-                                const done = plan.tasks.filter(t => t.isCompleted).length;
-                                const total = plan.tasks.length;
-                                if (done === total) return <span className="text-xs text-green-600 flex items-center gap-1" title="План навчання виконано"><i className="fas fa-graduation-cap"></i> ✓</span>;
-                                return <span className="text-xs text-amber-500 flex items-center gap-1" title={`План навчання: ${done}/${total} виконано`}><i className="fas fa-graduation-cap"></i> {done}/{total}</span>;
-                              })()}
+                              <div className="flex flex-col items-end gap-1">
+                                <div className="flex items-center gap-2">
+                                  {report.aiRecommendations && !report.scoreInsight && (
+                                    <span className="text-xs text-amber-500 flex items-center gap-1">
+                                      <i className="fas fa-wand-magic-sparkles"></i> Без відповіді
+                                    </span>
+                                  )}
+                                  {report.aiRecommendations && report.scoreInsight && (
+                                    <span className="text-xs text-green-600 flex items-center gap-1">
+                                      <i className="fas fa-circle-check"></i> Відповів
+                                    </span>
+                                  )}
+                                  {(() => {
+                                    const rs = getReflectionStatus(report);
+                                    if (rs === 'on-time') return <span className="text-xs text-green-600 flex items-center gap-1"><i className="fas fa-circle-check"></i> Заповнено · вчасно</span>;
+                                    if (rs === 'late') return <span className="text-xs text-orange-500 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Заповнено · не вчасно</span>;
+                                    if (rs === 'missed') return <span className="text-xs text-red-400 flex items-center gap-1"><i className="fas fa-circle-xmark"></i> Не заповнено</span>;
+                                    return <span className="text-xs text-slate-400 flex items-center gap-1"><i className="fas fa-clock"></i> Не заповнено</span>;
+                                  })()}
+                                </div>
+                                {(() => {
+                                  const hasAudio = (report.audioRecordings?.length ?? 0) > 0;
+                                  const manualPts = report.learningPlanManualPoints;
+                                  const plan = report.learningPlan;
+                                  const planDone = plan ? plan.tasks.filter(t => t.isCompleted).length : 0;
+                                  const planTotal = plan ? plan.tasks.length : 0;
+
+                                  if (!hasAudio && !manualPts && !plan) return null;
+
+                                  return (
+                                    <div className="flex items-center gap-2 text-xs text-kameya-burgundy">
+                                      {hasAudio && (
+                                        <span className="flex items-center gap-1">
+                                          <i className="fas fa-microphone text-[10px]"></i> {report.audioRecordings!.length}
+                                        </span>
+                                      )}
+                                      {manualPts ? (
+                                        <span className="flex items-center gap-1">
+                                          <i className="fas fa-graduation-cap text-[10px]"></i> +{manualPts} балів
+                                        </span>
+                                      ) : plan ? (
+                                        <span className="flex items-center gap-1">
+                                          <i className="fas fa-graduation-cap text-[10px]"></i>
+                                          {planDone === planTotal ? '✓' : `${planDone}/${planTotal}`}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                               <i className="fas fa-chevron-right text-slate-300 text-sm"></i>
                             </div>
                           </button>
