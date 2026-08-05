@@ -1,12 +1,33 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { Types } from 'mongoose';
+import multer from 'multer';
+import path from 'path';
 import { User } from '../models/User';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sendSms } from '../services/sms';
 import { PointsTransaction } from '../models/PointsTransaction';
 import { evaluateStudentOfYear } from '../services/badgeService';
 import { isValidOrg } from '../config/org-structure';
+
+const AVATAR_DIR = path.join(process.cwd(), 'uploads', 'avatars');
+
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, AVATAR_DIR),
+  filename: (req, _file, cb) => {
+    const ext = _file.mimetype.split('/')[1].replace('jpeg', 'jpg');
+    cb(null, `${(req as AuthRequest).params?.id}.${ext}`);
+  },
+});
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Тільки зображення'));
+  },
+});
 
 const router = Router();
 
@@ -152,6 +173,31 @@ router.post('/:id/sync-points', async (req: AuthRequest, res: Response) => {
     console.error(error);
     return res.status(500).json({ message: 'Помилка сервера' });
   }
+});
+
+// POST /api/users/:id/avatar — upload avatar for a user
+router.post('/:id/avatar', (req: AuthRequest, res: Response) => {
+  avatarUpload.single('avatar')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: (err as Error).message });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: 'Файл не завантажено' });
+    }
+    try {
+      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      const user = await User.findByIdAndUpdate(
+        req.params.id,
+        { avatarUrl },
+        { new: true, select: '-password' }
+      );
+      if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+      return res.json({ avatarUrl });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Помилка сервера' });
+    }
+  });
 });
 
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
