@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import ReactDOM from 'react-dom';
 import { UserListItem, PointsTransaction } from '../../types';
 import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory, uploadAvatar } from '../../services/usersService';
@@ -38,6 +39,7 @@ const Modal: React.FC<ModalProps> = ({ children }) =>
 
 // ─── UsersView ─────────────────────────────────────────────────────────────────
 export const UsersView: React.FC = () => {
+  const { user: authUser, updateUser: updateAuthUser } = useAuth();
   const [users, setUsers]           = useState<UserListItem[]>([]);
   const [isLoading, setIsLoading]   = useState(true);
 
@@ -200,6 +202,7 @@ export const UsersView: React.FC = () => {
       const { avatarUrl } = await uploadAvatar(userId, file);
       setUsers(prev => prev.map(u => u._id === userId ? { ...u, avatarUrl } : u));
       setEditUser(prev => prev && prev._id === userId ? { ...prev, avatarUrl } : prev);
+      if (authUser?.id === userId) updateAuthUser({ avatarUrl });
     } catch (err) {
       console.error('Avatar upload failed:', err);
     }

@@ -8,6 +8,7 @@ interface AuthContextType {
   token: string | null;
   login: (phone: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser: (patch: Partial<AuthUser>) => void;
   isLoading: boolean;
 }
 
@@ -41,6 +42,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('kameya_user', JSON.stringify(newUser));
   };
 
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      localStorage.setItem('kameya_user', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
@@ -54,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
