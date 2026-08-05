@@ -22,7 +22,7 @@ import { getUnreadCount, getSystemUnreadCount } from './services/notificationsSe
 
 const AppContent: React.FC = () => {
   const { user, isLoading, logout } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.isAdmin ?? false;
 
   const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.DASHBOARD);
   const [selectedAudit, setSelectedAudit] = useState<AuditResult | null>(null);

@@ -48,7 +48,7 @@ export const Layout: React.FC<LayoutProps> = ({
   onOpenSystemPanel,
   onChangePassword,
 }) => {
-  const isAdmin = user.role === 'ADMIN';
+  const isAdmin = user.isAdmin;
   const navItems = isAdmin ? ADMIN_NAV : EMPLOYEE_NAV;
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -114,7 +114,7 @@ export const Layout: React.FC<LayoutProps> = ({
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium truncate">{user.name || user.phone}</p>
               <p className="text-xs opacity-60 truncate">
-                {user.role === 'ADMIN' ? 'Адміністратор' : (user.position ?? user.phone)}
+                {user.position || user.phone}
               </p>
             </div>
           </div>
@@ -186,7 +186,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   <div className="px-3 py-2 border-b border-gray-100">
                     <p className="text-xs font-medium text-gray-800 truncate">{user.name || user.phone}</p>
                     <p className="text-[11px] text-gray-400 truncate">
-                      {user.role === 'ADMIN' ? 'Адміністратор' : (user.position ?? user.phone)}
+                      {user.position || user.phone}
                     </p>
                   </div>
                   {onChangePassword && (
