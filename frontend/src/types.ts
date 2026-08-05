@@ -78,9 +78,10 @@ export interface AuthUser {
   id: string;
   phone: string;
   name: string;
-  position: string | null;
-  store: string | null;
-  role: string;
+  isAdmin: boolean;
+  division: string;
+  group: string;
+  position: string;
   points: number;
 }
 
@@ -88,9 +89,10 @@ export interface UserListItem {
   _id: string;
   phone: string;
   name: string;
-  position?: string;
-  store?: string;
-  role: 'ADMIN' | 'EMPLOYEE';
+  isAdmin: boolean;
+  division: string;
+  group: string;
+  position: string;
   points?: number;
   createdAt: string;
 }
@@ -157,24 +159,6 @@ export interface AudioRecording {
   originalName: string;
   uploadedAt: string;
 }
-
-export const STORES = [
-  'Арсен',
-  'Бельведерська',
-  'Галицька',
-  'Галич',
-  'Коломия',
-  'Надвірна золото',
-  'Надвірна срібло',
-  'Цум',
-  'Шашкевича',
-  'Шпитальна',
-] as const;
-
-export const EMPLOYEE_POSITIONS = [
-  'Продавець консультант',
-  'Керівник відділу',
-] as const;
 
 export type BadgeId =
   | 'first_report'

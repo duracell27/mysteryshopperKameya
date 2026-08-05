@@ -11,9 +11,10 @@ export interface CreateUserPayload {
   phone: string;
   password: string;
   name: string;
-  role: 'ADMIN' | 'EMPLOYEE';
-  position?: string;
-  store?: string;
+  isAdmin: boolean;
+  division: string;
+  group: string;
+  position: string;
 }
 
 export const createUser = async (data: CreateUserPayload): Promise<UserListItem> => {
@@ -32,9 +33,10 @@ export const createUser = async (data: CreateUserPayload): Promise<UserListItem>
 export interface UpdateUserPayload {
   name?: string;
   phone?: string;
-  role?: 'ADMIN' | 'EMPLOYEE';
+  isAdmin?: boolean;
+  division?: string;
+  group?: string;
   position?: string;
-  store?: string;
   password?: string;
 }
 
