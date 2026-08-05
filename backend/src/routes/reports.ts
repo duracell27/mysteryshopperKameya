@@ -6,6 +6,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Report } from '../models/Report';
 import { User } from '../models/User';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { getGroupLabel } from '../config/org-structure';
 import { awardPoints } from '../services/pointsService';
 import { PointsTransaction } from '../models/PointsTransaction';
 import { getChunks } from '../services/standardsService';
@@ -134,7 +135,7 @@ function downloadBuffer(url: string): Promise<Buffer> {
 
 // POST /api/reports/parse — надсилаємо PDF до Claude, повертаємо розпізнані дані
 router.post('/parse', (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
 
@@ -254,7 +255,7 @@ router.post('/parse', (req: AuthRequest, res: Response) => {
 
 // POST /api/reports/parse-url — завантажує PDF за прямим посиланням і аналізує Claude AI
 router.post('/parse-url', async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
 
@@ -338,7 +339,7 @@ router.post('/parse-url', async (req: AuthRequest, res: Response) => {
 
 // POST /api/reports/confirm — адмін підтверджує, зберігаємо до бази
 router.post('/confirm', async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
 
@@ -350,7 +351,7 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
     }
 
     const user = await User.findById(userId);
-    const store = user?.store || '';
+    const store = getGroupLabel(user?.division ?? '', user?.group ?? '');
 
     // Use admin-provided affirmation if given, otherwise auto-select
     let affirmation: string | undefined;
@@ -460,7 +461,7 @@ router.get('/my/rank', async (req: AuthRequest, res: Response) => {
     }
 
     // Рейтинг по середньому балу звітів серед усіх EMPLOYEE
-    const totalUsers = await User.countDocuments({ role: 'EMPLOYEE' });
+    const totalUsers = await User.countDocuments({ isAdmin: false });
     const allReports = await Report.find({}, 'userId totalScore').lean();
 
     // Середній totalScore по кожному юзеру
@@ -476,7 +477,7 @@ router.get('/my/rank', async (req: AuthRequest, res: Response) => {
       scoreMap[uid] ? scoreMap[uid].sum / scoreMap[uid].count : 0;
 
     // Зібрати всіх EMPLOYEE і посортувати за середнім балом
-    const employees = await User.find({ role: 'EMPLOYEE' }, '_id').lean();
+    const employees = await User.find({ isAdmin: false }, '_id').lean();
     const countOf = (uid: string) => scoreMap[uid]?.count ?? 0;
     const sorted = [...employees].sort((a, b) => {
       const scoreDiff = avgScore(b._id.toString()) - avgScore(a._id.toString());
@@ -544,7 +545,7 @@ router.get('/my/badges', async (req: AuthRequest, res: Response) => {
 
 // GET /api/reports/stats/dashboard — admin dashboard stats (period-aware)
 router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
 
@@ -607,8 +608,8 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
       .sort((a, b) => b.avg - a.avg || b.count - a.count);
 
     const pointsRanking = await User.find(
-      { role: 'EMPLOYEE' },
-      'name store points'
+      { isAdmin: false },
+      'name division group points'
     ).sort({ points: -1 }).limit(15).lean();
 
     return res.json({ year, periodType, periodAvg, reportCount, storeRanking, consultantRanking, pointsRanking });
@@ -620,7 +621,7 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
 
 // GET /api/reports/preview-affirmation?userId=X — preview which affirmation would be assigned (admin)
 router.get('/preview-affirmation', async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
   const { userId } = req.query;
@@ -648,7 +649,7 @@ router.get('/preview-affirmation', async (req: AuthRequest, res: Response) => {
 
 // GET /api/reports/preview-badges?userId=X&totalScore=Y&quarter=Q&year=Y
 router.get('/preview-badges', async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
   const { userId, totalScore, quarter, year } = req.query;
@@ -671,7 +672,7 @@ router.get('/preview-badges', async (req: AuthRequest, res: Response) => {
 
 // GET /api/reports — всі звіти (адмін)
 router.get('/', async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
   try {
@@ -690,7 +691,7 @@ router.post('/:id/generate-ai', async (req: AuthRequest, res: Response) => {
     if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
 
     const isOwner = report.userId.toString() === req.user?.userId?.toString();
-    const isAdmin = req.user?.role === 'ADMIN';
+    const isAdmin = req.user?.isAdmin;
     if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Доступ заборонено' });
 
     const tier = getTier(report.totalScore);
@@ -837,7 +838,7 @@ router.post('/:id/generate-learning-plan', async (req: AuthRequest, res: Respons
     if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
 
     const isOwner = report.userId.toString() === req.user?.userId?.toString();
-    const isAdmin = req.user?.role === 'ADMIN';
+    const isAdmin = req.user?.isAdmin;
     if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Доступ заборонено' });
 
     if (!report.aiRecommendations) {
@@ -995,7 +996,7 @@ ${weakPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
 // DELETE /api/reports/:id/learning-plan — admin only
 router.delete('/:id/learning-plan', async (req: AuthRequest, res: Response) => {
   try {
-    if (req.user?.role !== 'ADMIN') {
+    if (!req.user?.isAdmin) {
       return res.status(403).json({ message: 'Доступ заборонено' });
     }
     const report = await Report.findByIdAndUpdate(
@@ -1014,7 +1015,7 @@ router.delete('/:id/learning-plan', async (req: AuthRequest, res: Response) => {
 // PATCH /api/reports/:id/learning-plan — admin only, replaces tasks array
 router.patch('/:id/learning-plan', async (req: AuthRequest, res: Response) => {
   try {
-    if (req.user?.role !== 'ADMIN') {
+    if (!req.user?.isAdmin) {
       return res.status(403).json({ message: 'Доступ заборонено' });
     }
     const { tasks } = req.body as { tasks: { topicTitle: string; description: string; isCompleted: boolean; completedAt?: string; response?: string }[] };
@@ -1107,7 +1108,7 @@ router.patch('/:id/learning-plan/:taskIndex', async (req: AuthRequest, res: Resp
 // POST /api/reports/:id/award-learning-plan-points — admin manual points for learning plan
 router.post('/:id/award-learning-plan-points', async (req: AuthRequest, res: Response) => {
   try {
-    if (req.user?.role !== 'ADMIN') {
+    if (!req.user?.isAdmin) {
       return res.status(403).json({ message: 'Тільки для адміністраторів' });
     }
 
@@ -1217,7 +1218,7 @@ router.post('/:id/reflection', async (req: AuthRequest, res: Response) => {
 
 // PATCH /api/reports/:id — оновити базові поля звіту (адмін)
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
   try {
@@ -1243,7 +1244,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/reports/:id — видалити звіт (адмін)
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
 

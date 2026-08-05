@@ -7,7 +7,7 @@ const router = Router();
 router.use(authMiddleware);
 
 function requireAdmin(req: AuthRequest, res: Response): boolean {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     res.status(403).json({ message: 'Доступ заборонено' });
     return false;
   }

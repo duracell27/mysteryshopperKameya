@@ -444,7 +444,7 @@ export const ReportsUploadView: React.FC = () => {
                   <i className="fas fa-magnifying-glass text-slate-400 text-sm"></i>
                   <input
                     type="text"
-                    placeholder={selectedEmployee ? '' : 'Пошук за ім\'ям, телефоном, магазином...'}
+                    placeholder={selectedEmployee ? '' : 'Пошук за ім\'ям, телефоном, підрозділом...'}
                     value={showDropdown ? searchQuery : selectedEmployee ? `${selectedEmployee.name} (${toDisplay(selectedEmployee.phone)})` : ''}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);

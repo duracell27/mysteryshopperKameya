@@ -10,7 +10,7 @@ import { AudioRecordingsPanel } from './AudioRecordingsPanel';
 const MONTHS_UK = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
 interface ReportWithUser extends Omit<AuditResult, 'userId'> {
-  userId: { _id: string; name: string; phone: string; store?: string } | string;
+  userId: { _id: string; name: string; phone: string } | string;
   quarter?: string;
   year?: number;
   month?: number;
@@ -137,13 +137,7 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
   };
 
   const getStoreFromReport = (r: ReportWithUser): string => {
-    // Спочатку перевіряємо поле store самого звіту (нові звіти)
-    if (r.store) return r.store;
-    // Потім перевіряємо магазин з userId (старі звіти)
-    if (typeof r.userId === 'object' && r.userId.store) {
-      return r.userId.store;
-    }
-    return '';
+    return r.store || '';
   };
 
   const filtered = reports

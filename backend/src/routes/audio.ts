@@ -65,7 +65,7 @@ const router = Router({ mergeParams: true });
 
 // POST /upload — admin uploads MP3 file directly
 router.post('/upload', authMiddleware, (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
 
@@ -106,7 +106,7 @@ router.post('/upload', authMiddleware, (req: AuthRequest, res: Response) => {
 
 // POST /url — admin provides direct MP3 URL; server downloads and stores locally
 router.post('/url', authMiddleware, async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
 
@@ -154,12 +154,12 @@ router.get('/:audioId/stream', async (req: Request, res: Response) => {
   const tokenParam = req.query.token as string | undefined;
   if (!tokenParam) return res.status(401).json({ message: 'Не авторизовано' });
 
-  let decoded: { userId: string; role: string };
+  let decoded: { userId: string; isAdmin: boolean };
   try {
     decoded = jwt.verify(
       tokenParam,
       process.env.JWT_SECRET || 'fallback-secret',
-    ) as { userId: string; role: string };
+    ) as { userId: string; isAdmin: boolean };
   } catch {
     return res.status(401).json({ message: 'Невалідний токен' });
   }
@@ -169,7 +169,7 @@ router.get('/:audioId/stream', async (req: Request, res: Response) => {
     if (!report) return res.status(404).json({ message: 'Звіт не знайдено' });
 
     const isOwner = report.userId.toString() === decoded.userId;
-    const isAdmin = decoded.role === 'ADMIN';
+    const isAdmin = decoded.isAdmin;
     if (!isOwner && !isAdmin) return res.status(403).json({ message: 'Доступ заборонено' });
 
     const recording = (report.audioRecordings as any[]).find(
@@ -227,7 +227,7 @@ router.get('/:audioId/stream', async (req: Request, res: Response) => {
 
 // DELETE /:audioId — admin only; removes file from disk and subdoc from DB
 router.delete('/:audioId', authMiddleware, async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
 
