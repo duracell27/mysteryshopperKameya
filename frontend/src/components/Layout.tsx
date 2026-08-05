@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Screen, AuthUser } from '../types';
+import { getDivisionLabel, getGroupLabel } from '../config/org-structure';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -38,10 +39,11 @@ const Badge: React.FC<{ count: number }> = ({ count }) => {
 };
 
 const AvatarCircle: React.FC<{ avatarUrl?: string | null; name: string; phone: string; size: 'sm' | 'md' }> = ({ avatarUrl, name, phone, size }) => {
+  const [imgError, setImgError] = useState(false);
   const dim = size === 'md' ? 'w-10 h-10 text-sm' : 'w-8 h-8 text-xs';
   const initial = (name || phone).charAt(0).toUpperCase();
-  if (avatarUrl) {
-    return <img src={avatarUrl} alt={name} className={`${dim} rounded-full object-cover flex-shrink-0`} />;
+  if (avatarUrl && !imgError) {
+    return <img src={avatarUrl} alt={name} className={`${dim} rounded-full object-cover flex-shrink-0`} onError={() => setImgError(true)} />;
   }
   return (
     <div className={`${dim} rounded-full bg-white/20 flex items-center justify-center font-bold flex-shrink-0`}>
@@ -125,7 +127,9 @@ export const Layout: React.FC<LayoutProps> = ({
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium truncate">{user.name || user.phone}</p>
               <p className="text-xs opacity-60 truncate">
-                {user.position || user.phone}
+                {user.isAdmin
+                  ? `Адмін · ${getDivisionLabel(user.division)} / ${getGroupLabel(user.division, user.group)}`
+                  : `${getDivisionLabel(user.division)} / ${getGroupLabel(user.division, user.group)}`}
               </p>
             </div>
           </div>
