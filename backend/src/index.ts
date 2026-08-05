@@ -15,9 +15,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 fs.mkdirSync(path.join(process.cwd(), 'uploads', 'audio'), { recursive: true });
+fs.mkdirSync(path.join(process.cwd(), 'uploads', 'avatars'), { recursive: true });
 
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);

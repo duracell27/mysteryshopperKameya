@@ -16,6 +16,7 @@ export interface IUser extends Document {
   division: string;
   group: string;
   position: string;
+  avatarUrl?: string;
   points: number;
   birthday?: Date;
   badges: IBadgeAward[];
@@ -39,6 +40,7 @@ const UserSchema = new Schema<IUser>(
     division: { type: String, default: '' },
     group:    { type: String, default: '' },
     position: { type: String, default: '' },
+    avatarUrl: { type: String },
     points:   { type: Number, default: 0 },
     birthday: { type: Date },
     badges:   { type: [BadgeAwardSchema], default: [] },
