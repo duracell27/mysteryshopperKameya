@@ -101,15 +101,17 @@ export const CompanyStructureView: React.FC = () => {
             <h2 className="text-base font-bold text-white bg-kameya-burgundy px-5 py-3 rounded-t-2xl tracking-wide">
               {getDivisionLabel(div)}
             </h2>
-            <div className="rounded-b-2xl p-4 space-y-3" style={{ backgroundColor: '#fce9ef' }}>
-              {divGroups.map(([groupKey, members]) => (
-                <div key={groupKey} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-kameya-burgundy/10" style={{ backgroundColor: '#fce9ef' }}>
+            <div className="rounded-b-2xl p-5 space-y-5" style={{ backgroundColor: '#fce9ef' }}>
+              {divGroups.map(([groupKey, members], idx) => (
+                <div key={groupKey}>
+                  {idx > 0 && <div className="border-t border-kameya-burgundy/15 mb-5" />}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-4 rounded-full bg-kameya-burgundy/50" />
                     <p className="text-xs font-bold text-kameya-burgundy uppercase tracking-widest">
                       {getGroupLabel(div, groupKey)}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-3 items-end p-4">
+                  <div className="flex flex-wrap gap-3 items-end">
                     {sortGroup(members).map(u => (
                       <UserCard key={u._id} user={u} isManager={u.position === 'Керівник'} />
                     ))}
