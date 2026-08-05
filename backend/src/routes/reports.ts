@@ -610,7 +610,7 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
     const pointsRanking = await User.find(
       { isAdmin: false },
       'name division group points'
-    ).sort({ points: -1 }).limit(15).lean();
+    ).sort({ points: -1 }).lean();
 
     return res.json({ year, periodType, periodAvg, reportCount, storeRanking, consultantRanking, pointsRanking });
   } catch (error) {
