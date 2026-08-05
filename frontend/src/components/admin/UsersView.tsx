@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { UserListItem, STORES, EMPLOYEE_POSITIONS, PointsTransaction } from '../../types';
+import { UserListItem, PointsTransaction } from '../../types';
 import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory } from '../../services/usersService';
+import { ORG_STRUCTURE, getDivisionLabel, getGroupLabel } from '../../config/org-structure';
 import { BadgesModal } from './BadgesModal';
 import { formatDate } from '../../utils/dateFormatter';
 
@@ -17,7 +18,7 @@ const generatePassword = (): string => {
 };
 
 const EMPTY_CREATE: CreateUserPayload = {
-  phone: '', password: '', name: '', role: 'EMPLOYEE', position: '', store: '',
+  phone: '', password: '', name: '', isAdmin: false, division: 'stores', group: '', position: '',
 };
 
 const toDisplay = (phone: string) => {
@@ -48,7 +49,9 @@ export const UsersView: React.FC = () => {
 
   // Edit
   const [editUser, setEditUser]     = useState<UserListItem | null>(null);
-  const [editForm, setEditForm]     = useState<UpdateUserPayload & { position: string; store: string }>({ name: '', phone: '', role: 'EMPLOYEE', position: '', store: '', password: '' });
+  const [editForm, setEditForm]     = useState<UpdateUserPayload & { division: string; group: string; position: string }>({
+    name: '', phone: '', isAdmin: false, division: '', group: '', position: '', password: '',
+  });
   const [isEditing, setIsEditing]   = useState(false);
   const [editError, setEditError]   = useState('');
 
@@ -65,7 +68,7 @@ export const UsersView: React.FC = () => {
   const [search, setSearch] = useState('');
 
   // Sorting
-  type SortKey = 'name' | 'role' | 'position' | 'store' | 'points';
+  type SortKey = 'name' | 'isAdmin' | 'position' | 'division' | 'points';
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -78,9 +81,10 @@ export const UsersView: React.FC = () => {
   const filteredUsers = q
     ? users.filter(u =>
         u.name.toLowerCase().includes(q) ||
-        u.phone.includes(q) ||
+        u.phone.toLowerCase().includes(q) ||
         (u.position ?? '').toLowerCase().includes(q) ||
-        (u.store ?? '').toLowerCase().includes(q)
+        getGroupLabel(u.division, u.group).toLowerCase().includes(q) ||
+        getDivisionLabel(u.division).toLowerCase().includes(q)
       )
     : users;
 
@@ -88,9 +92,9 @@ export const UsersView: React.FC = () => {
     let av: string | number = '';
     let bv: string | number = '';
     if (sortKey === 'name')     { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
-    if (sortKey === 'role')     { av = a.role; bv = b.role; }
+    if (sortKey === 'isAdmin')  { av = a.isAdmin ? 1 : 0; bv = b.isAdmin ? 1 : 0; }
     if (sortKey === 'position') { av = (a.position ?? '').toLowerCase(); bv = (b.position ?? '').toLowerCase(); }
-    if (sortKey === 'store')    { av = (a.store ?? '').toLowerCase(); bv = (b.store ?? '').toLowerCase(); }
+    if (sortKey === 'division') { av = getDivisionLabel(a.division).toLowerCase(); bv = getDivisionLabel(b.division).toLowerCase(); }
     if (sortKey === 'points')   { av = a.points ?? 0; bv = b.points ?? 0; }
     if (av < bv) return sortDir === 'asc' ? -1 : 1;
     if (av > bv) return sortDir === 'asc' ? 1 : -1;
@@ -131,11 +135,12 @@ export const UsersView: React.FC = () => {
   const openEdit = (u: UserListItem) => {
     setEditUser(u);
     setEditForm({
-      name: u.name,
-      phone: u.phone.startsWith('38') ? u.phone.slice(2) : u.phone,
-      role: u.role,
-      position: u.position ?? '',
-      store: u.store ?? '',
+      name:     u.name,
+      phone:    u.phone.startsWith('38') ? u.phone.slice(2) : u.phone,
+      isAdmin:  u.isAdmin,
+      division: u.division,
+      group:    u.group,
+      position: u.position,
       password: '',
     });
     setEditError('');
@@ -150,9 +155,10 @@ export const UsersView: React.FC = () => {
       const payload: UpdateUserPayload = {
         name:     editForm.name,
         phone:    editForm.phone || undefined,
-        role:     editForm.role,
-        position: editForm.role === 'EMPLOYEE' ? editForm.position : undefined,
-        store:    editForm.role === 'EMPLOYEE' ? editForm.store    : undefined,
+        isAdmin:  editForm.isAdmin,
+        division: editForm.division,
+        group:    editForm.group,
+        position: editForm.position,
         password: editForm.password || undefined,
       };
       const updated = await updateUser(editUser._id, payload);
@@ -220,7 +226,7 @@ export const UsersView: React.FC = () => {
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Пошук за ім'ям, телефоном, посадою або магазином..."
+          placeholder="Пошук за ім'ям, телефоном, посадою або підрозділом..."
           className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy transition-all"
         />
       </div>
@@ -243,9 +249,9 @@ export const UsersView: React.FC = () => {
                 <tr className="bg-slate-50 border-b border-slate-100">
                   {([
                     { key: 'name',     label: "Ім'я / Телефон" },
-                    { key: 'role',     label: 'Роль' },
+                    { key: 'isAdmin',  label: 'Роль' },
                     { key: 'position', label: 'Посада' },
-                    { key: 'store',    label: 'Магазин' },
+                    { key: 'division', label: 'Підрозділ / Група' },
                     { key: 'points',   label: 'Бали' },
                   ] as { key: SortKey; label: string }[]).map(({ key, label }) => (
                     <th
@@ -271,15 +277,15 @@ export const UsersView: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                        u.role === 'ADMIN' ? 'bg-kameya-burgundy/10 text-kameya-burgundy' : 'bg-blue-50 text-blue-700'
+                        u.isAdmin ? 'bg-kameya-burgundy/10 text-kameya-burgundy' : 'bg-blue-50 text-blue-700'
                       }`}>
-                        {u.role === 'ADMIN' ? 'Адмін' : 'Працівник'}
+                        {u.isAdmin ? 'Адмін' : getDivisionLabel(u.division)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{u.role === 'ADMIN' ? 'Адміністратор' : (u.position || '—')}</td>
-                    <td className="px-6 py-4 text-slate-600">{u.store || '—'}</td>
+                    <td className="px-6 py-4 text-slate-600">{u.isAdmin ? 'Адміністратор' : (u.position || '—')}</td>
+                    <td className="px-6 py-4 text-slate-600">{getGroupLabel(u.division, u.group) || '—'}</td>
                     <td className="px-6 py-4">
-                      {u.role === 'EMPLOYEE' ? (
+                      {!u.isAdmin ? (
                         <button
                           onClick={() => openPointsHistory(u)}
                           className="flex items-center gap-1 text-sm font-semibold text-kameya-burgundy hover:opacity-75 transition-opacity"
@@ -294,7 +300,7 @@ export const UsersView: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-3">
-                        {u.role === 'EMPLOYEE' && (
+                        {!u.isAdmin && (
                           <button
                             onClick={() => setBadgesUser(u)}
                             className="text-slate-400 hover:text-amber-500 transition-colors"
@@ -330,23 +336,6 @@ export const UsersView: React.FC = () => {
               </button>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
-              {/* Тип */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Тип аккаунту</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['EMPLOYEE', 'ADMIN'] as const).map((r) => (
-                    <button key={r} type="button"
-                      onClick={() => setCreateForm((f) => ({ ...f, role: r, position: '', store: '' }))}
-                      className={`py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
-                        createForm.role === r ? 'border-kameya-burgundy bg-kameya-burgundy/5 text-kameya-burgundy' : 'border-slate-200 text-slate-500 hover:border-slate-300'
-                      }`}
-                    >
-                      {r === 'EMPLOYEE' ? 'Працівник' : 'Адмін'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <FormField label="Номер телефону">
                 <input type="tel" placeholder="0508098182" value={createForm.phone}
                   onChange={(e) => setCreateForm((f) => ({ ...f, phone: e.target.value }))}
@@ -367,31 +356,74 @@ export const UsersView: React.FC = () => {
                 </div>
               </FormField>
 
-              {createForm.role === 'EMPLOYEE' && (
-                <>
-                  <FormField label="ПІБ">
-                    <input type="text" placeholder="Іваненко Іван Іванович" value={createForm.name}
-                      onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
-                      className={inputCls} required />
-                  </FormField>
-                  <FormField label="Посада">
-                    <select value={createForm.position}
-                      onChange={(e) => setCreateForm((f) => ({ ...f, position: e.target.value }))}
-                      className={inputCls} required>
-                      <option value="">Оберіть посаду</option>
-                      {EMPLOYEE_POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </FormField>
-                  <FormField label="Магазин">
-                    <select value={createForm.store}
-                      onChange={(e) => setCreateForm((f) => ({ ...f, store: e.target.value }))}
-                      className={inputCls} required>
-                      <option value="">Оберіть магазин</option>
-                      {STORES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </FormField>
-                </>
+              <FormField label="ПІБ">
+                <input type="text" placeholder="Іваненко Іван Іванович" value={createForm.name}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                  className={inputCls} />
+              </FormField>
+
+              {/* Division */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Підрозділ</label>
+                <select
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={createForm.division}
+                  onChange={e => setCreateForm(f => ({ ...f, division: e.target.value, group: '', position: '' }))}
+                >
+                  <option value="">— Оберіть підрозділ —</option>
+                  {(Object.entries(ORG_STRUCTURE) as [string, { label: string }][]).map(([key, val]) => (
+                    <option key={key} value={key}>{val.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Group */}
+              {createForm.division && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Група</label>
+                  <select
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                    value={createForm.group}
+                    onChange={e => setCreateForm(f => ({ ...f, group: e.target.value, position: '' }))}
+                  >
+                    <option value="">— Оберіть групу —</option>
+                    {(Object.entries(ORG_STRUCTURE[createForm.division as keyof typeof ORG_STRUCTURE].groups) as [string, string][]).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
               )}
+
+              {/* Position */}
+              {createForm.division && createForm.group && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Посада</label>
+                  <select
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                    value={createForm.position}
+                    onChange={e => setCreateForm(f => ({ ...f, position: e.target.value }))}
+                  >
+                    <option value="">— Оберіть посаду —</option>
+                    {[...ORG_STRUCTURE[createForm.division as keyof typeof ORG_STRUCTURE].positions].map((pos) => (
+                      <option key={pos} value={pos}>{pos}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Admin flag */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="create-isAdmin"
+                  checked={createForm.isAdmin}
+                  onChange={e => setCreateForm(f => ({ ...f, isAdmin: e.target.checked }))}
+                  className="rounded"
+                />
+                <label htmlFor="create-isAdmin" className="text-sm font-medium text-slate-700">
+                  Адміністратор
+                </label>
+              </div>
 
               {createError && <ErrorMsg text={createError} />}
 
@@ -429,41 +461,68 @@ export const UsersView: React.FC = () => {
                   className={inputCls} />
               </FormField>
 
-              <FormField label="Роль">
-                <div className="grid grid-cols-2 gap-2">
-                  {(['EMPLOYEE', 'ADMIN'] as const).map((r) => (
-                    <button key={r} type="button"
-                      onClick={() => setEditForm((f) => ({ ...f, role: r, position: '', store: '' }))}
-                      className={`py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
-                        editForm.role === r ? 'border-kameya-burgundy bg-kameya-burgundy/5 text-kameya-burgundy' : 'border-slate-200 text-slate-500 hover:border-slate-300'
-                      }`}
-                    >
-                      {r === 'EMPLOYEE' ? 'Працівник' : 'Адмін'}
-                    </button>
+              {/* Division */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Підрозділ</label>
+                <select
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                  value={editForm.division}
+                  onChange={e => setEditForm(f => ({ ...f, division: e.target.value, group: '', position: '' }))}
+                >
+                  <option value="">— Оберіть підрозділ —</option>
+                  {(Object.entries(ORG_STRUCTURE) as [string, { label: string }][]).map(([key, val]) => (
+                    <option key={key} value={key}>{val.label}</option>
                   ))}
-                </div>
-              </FormField>
+                </select>
+              </div>
 
-              {editForm.role === 'EMPLOYEE' && (
-                <>
-                  <FormField label="Посада">
-                    <select value={editForm.position}
-                      onChange={(e) => setEditForm((f) => ({ ...f, position: e.target.value }))}
-                      className={inputCls}>
-                      <option value="">Оберіть посаду</option>
-                      {EMPLOYEE_POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </FormField>
-                  <FormField label="Магазин">
-                    <select value={editForm.store}
-                      onChange={(e) => setEditForm((f) => ({ ...f, store: e.target.value }))}
-                      className={inputCls}>
-                      <option value="">Оберіть магазин</option>
-                      {STORES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </FormField>
-                </>
+              {/* Group */}
+              {editForm.division && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Група</label>
+                  <select
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                    value={editForm.group}
+                    onChange={e => setEditForm(f => ({ ...f, group: e.target.value, position: '' }))}
+                  >
+                    <option value="">— Оберіть групу —</option>
+                    {(Object.entries(ORG_STRUCTURE[editForm.division as keyof typeof ORG_STRUCTURE].groups) as [string, string][]).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
               )}
+
+              {/* Position */}
+              {editForm.division && editForm.group && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Посада</label>
+                  <select
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                    value={editForm.position}
+                    onChange={e => setEditForm(f => ({ ...f, position: e.target.value }))}
+                  >
+                    <option value="">— Оберіть посаду —</option>
+                    {[...ORG_STRUCTURE[editForm.division as keyof typeof ORG_STRUCTURE].positions].map((pos) => (
+                      <option key={pos} value={pos}>{pos}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Admin flag */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit-isAdmin"
+                  checked={editForm.isAdmin ?? false}
+                  onChange={e => setEditForm(f => ({ ...f, isAdmin: e.target.checked }))}
+                  className="rounded"
+                />
+                <label htmlFor="edit-isAdmin" className="text-sm font-medium text-slate-700">
+                  Адміністратор
+                </label>
+              </div>
 
               <FormField label="Новий пароль (залиш порожнім щоб не змінювати)">
                 <input type="text" placeholder="Новий пароль..." value={editForm.password}

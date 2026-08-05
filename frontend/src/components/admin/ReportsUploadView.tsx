@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserListItem, AuditSection, BadgeId } from '../../types';
+import { getGroupLabel } from '../../config/org-structure';
 import { fetchUsers, getUserBadges } from '../../services/usersService';
 import { parseReport, parsePdfFromUrl, confirmReport, previewAffirmation, previewBadges, ParsedReport, BadgePreview, uploadAudio, addAudioByUrl, buildAudioLabel } from '../../services/reportsService';
 import { BADGE_CATALOGUE } from '../../constants/badges';
@@ -65,7 +66,7 @@ export const ReportsUploadView: React.FC = () => {
 
   useEffect(() => {
     fetchUsers()
-      .then((all) => setEmployees(all.filter((u) => u.role === 'EMPLOYEE')))
+      .then((all) => setEmployees(all.filter((u) => !u.isAdmin)))
       .catch(() => setError('Не вдалося завантажити список працівників'));
   }, []);
 
@@ -222,7 +223,7 @@ export const ReportsUploadView: React.FC = () => {
     return (
       u.name.toLowerCase().includes(q) ||
       u.phone.includes(q) ||
-      (u.store ?? '').toLowerCase().includes(q)
+      getGroupLabel(u.division, u.group).toLowerCase().includes(q)
     );
   });
 
@@ -358,7 +359,7 @@ export const ReportsUploadView: React.FC = () => {
           </button>
           <div>
             <h1 className="text-xl font-bold text-slate-800">Детальний звіт</h1>
-            <p className="text-xs text-slate-400">{formatDate(parsed.date)}{selectedEmployee?.store ? ` · ${selectedEmployee.store}` : ''}</p>
+            <p className="text-xs text-slate-400">{formatDate(parsed.date)}{selectedEmployee ? ` · ${getGroupLabel(selectedEmployee.division, selectedEmployee.group)}` : ''}</p>
           </div>
         </div>
 
@@ -482,7 +483,7 @@ export const ReportsUploadView: React.FC = () => {
                         >
                           <p className="font-medium text-slate-800">{u.name}</p>
                           <p className="text-xs text-slate-500">
-                            {toDisplay(u.phone)} · {u.store ?? '—'}
+                            {toDisplay(u.phone)} · {getGroupLabel(u.division, u.group) || '—'}
                           </p>
                         </button>
                       ))
@@ -617,7 +618,7 @@ export const ReportsUploadView: React.FC = () => {
               </div>
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-xs text-slate-500 mb-1">Магазин</p>
-                <p className="font-semibold text-slate-800 text-sm">{selectedEmployee?.store || '—'}</p>
+                <p className="font-semibold text-slate-800 text-sm">{selectedEmployee ? getGroupLabel(selectedEmployee.division, selectedEmployee.group) : '—'}</p>
               </div>
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-xs text-slate-500 mb-1">Загальний результат</p>

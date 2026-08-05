@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { AuditResult, AuditSection, LearningTask, STORES } from '../../types';
+import { AuditResult, AuditSection, LearningTask } from '../../types';
+import { ORG_STRUCTURE } from '../../config/org-structure';
 import { getAllReports, deleteReport, generateAiRecommendations, updateReportPeriod, deleteLearningPlan, updateLearningPlanTasks, generateLearningPlan, awardLearningPlanPoints } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { scoreTextClass, scoreBgBorderClass, formatScore, getScoreStyle } from '../../utils/scoreColor';
@@ -1015,7 +1016,7 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy"
             >
               <option value="">— Усі магазини —</option>
-              {STORES.map((store) => (
+              {Object.values(ORG_STRUCTURE.stores.groups).map((store) => (
                 <option key={store} value={store}>
                   {store}
                 </option>
