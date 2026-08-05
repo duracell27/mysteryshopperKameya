@@ -83,6 +83,7 @@ export interface AuthUser {
   group: string;
   position: string;
   points: number;
+  avatarUrl?: string | null;
 }
 
 export interface UserListItem {
@@ -95,6 +96,7 @@ export interface UserListItem {
   position: string;
   points?: number;
   createdAt: string;
+  avatarUrl?: string | null;
 }
 
 export type TransactionReason = 'score' | 'reflection' | 'streak' | 'reflection_penalty' | 'learning_plan_manual';

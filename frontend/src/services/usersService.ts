@@ -99,3 +99,17 @@ export const deleteBadge = async (userId: string, awardId: string): Promise<void
   const res = await apiFetch(`/api/users/${userId}/badges/${awardId}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Помилка видалення нагороди');
 };
+
+export const uploadAvatar = async (userId: string, file: File): Promise<{ avatarUrl: string }> => {
+  const form = new FormData();
+  form.append('avatar', file);
+  const res = await apiFetch(`/api/users/${userId}/avatar`, {
+    method: 'POST',
+    body: form,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message || 'Помилка завантаження');
+  }
+  return res.json();
+};
