@@ -6,8 +6,8 @@ import { User } from './models/User';
 async function seed() {
   await connectDB();
 
-  const phone = '380508098182';
-  const existing = await User.findOne({ phone });
+  const phone = '0508098182';
+  const existing = await User.findOne({ phone: { $in: [phone, '38' + phone] } });
 
   if (existing) {
     console.log('ℹ️  Адмін вже існує, пропускаємо.');
@@ -17,11 +17,13 @@ async function seed() {
   const hashedPassword = await bcrypt.hash('27071996uA', 12);
 
   await User.create({
-    phone,
+    phone:    '0508098182',
     password: hashedPassword,
-    name: 'Адмін',
-    position: 'Адміністратор',
-    role: 'ADMIN',
+    name:     'Адміністратор',
+    isAdmin:  true,
+    division: 'office',
+    group:    'management',
+    position: 'Керівник',
   });
 
   console.log(`✅ Адмін створений: ${phone}`);

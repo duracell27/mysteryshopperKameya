@@ -6,12 +6,13 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sendSms } from '../services/sms';
 import { PointsTransaction } from '../models/PointsTransaction';
 import { evaluateStudentOfYear } from '../services/badgeService';
+import { isValidOrg } from '../config/org-structure';
 
 const router = Router();
 
 router.use(authMiddleware);
 router.use((req: AuthRequest, res: Response, next) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
   next();
@@ -42,13 +43,16 @@ router.get('/', async (_req, res: Response) => {
 // POST /api/users
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { phone, password, name, role, position, store } = req.body;
+    const { phone, password, name, isAdmin, division, group, position } = req.body;
 
-    if (!phone || !password || !role) {
-      return res.status(400).json({ message: 'Заповніть всі обов\'язкові поля' });
+    if (!phone || !password) {
+      return res.status(400).json({ message: 'Введіть номер телефону та пароль' });
     }
-    if (role === 'EMPLOYEE' && (!position || !store)) {
-      return res.status(400).json({ message: 'Для працівника вкажіть посаду та магазин' });
+    if (!division || !group || !position) {
+      return res.status(400).json({ message: 'Вкажіть підрозділ, групу та посаду' });
+    }
+    if (!isValidOrg(String(division), String(group), String(position))) {
+      return res.status(400).json({ message: 'Невалідна організаційна структура' });
     }
 
     const normalizedPhone = normalizePhone(String(phone));
@@ -58,12 +62,13 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(String(password), 12);
     const user = await User.create({
-      phone: normalizedPhone,
+      phone:    normalizedPhone,
       password: hashedPassword,
-      name: name || '',
-      role,
-      position: role === 'EMPLOYEE' ? position : undefined,
-      store:    role === 'EMPLOYEE' ? store    : undefined,
+      name:     name || '',
+      isAdmin:  Boolean(isAdmin),
+      division: String(division),
+      group:    String(group),
+      position: String(position),
     });
 
     try {
@@ -76,12 +81,13 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     }
 
     return res.status(201).json({
-      _id: user._id,
-      phone: user.phone,
-      name: user.name,
-      role: user.role,
+      _id:      user._id,
+      phone:    user.phone,
+      name:     user.name,
+      isAdmin:  user.isAdmin,
+      division: user.division,
+      group:    user.group,
       position: user.position,
-      store: user.store,
     });
   } catch (error) {
     console.error(error);
@@ -92,14 +98,25 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 // PATCH /api/users/:id
 router.patch('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, position, store, password, role, phone } = req.body;
+    const { name, division, group, position, password, isAdmin, phone } = req.body;
     const update: Record<string, unknown> = {};
 
     if (name     !== undefined) update.name     = name;
-    if (role     !== undefined) update.role     = role;
+    if (isAdmin  !== undefined) update.isAdmin  = Boolean(isAdmin);
+    if (division !== undefined) update.division = division;
+    if (group    !== undefined) update.group    = group;
     if (position !== undefined) update.position = position;
-    if (store    !== undefined) update.store    = store;
     if (password) update.password = await bcrypt.hash(String(password), 12);
+
+    if (division !== undefined || group !== undefined || position !== undefined) {
+      const user = await User.findById(req.params.id);
+      const checkDivision = String(division ?? user?.division ?? '');
+      const checkGroup    = String(group    ?? user?.group    ?? '');
+      const checkPosition = String(position ?? user?.position ?? '');
+      if (!isValidOrg(checkDivision, checkGroup, checkPosition)) {
+        return res.status(400).json({ message: 'Невалідна організаційна структура' });
+      }
+    }
 
     if (phone !== undefined) {
       const normalized = normalizePhone(String(phone));
@@ -108,10 +125,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
       update.phone = normalized;
     }
 
-    const query: Record<string, unknown> = { $set: update };
-    if (role === 'ADMIN') query.$unset = { position: '', store: '' };
-
-    const user = await User.findByIdAndUpdate(req.params.id, query, { new: true, select: '-password' });
+    const user = await User.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, select: '-password' });
     if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
 
     return res.json(user);
@@ -189,7 +203,7 @@ router.post('/evaluate-student-of-year', async (req: AuthRequest, res: Response)
   try {
     const { year } = req.body as { year?: number };
     const evalYear = year ?? new Date().getFullYear();
-    const employees = await User.find({ role: 'EMPLOYEE' }, '_id').lean();
+    const employees = await User.find({ isAdmin: false }, '_id').lean();
     await Promise.all(employees.map(u => evaluateStudentOfYear(u._id.toString(), evalYear)));
     return res.json({ message: `Оцінено ${employees.length} працівників`, evaluated: employees.length });
   } catch (error) {
