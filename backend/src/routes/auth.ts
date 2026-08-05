@@ -71,6 +71,7 @@ router.post('/login', async (req: Request, res: Response) => {
         division: user.division,
         group:    user.group,
         position: user.position,
+        avatarUrl: user.avatarUrl ?? null,
       },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '7d' }
@@ -90,6 +91,7 @@ router.post('/login', async (req: Request, res: Response) => {
         group:    user.group,
         position: user.position,
         points:   user.points ?? 0,
+        avatarUrl: user.avatarUrl ?? null,
       },
     });
   } catch (error) {

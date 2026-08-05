@@ -9,6 +9,7 @@ export interface AuthRequest extends Request {
     division: string;
     group: string;
     position: string;
+    avatarUrl?: string;
   };
 }
 
@@ -25,9 +26,9 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || 'fallback-secret'
-    ) as { userId: string; phone: string; isAdmin: boolean; division: string; group: string; position: string };
+    ) as { userId: string; phone: string; isAdmin: boolean; division: string; group: string; position: string; avatarUrl?: string };
 
-    req.user = decoded;
+    req.user = { userId: decoded.userId, phone: decoded.phone, isAdmin: decoded.isAdmin, division: decoded.division, group: decoded.group, position: decoded.position, avatarUrl: decoded.avatarUrl };
     next();
   } catch {
     return res.status(401).json({ message: 'Невалідний токен' });
