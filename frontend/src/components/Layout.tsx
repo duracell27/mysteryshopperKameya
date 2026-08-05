@@ -37,6 +37,19 @@ const Badge: React.FC<{ count: number }> = ({ count }) => {
   );
 };
 
+const AvatarCircle: React.FC<{ avatarUrl?: string | null; name: string; phone: string; size: 'sm' | 'md' }> = ({ avatarUrl, name, phone, size }) => {
+  const dim = size === 'md' ? 'w-10 h-10 text-sm' : 'w-8 h-8 text-xs';
+  const initial = (name || phone).charAt(0).toUpperCase();
+  if (avatarUrl) {
+    return <img src={avatarUrl} alt={name} className={`${dim} rounded-full object-cover flex-shrink-0`} />;
+  }
+  return (
+    <div className={`${dim} rounded-full bg-white/20 flex items-center justify-center font-bold flex-shrink-0`}>
+      {initial}
+    </div>
+  );
+};
+
 export const Layout: React.FC<LayoutProps> = ({
   children,
   activeScreen,
@@ -108,9 +121,7 @@ export const Layout: React.FC<LayoutProps> = ({
           )}
 
           <div className="flex items-center space-x-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm flex-shrink-0">
-              {(user.name || user.phone).charAt(0).toUpperCase()}
-            </div>
+            <AvatarCircle avatarUrl={user.avatarUrl} name={user.name} phone={user.phone} size="md" />
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium truncate">{user.name || user.phone}</p>
               <p className="text-xs opacity-60 truncate">
@@ -177,9 +188,9 @@ export const Layout: React.FC<LayoutProps> = ({
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
-                className="w-8 h-8 rounded-full bg-kameya-burgundy text-white flex items-center justify-center text-xs font-bold"
+                className="w-8 h-8 rounded-full bg-kameya-burgundy text-white flex items-center justify-center text-xs font-bold overflow-hidden"
               >
-                {(user.name || user.phone).charAt(0).toUpperCase()}
+                <AvatarCircle avatarUrl={user.avatarUrl} name={user.name} phone={user.phone} size="sm" />
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 top-10 bg-white rounded-xl shadow-lg border border-gray-100 min-w-[140px] py-1 z-50">
