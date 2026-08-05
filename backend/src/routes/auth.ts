@@ -64,7 +64,14 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, phone: user.phone, role: user.role },
+      {
+        userId:   user._id,
+        phone:    user.phone,
+        isAdmin:  user.isAdmin,
+        division: user.division,
+        group:    user.group,
+        position: user.position,
+      },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '7d' }
     );
@@ -75,13 +82,14 @@ router.post('/login', async (req: Request, res: Response) => {
     return res.json({
       token,
       user: {
-        id: user._id,
-        phone: user.phone,
-        name: user.name,
-        position: user.position ?? null,
-        store: user.store ?? null,
-        role: user.role,
-        points: user.points ?? 0,
+        id:       user._id,
+        phone:    user.phone,
+        name:     user.name,
+        isAdmin:  user.isAdmin,
+        division: user.division,
+        group:    user.group,
+        position: user.position,
+        points:   user.points ?? 0,
       },
     });
   } catch (error) {

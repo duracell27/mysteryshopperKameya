@@ -5,7 +5,10 @@ export interface AuthRequest extends Request {
   user?: {
     userId: string;
     phone: string;
-    role: string;
+    isAdmin: boolean;
+    division: string;
+    group: string;
+    position: string;
   };
 }
 
@@ -22,7 +25,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || 'fallback-secret'
-    ) as { userId: string; phone: string; role: string };
+    ) as { userId: string; phone: string; isAdmin: boolean; division: string; group: string; position: string };
 
     req.user = decoded;
     next();
