@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { UserListItem, PointsTransaction } from '../../types';
-import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory } from '../../services/usersService';
+import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory, uploadAvatar } from '../../services/usersService';
 import { ORG_STRUCTURE, getDivisionLabel, getGroupLabel } from '../../config/org-structure';
 import { BadgesModal } from './BadgesModal';
 import { formatDate } from '../../utils/dateFormatter';
@@ -195,6 +195,15 @@ export const UsersView: React.FC = () => {
     }
   };
 
+  const handleAvatarUpload = async (userId: string, file: File) => {
+    try {
+      const { avatarUrl } = await uploadAvatar(userId, file);
+      setUsers(prev => prev.map(u => u._id === userId ? { ...u, avatarUrl } : u));
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
@@ -270,8 +279,18 @@ export const UsersView: React.FC = () => {
                 {sortedUsers.map((u) => (
                   <tr key={u._id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
-                      <p className="font-medium text-slate-800">{u.name || '—'}</p>
-                      <p className="text-slate-400 text-xs mt-0.5">{toDisplay(u.phone)}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 flex-shrink-0 overflow-hidden">
+                          {u.avatarUrl
+                            ? <img src={u.avatarUrl} alt={u.name} className="w-full h-full object-cover" />
+                            : (u.name || u.phone).charAt(0).toUpperCase()
+                          }
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-800">{u.name || '—'}</p>
+                          <p className="text-slate-400 text-xs mt-0.5">{toDisplay(u.phone)}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
@@ -455,6 +474,27 @@ export const UsersView: React.FC = () => {
               </button>
             </div>
             <form onSubmit={handleEdit} className="p-6 space-y-4">
+              {/* Avatar upload */}
+              <div className="flex flex-col items-center gap-2 pb-2">
+                <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-xl font-bold text-slate-500 overflow-hidden">
+                  {editUser?.avatarUrl
+                    ? <img src={editUser.avatarUrl} alt={editUser.name} className="w-full h-full object-cover" />
+                    : (editUser?.name || editUser?.phone || '?').charAt(0).toUpperCase()
+                  }
+                </div>
+                <label className="cursor-pointer text-xs text-kameya-burgundy hover:opacity-75 transition-opacity">
+                  Змінити фото
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file && editUser) handleAvatarUpload(editUser._id, file);
+                    }}
+                  />
+                </label>
+              </div>
               <FormField label="ПІБ">
                 <input type="text" value={editForm.name}
                   onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
