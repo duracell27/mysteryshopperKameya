@@ -68,7 +68,7 @@ export const UsersView: React.FC = () => {
   const [search, setSearch] = useState('');
 
   // Sorting
-  type SortKey = 'name' | 'isAdmin' | 'position' | 'division' | 'points';
+  type SortKey = 'name' | 'isAdmin' | 'division' | 'points';
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -93,7 +93,6 @@ export const UsersView: React.FC = () => {
     let bv: string | number = '';
     if (sortKey === 'name')     { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
     if (sortKey === 'isAdmin')  { av = a.isAdmin ? 1 : 0; bv = b.isAdmin ? 1 : 0; }
-    if (sortKey === 'position') { av = (a.position ?? '').toLowerCase(); bv = (b.position ?? '').toLowerCase(); }
     if (sortKey === 'division') { av = getDivisionLabel(a.division).toLowerCase(); bv = getDivisionLabel(b.division).toLowerCase(); }
     if (sortKey === 'points')   { av = a.points ?? 0; bv = b.points ?? 0; }
     if (av < bv) return sortDir === 'asc' ? -1 : 1;
@@ -250,7 +249,6 @@ export const UsersView: React.FC = () => {
                   {([
                     { key: 'name',     label: "Ім'я / Телефон" },
                     { key: 'isAdmin',  label: 'Роль' },
-                    { key: 'position', label: 'Посада' },
                     { key: 'division', label: 'Підрозділ / Група' },
                     { key: 'points',   label: 'Бали' },
                   ] as { key: SortKey; label: string }[]).map(({ key, label }) => (
@@ -277,13 +275,21 @@ export const UsersView: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                        u.isAdmin ? 'bg-kameya-burgundy/10 text-kameya-burgundy' : 'bg-blue-50 text-blue-700'
+                        u.isAdmin ? 'bg-kameya-burgundy/10 text-kameya-burgundy' : 'bg-slate-100 text-slate-600'
                       }`}>
-                        {u.isAdmin ? 'Адмін' : getDivisionLabel(u.division)}
+                        {u.isAdmin ? 'Адмін' : 'Користувач'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{u.isAdmin ? 'Адміністратор' : (u.position || '—')}</td>
-                    <td className="px-6 py-4 text-slate-600">{getGroupLabel(u.division, u.group) || '—'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        u.division === 'stores'   ? 'bg-green-100 text-green-800' :
+                        u.division === 'office'   ? 'bg-blue-100 text-blue-800' :
+                        u.division === 'security' ? 'bg-slate-700 text-slate-100' :
+                                                    'bg-slate-100 text-slate-500'
+                      }`}>
+                        {u.division ? `${getDivisionLabel(u.division)} / ${getGroupLabel(u.division, u.group) || '—'}` : '—'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
                       {!u.isAdmin ? (
                         <button
