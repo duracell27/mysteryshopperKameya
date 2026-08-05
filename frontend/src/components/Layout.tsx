@@ -15,11 +15,12 @@ interface LayoutProps {
 }
 
 const ADMIN_NAV = [
-  { id: Screen.DASHBOARD,            label: 'Дашборд',             icon: 'fa-house' },
-  { id: Screen.ADMIN_USERS,          label: 'Користувачі',         icon: 'fa-users' },
-  { id: Screen.ADMIN_REPORTS,        label: 'Завантаження звітів', icon: 'fa-file-arrow-up' },
-  { id: Screen.ADMIN_REPORTS_LIST,   label: 'Всі звіти',           icon: 'fa-list-check' },
-  { id: Screen.ADMIN_NOTIFICATIONS,  label: 'Сповіщення',          icon: 'fa-bell' },
+  { id: Screen.DASHBOARD,                 label: 'Дашборд',             icon: 'fa-house' },
+  { id: Screen.ADMIN_USERS,              label: 'Користувачі',         icon: 'fa-users' },
+  { id: Screen.ADMIN_COMPANY_STRUCTURE, label: 'Структура компанії',  icon: 'fa-sitemap' },
+  { id: Screen.ADMIN_REPORTS,            label: 'Завантаження звітів', icon: 'fa-file-arrow-up' },
+  { id: Screen.ADMIN_REPORTS_LIST,       label: 'Всі звіти',           icon: 'fa-list-check' },
+  { id: Screen.ADMIN_NOTIFICATIONS,      label: 'Сповіщення',          icon: 'fa-bell' },
 ];
 
 const EMPLOYEE_NAV = [
