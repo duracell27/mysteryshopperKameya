@@ -199,6 +199,7 @@ export const UsersView: React.FC = () => {
     try {
       const { avatarUrl } = await uploadAvatar(userId, file);
       setUsers(prev => prev.map(u => u._id === userId ? { ...u, avatarUrl } : u));
+      setEditUser(prev => prev && prev._id === userId ? { ...prev, avatarUrl } : prev);
     } catch (err) {
       console.error('Avatar upload failed:', err);
     }
