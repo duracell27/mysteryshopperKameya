@@ -29,7 +29,7 @@ const MODULE_NAV = [
   {
     key: 'mysteryShop' as const,
     label: 'Таємний покупець',
-    icon: 'fa-magnifying-glass',
+    icon: 'fa-user-secret',
     screens: [Screen.DASHBOARD, Screen.MY_REPORTS, Screen.PROGRESS, Screen.TRAINING_PLAN, Screen.AUDIT_DETAILS, Screen.QUIZ],
     items: [
       { id: Screen.DASHBOARD,     label: 'Дашборд',       icon: 'fa-house' },
@@ -165,7 +165,14 @@ export const Layout: React.FC<LayoutProps> = ({
               return (
                 <div key={module.key}>
                   <button
-                    onClick={() => setOpenModule(isOpen ? null : module.key)}
+                    onClick={() => {
+                      if (!isOpen) {
+                        setOpenModule(module.key);
+                        onNavigate(module.items[0].id);
+                      } else {
+                        setOpenModule(null);
+                      }
+                    }}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
                       hasActive ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
                     }`}
@@ -182,7 +189,7 @@ export const Layout: React.FC<LayoutProps> = ({
                         <button
                           key={item.id}
                           onClick={() => onNavigate(item.id)}
-                          className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                          className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors text-sm text-left ${
                             activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
                           }`}
                         >
