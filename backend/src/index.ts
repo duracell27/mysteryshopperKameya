@@ -11,6 +11,7 @@ import reportsRoutes from './routes/reports';
 import tipsRoutes from './routes/tips';
 import notificationsRoutes from './routes/notifications';
 import audioRoutes from './routes/audio';
+import accessMatrixRoutes from './routes/accessMatrix';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -28,6 +29,7 @@ app.use('/api/reports/:reportId/audio', audioRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/tips', tipsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/access-matrix', accessMatrixRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
