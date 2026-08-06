@@ -169,7 +169,7 @@ export const AccessMatrixView: React.FC = () => {
               {MODULE_ROW_LABELS.map((row, idx) => {
                 const rule = getModuleRule(row.division, row.position);
                 return (
-                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-slate-50/50' : ''}>
+                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-kameya-burgundy/5' : ''}>
                     <td className="px-6 py-4 font-medium text-slate-700">{row.label}</td>
                     {MODULE_COLS.map(col => {
                       const isOn = rule?.modules[col.key] ?? false;
@@ -207,7 +207,7 @@ export const AccessMatrixView: React.FC = () => {
               {LEARNING_ROW_LABELS.map((row, idx) => {
                 const rule = getLearningRule(row);
                 return (
-                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-slate-50/50' : ''}>
+                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-kameya-burgundy/5' : ''}>
                     <td className="px-6 py-4 font-medium text-slate-700">{row.label}</td>
                     {LEARNING_COLS.map(col => {
                       const isOn = rule?.sections[col.key] ?? false;
