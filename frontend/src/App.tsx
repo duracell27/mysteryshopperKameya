@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { AccessProvider } from './context/AccessContext';
+import { AccessProvider, useAccess } from './context/AccessContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { TrainingPlanView } from './components/TrainingPlanView';
 import { DevelopmentPlanView } from './components/employee/DevelopmentPlanView';
 import { QuizView } from './components/QuizView';
 import { ProgressView } from './components/ProgressView';
+import { OnboardingView } from './components/onboarding/OnboardingView';
+import { LearningView } from './components/learning/LearningView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { UsersView } from './components/admin/UsersView';
 import { ReportsUploadView } from './components/admin/ReportsUploadView';
@@ -22,8 +24,13 @@ import { MOCK_AUDIT } from './constants';
 import { analyzeAuditResult, generateQuizQuestions } from './services/geminiService';
 import { getUnreadCount, getSystemUnreadCount } from './services/notificationsService';
 
+const MYSTERY_SHOP_SCREENS = new Set([Screen.DASHBOARD, Screen.MY_REPORTS, Screen.PROGRESS, Screen.TRAINING_PLAN, Screen.AUDIT_DETAILS, Screen.QUIZ]);
+const ONBOARDING_SCREENS   = new Set([Screen.ONBOARDING_14, Screen.ONBOARDING_30, Screen.ONBOARDING_60]);
+const LEARNING_SCREENS     = new Set([Screen.LEARNING_GENERAL, Screen.LEARNING_START, Screen.LEARNING_CONSULTANT, Screen.LEARNING_MANAGERS, Screen.LEARNING_MARKETING]);
+
 const AppContent: React.FC = () => {
   const { user, isLoading, logout } = useAuth();
+  const { canMysteryShop, canOnboarding, canLearning, isLoading: accessLoading } = useAccess();
   const isAdmin = user?.isAdmin ?? false;
 
   const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.DASHBOARD);
@@ -56,6 +63,26 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (analysis) localStorage.setItem('kameya_analysis', JSON.stringify(analysis));
   }, [analysis]);
+
+  useEffect(() => {
+    if (!user || isLoading || accessLoading) return;
+    if (user.isAdmin) return;
+
+    const onMystery  = MYSTERY_SHOP_SCREENS.has(currentScreen);
+    const onOnboard  = ONBOARDING_SCREENS.has(currentScreen);
+    const onLearning = LEARNING_SCREENS.has(currentScreen);
+
+    if (onMystery && !canMysteryShop) {
+      if (canOnboarding)  setCurrentScreen(Screen.ONBOARDING_14);
+      else if (canLearning) setCurrentScreen(Screen.LEARNING_GENERAL);
+    } else if (onOnboard && !canOnboarding) {
+      if (canMysteryShop) setCurrentScreen(Screen.DASHBOARD);
+      else if (canLearning) setCurrentScreen(Screen.LEARNING_GENERAL);
+    } else if (onLearning && !canLearning) {
+      if (canMysteryShop) setCurrentScreen(Screen.DASHBOARD);
+      else if (canOnboarding) setCurrentScreen(Screen.ONBOARDING_14);
+    }
+  }, [user, isLoading, accessLoading, canMysteryShop, canOnboarding, canLearning, currentScreen]);
 
   const refreshUnreadCounts = useCallback(() => {
     if (!isAdmin) return;
@@ -177,6 +204,14 @@ const AppContent: React.FC = () => {
         ) : null;
       case Screen.PROGRESS:
         return <ProgressView />;
+      case Screen.ONBOARDING_14: return <OnboardingView track="14" />;
+      case Screen.ONBOARDING_30: return <OnboardingView track="30" />;
+      case Screen.ONBOARDING_60: return <OnboardingView track="60" />;
+      case Screen.LEARNING_GENERAL:    return <LearningView section="general" />;
+      case Screen.LEARNING_START:      return <LearningView section="start" />;
+      case Screen.LEARNING_CONSULTANT: return <LearningView section="consultant" />;
+      case Screen.LEARNING_MANAGERS:   return <LearningView section="managers" />;
+      case Screen.LEARNING_MARKETING:  return <LearningView section="marketing" />;
       default:
         return <Dashboard onNavigate={handleNavigate} onNavigateToAuditDetails={handleNavigateToAuditDetails} />;
     }
