@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AccessProvider } from './context/AccessContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { TrainingPlanView } from './components/TrainingPlanView';
@@ -236,7 +237,9 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => (
   <AuthProvider>
-    <AppContent />
+    <AccessProvider>
+      <AppContent />
+    </AccessProvider>
   </AuthProvider>
 );
 
