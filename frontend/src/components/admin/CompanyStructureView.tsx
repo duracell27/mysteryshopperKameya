@@ -6,10 +6,16 @@ import { ORG_STRUCTURE, getDivisionLabel, getGroupLabel } from '../../config/org
 const DIVISION_ORDER = ['office', 'stores', 'security'] as const;
 type Div = typeof DIVISION_ORDER[number];
 
+function splitName(name: string): { lastName: string; firstName: string } {
+  const parts = name.trim().split(/\s+/);
+  return { lastName: parts[0] ?? '', firstName: parts.slice(1).join(' ') };
+}
+
 // ─── UserCard ──────────────────────────────────────────────────────────────────
 const UserCard: React.FC<{ user: UserListItem; isManager: boolean }> = ({ user, isManager }) => {
   const [imgError, setImgError] = useState(false);
   const initial = (user.name || user.phone).charAt(0).toUpperCase();
+  const { lastName, firstName } = user.name ? splitName(user.name) : { lastName: user.phone, firstName: '' };
 
   return (
     <div
@@ -17,7 +23,7 @@ const UserCard: React.FC<{ user: UserListItem; isManager: boolean }> = ({ user, 
       style={{ width: isManager ? '118px' : '96px' }}
     >
       <div
-        className={`rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-kameya-burgundy/10 ${
+        className={`relative z-0 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-kameya-burgundy/10 transition-all duration-200 hover:scale-[2.2] hover:z-50 hover:shadow-xl cursor-zoom-in ${
           isManager ? 'w-20 h-20' : 'w-14 h-14'
         }`}
       >
@@ -35,9 +41,8 @@ const UserCard: React.FC<{ user: UserListItem; isManager: boolean }> = ({ user, 
         )}
       </div>
       <div className="w-full overflow-hidden">
-        <p className="text-xs font-semibold text-slate-800 leading-tight truncate">
-          {user.name || user.phone}
-        </p>
+        <p className="text-xs font-semibold text-slate-800 leading-tight truncate">{lastName}</p>
+        {firstName && <p className="text-xs font-medium text-slate-600 leading-tight truncate">{firstName}</p>}
         <p className="text-[10px] text-slate-400 mt-0.5 truncate">{user.position}</p>
       </div>
     </div>
