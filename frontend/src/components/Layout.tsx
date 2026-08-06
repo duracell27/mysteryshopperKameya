@@ -103,7 +103,15 @@ export const Layout: React.FC<LayoutProps> = ({
   const isAdmin = user.isAdmin;
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const { canMysteryShop, canOnboarding, canLearning } = useAccess();
+  const { canMysteryShop, canOnboarding, canLearning, learningAccess } = useAccess();
+
+  const LEARNING_SCREEN_SECTION: Partial<Record<Screen, keyof typeof learningAccess>> = {
+    [Screen.LEARNING_GENERAL]:    'general',
+    [Screen.LEARNING_START]:      'start',
+    [Screen.LEARNING_CONSULTANT]: 'consultant',
+    [Screen.LEARNING_MANAGERS]:   'managers',
+    [Screen.LEARNING_MARKETING]:  'marketing',
+  };
 
   const accessMap: Record<ModuleKey, boolean> = {
     mysteryShop: canMysteryShop,
@@ -185,7 +193,11 @@ export const Layout: React.FC<LayoutProps> = ({
                   </button>
                   {isOpen && (
                     <div className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-3">
-                      {module.items.map((item) => (
+                      {module.items.filter(item => {
+                        if (module.key !== 'learning') return true;
+                        const sec = LEARNING_SCREEN_SECTION[item.id as Screen];
+                        return sec ? learningAccess[sec] : true;
+                      }).map((item) => (
                         <button
                           key={item.id}
                           onClick={() => onNavigate(item.id)}

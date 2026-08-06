@@ -4,7 +4,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { connectDB } from './db';
-import { AccessMatrix, DEFAULT_RULES } from './models/AccessMatrix';
+import { AccessMatrix, DEFAULT_RULES, DEFAULT_LEARNING_RULES } from './models/AccessMatrix';
 import authRoutes from './routes/auth';
 import usersRoutes from './routes/users';
 import reportsRoutes from './routes/reports';
@@ -36,8 +36,11 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 connectDB().then(async () => {
   const existing = await AccessMatrix.findOne();
   if (!existing) {
-    await AccessMatrix.create({ rules: DEFAULT_RULES });
+    await AccessMatrix.create({ rules: DEFAULT_RULES, learningRules: DEFAULT_LEARNING_RULES });
     console.log('✅ AccessMatrix seeded with defaults');
+  } else if (!existing.learningRules || existing.learningRules.length === 0) {
+    await AccessMatrix.updateOne({}, { $set: { learningRules: DEFAULT_LEARNING_RULES } });
+    console.log('✅ AccessMatrix learning rules seeded');
   }
   app.listen(PORT, () => {
     console.log(`🚀 Сервер запущено: http://localhost:${PORT}`);
