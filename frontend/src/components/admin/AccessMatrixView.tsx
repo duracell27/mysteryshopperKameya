@@ -168,19 +168,29 @@ export const AccessMatrixView: React.FC = () => {
             <tbody>
               {MODULE_ROW_LABELS.map((row, idx) => {
                 const rule = getModuleRule(row.division, row.position);
+                const showSep = idx > 0 && MODULE_ROW_LABELS[idx - 1].division !== row.division;
                 return (
-                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-slate-50/50' : ''}>
-                    <td className="px-6 py-4 font-medium text-slate-700">{row.label}</td>
-                    {MODULE_COLS.map(col => {
-                      const isOn  = rule?.modules[col.key] ?? false;
-                      const key   = `mod-${row.division}-${row.position}-${col.key}`;
-                      return (
-                        <td key={col.key} className="px-6 py-4 text-center">
-                          <Toggle on={isOn} busy={saving === key} onToggle={() => handleModuleToggle(row.division, row.position, col.key, !isOn)} />
+                  <React.Fragment key={row.label}>
+                    {showSep && (
+                      <tr aria-hidden="true">
+                        <td colSpan={4} className="p-0">
+                          <div className="h-0.5 bg-kameya-burgundy opacity-40" />
                         </td>
-                      );
-                    })}
-                  </tr>
+                      </tr>
+                    )}
+                    <tr className={idx % 2 === 0 ? 'bg-slate-50/50' : ''}>
+                      <td className="px-6 py-4 font-medium text-slate-700">{row.label}</td>
+                      {MODULE_COLS.map(col => {
+                        const isOn = rule?.modules[col.key] ?? false;
+                        const key  = `mod-${row.division}-${row.position}-${col.key}`;
+                        return (
+                          <td key={col.key} className="px-6 py-4 text-center">
+                            <Toggle on={isOn} busy={saving === key} onToggle={() => handleModuleToggle(row.division, row.position, col.key, !isOn)} />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -204,19 +214,29 @@ export const AccessMatrixView: React.FC = () => {
             <tbody>
               {LEARNING_ROW_LABELS.map((row, idx) => {
                 const rule = getLearningRule(row);
+                const showSep = idx > 0 && LEARNING_ROW_LABELS[idx - 1].division !== row.division;
                 return (
-                  <tr key={row.label} className={idx % 2 === 0 ? 'bg-slate-50/50' : ''}>
-                    <td className="px-6 py-4 font-medium text-slate-700">{row.label}</td>
-                    {LEARNING_COLS.map(col => {
-                      const isOn  = rule?.sections[col.key] ?? false;
-                      const key   = `learn-${row.division}-${row.group ?? ''}-${row.position ?? ''}-${col.key}`;
-                      return (
-                        <td key={col.key} className="px-4 py-4 text-center">
-                          <Toggle on={isOn} busy={saving === key} onToggle={() => handleLearningToggle(row, col.key, !isOn)} />
+                  <React.Fragment key={row.label}>
+                    {showSep && (
+                      <tr aria-hidden="true">
+                        <td colSpan={6} className="p-0">
+                          <div className="h-0.5 bg-kameya-burgundy opacity-40" />
                         </td>
-                      );
-                    })}
-                  </tr>
+                      </tr>
+                    )}
+                    <tr className={idx % 2 === 0 ? 'bg-slate-50/50' : ''}>
+                      <td className="px-6 py-4 font-medium text-slate-700">{row.label}</td>
+                      {LEARNING_COLS.map(col => {
+                        const isOn = rule?.sections[col.key] ?? false;
+                        const key  = `learn-${row.division}-${row.group ?? ''}-${row.position ?? ''}-${col.key}`;
+                        return (
+                          <td key={col.key} className="px-4 py-4 text-center">
+                            <Toggle on={isOn} busy={saving === key} onToggle={() => handleLearningToggle(row, col.key, !isOn)} />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </React.Fragment>
                 );
               })}
             </tbody>
