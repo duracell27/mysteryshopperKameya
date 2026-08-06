@@ -128,7 +128,7 @@ export const Layout: React.FC<LayoutProps> = ({
   useEffect(() => {
     const active = MODULE_NAV.find(m => (m.screens as readonly Screen[]).includes(activeScreen));
     if (active && accessMap[active.key]) setOpenModule(active.key);
-  }, [activeScreen]);
+  }, [activeScreen, canMysteryShop, canOnboarding, canLearning]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
