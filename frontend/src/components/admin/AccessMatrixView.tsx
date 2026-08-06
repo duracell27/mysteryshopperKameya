@@ -55,8 +55,10 @@ export const AccessMatrixView: React.FC = () => {
         body: JSON.stringify({ rules: updated }),
       });
       await refreshMatrix();
-    } catch {
-      // revert is handled by refreshMatrix — UI returns to DB state
+    } catch (err) {
+      console.error('Failed to save access matrix:', err);
+      alert('Помилка збереження. Спробуйте ще раз.');
+      await refreshMatrix();
     } finally {
       setSaving(null);
     }
