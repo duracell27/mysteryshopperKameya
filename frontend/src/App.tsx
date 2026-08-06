@@ -15,6 +15,7 @@ import { ReportsUploadView } from './components/admin/ReportsUploadView';
 import { AdminReportsListView } from './components/admin/AdminReportsListView';
 import { AdminNotificationsView } from './components/admin/AdminNotificationsView';
 import { CompanyStructureView } from './components/admin/CompanyStructureView';
+import { AccessMatrixView } from './components/admin/AccessMatrixView';
 import { SystemNotificationsPanel } from './components/admin/SystemNotificationsPanel';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { MyReportsView } from './components/employee/MyReportsView';
@@ -141,6 +142,8 @@ const AppContent: React.FC = () => {
         return <UsersView />;
       case Screen.ADMIN_COMPANY_STRUCTURE:
         return <CompanyStructureView />;
+      case Screen.ADMIN_ACCESS_MATRIX:
+        return <AccessMatrixView />;
       case Screen.ADMIN_REPORTS:
         return <ReportsUploadView />;
       case Screen.ADMIN_REPORTS_LIST:
