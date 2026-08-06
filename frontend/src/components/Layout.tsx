@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Screen, AuthUser } from '../types';
 import { getDivisionLabel, getGroupLabel } from '../config/org-structure';
+import { useAccess } from '../context/AccessContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -23,12 +24,46 @@ const ADMIN_NAV = [
   { id: Screen.ADMIN_NOTIFICATIONS,      label: 'Сповіщення',          icon: 'fa-bell' },
 ];
 
-const EMPLOYEE_NAV = [
-  { id: Screen.DASHBOARD,     label: 'Дашборд',       icon: 'fa-house' },
-  { id: Screen.MY_REPORTS,    label: 'Мої звіти',     icon: 'fa-clipboard-list' },
-  { id: Screen.TRAINING_PLAN, label: 'План розвитку', icon: 'fa-graduation-cap' },
-  { id: Screen.PROGRESS,      label: 'Мій прогрес',   icon: 'fa-trophy' },
-];
+const MODULE_NAV = [
+  {
+    key: 'mysteryShop' as const,
+    label: 'Таємний покупець',
+    icon: 'fa-magnifying-glass',
+    screens: [Screen.DASHBOARD, Screen.MY_REPORTS, Screen.PROGRESS, Screen.TRAINING_PLAN, Screen.AUDIT_DETAILS, Screen.QUIZ],
+    items: [
+      { id: Screen.DASHBOARD,     label: 'Дашборд',       icon: 'fa-house' },
+      { id: Screen.MY_REPORTS,    label: 'Мої звіти',     icon: 'fa-clipboard-list' },
+      { id: Screen.PROGRESS,      label: 'Мій прогрес',   icon: 'fa-trophy' },
+      { id: Screen.TRAINING_PLAN, label: 'План розвитку', icon: 'fa-graduation-cap' },
+    ],
+  },
+  {
+    key: 'onboarding' as const,
+    label: 'Онбординг',
+    icon: 'fa-user-clock',
+    screens: [Screen.ONBOARDING_14, Screen.ONBOARDING_30, Screen.ONBOARDING_60],
+    items: [
+      { id: Screen.ONBOARDING_14, label: '14 днів', icon: 'fa-calendar-days' },
+      { id: Screen.ONBOARDING_30, label: '30 днів', icon: 'fa-calendar-days' },
+      { id: Screen.ONBOARDING_60, label: '60 днів', icon: 'fa-calendar-days' },
+    ],
+  },
+  {
+    key: 'learning' as const,
+    label: 'Навчання',
+    icon: 'fa-book-open',
+    screens: [Screen.LEARNING_GENERAL, Screen.LEARNING_START, Screen.LEARNING_CONSULTANT, Screen.LEARNING_MANAGERS, Screen.LEARNING_MARKETING],
+    items: [
+      { id: Screen.LEARNING_GENERAL,    label: 'Загальний розвиток',    icon: 'fa-seedling' },
+      { id: Screen.LEARNING_START,      label: 'Старт роботи',          icon: 'fa-play' },
+      { id: Screen.LEARNING_CONSULTANT, label: 'Продавець-консультант', icon: 'fa-tag' },
+      { id: Screen.LEARNING_MANAGERS,   label: 'Керівники',             icon: 'fa-crown' },
+      { id: Screen.LEARNING_MARKETING,  label: 'Маркетинг',             icon: 'fa-bullhorn' },
+    ],
+  },
+] as const;
+
+type ModuleKey = typeof MODULE_NAV[number]['key'];
 
 const Badge: React.FC<{ count: number }> = ({ count }) => {
   if (count <= 0) return null;
@@ -65,8 +100,19 @@ export const Layout: React.FC<LayoutProps> = ({
   onChangePassword,
 }) => {
   const isAdmin = user.isAdmin;
-  const navItems = isAdmin ? ADMIN_NAV : EMPLOYEE_NAV;
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const { canMysteryShop, canOnboarding, canLearning } = useAccess();
+
+  const accessMap: Record<ModuleKey, boolean> = {
+    mysteryShop: canMysteryShop,
+    onboarding:  canOnboarding,
+    learning:    canLearning,
+  };
+
+  const visibleModules = MODULE_NAV.filter(m => accessMap[m.key]);
+
+  const [openModule, setOpenModule] = useState<ModuleKey | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,6 +125,11 @@ export const Layout: React.FC<LayoutProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [userMenuOpen]);
 
+  useEffect(() => {
+    const active = MODULE_NAV.find(m => (m.screens as readonly Screen[]).includes(activeScreen));
+    if (active && accessMap[active.key]) setOpenModule(active.key);
+  }, [activeScreen]);
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
       {/* Sidebar для десктопу */}
@@ -87,22 +138,63 @@ export const Layout: React.FC<LayoutProps> = ({
           <img src="/LogoLight.png" alt="Kameya Academy" className="w-full" />
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-2">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
-              }`}
-            >
-              <i className={`fas ${item.icon} w-4 text-center`}></i>
-              <span>{item.label}</span>
-              {item.id === Screen.ADMIN_NOTIFICATIONS && (
-                <Badge count={notificationsUnread} />
-              )}
-            </button>
-          ))}
+        <nav className="flex-1 px-4 py-4 space-y-1">
+          {isAdmin ? (
+            // Admin nav — unchanged flat list
+            ADMIN_NAV.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                }`}
+              >
+                <i className={`fas ${item.icon} w-4 text-center`}></i>
+                <span>{item.label}</span>
+                {item.id === Screen.ADMIN_NOTIFICATIONS && (
+                  <Badge count={notificationsUnread} />
+                )}
+              </button>
+            ))
+          ) : (
+            // Employee accordion nav
+            visibleModules.map((module) => {
+              const isOpen   = openModule === module.key;
+              const hasActive = (module.screens as readonly Screen[]).includes(activeScreen);
+              return (
+                <div key={module.key}>
+                  <button
+                    onClick={() => setOpenModule(isOpen ? null : module.key)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                      hasActive ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <i className={`fas ${module.icon} w-4 text-center`}></i>
+                      <span>{module.label}</span>
+                    </div>
+                    <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-xs opacity-50`}></i>
+                  </button>
+                  {isOpen && (
+                    <div className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-3">
+                      {module.items.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => onNavigate(item.id)}
+                          className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                            activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                          }`}
+                        >
+                          <i className={`fas ${item.icon} w-4 text-center opacity-70`}></i>
+                          <span>{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </nav>
 
         <div className="p-4 border-t border-white/20 bg-black/10">
@@ -155,22 +247,38 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* Мобільна нижня навігація */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-2 z-50">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onNavigate(item.id)}
-            className={`relative px-5 py-2.5 rounded-full transition-all ${
-              activeScreen === item.id ? 'text-kameya-burgundy bg-red-50' : 'text-gray-400'
-            }`}
-          >
-            <i className={`fas ${item.icon} text-lg`}></i>
-            {item.id === Screen.ADMIN_NOTIFICATIONS && notificationsUnread > 0 && (
-              <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
-                {notificationsUnread > 99 ? '99+' : notificationsUnread}
-              </span>
-            )}
-          </button>
-        ))}
+        {isAdmin ? (
+          ADMIN_NAV.slice(0, 5).map((item) => (
+            <button
+              key={item.id}
+              onClick={() => onNavigate(item.id)}
+              className={`relative px-4 py-2.5 rounded-full transition-all ${
+                activeScreen === item.id ? 'text-kameya-burgundy bg-red-50' : 'text-gray-400'
+              }`}
+            >
+              <i className={`fas ${item.icon} text-lg`}></i>
+              {item.id === Screen.ADMIN_NOTIFICATIONS && notificationsUnread > 0 && (
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                  {notificationsUnread > 99 ? '99+' : notificationsUnread}
+                </span>
+              )}
+            </button>
+          ))
+        ) : (
+          visibleModules.map((module) => (
+            <button
+              key={module.key}
+              onClick={() => onNavigate(module.items[0].id)}
+              className={`relative px-5 py-2.5 rounded-full transition-all ${
+                (module.screens as readonly Screen[]).includes(activeScreen)
+                  ? 'text-kameya-burgundy bg-red-50'
+                  : 'text-gray-400'
+              }`}
+            >
+              <i className={`fas ${module.icon} text-lg`}></i>
+            </button>
+          ))
+        )}
       </nav>
 
       <main className="flex-1 overflow-auto pb-20 md:pb-0">
