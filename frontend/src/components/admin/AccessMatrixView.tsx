@@ -198,6 +198,8 @@ export const AccessMatrixView: React.FC = () => {
         </div>
       </div>
 
+      <div className="h-0.5 bg-kameya-burgundy opacity-40 rounded-full" />
+
       {/* Learning sections table */}
       <div>
         <h2 className="text-base font-semibold text-slate-700 mb-3">Доступ до розділів навчання</h2>
