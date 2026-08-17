@@ -253,6 +253,7 @@ export interface OnboardingAiReport {
 
 export interface OnboardingTrainee {
   id: string;
+  userId: string;
   name: string;
   position: string;
   startDate: string;

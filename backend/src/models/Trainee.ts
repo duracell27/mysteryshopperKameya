@@ -73,7 +73,8 @@ traineeSchema.methods.toPublic = function (
 
   if (elapsed < 0) {
     return {
-      id: this._id.toString(), name: populatedUser.name, position: populatedUser.position,
+      id: this._id.toString(), userId: this.user.toString(),
+      name: populatedUser.name, position: populatedUser.position,
       startDate: this.startDate, currentDay: null, isCompleted: false, days: [], aiReports: [],
     };
   }
@@ -90,6 +91,7 @@ traineeSchema.methods.toPublic = function (
 
   return {
     id: this._id.toString(),
+    userId: this.user.toString(),
     name: populatedUser.name,
     position: populatedUser.position,
     startDate: this.startDate,

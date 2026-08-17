@@ -64,9 +64,7 @@ export const AdminOnboardingView: React.FC = () => {
   const selectedTrainee = trainees.find((t) => t.id === selectedTraineeId) ?? null;
   const selectedPlan = dayPlans.find((p) => p.day === selectedPlanDay) ?? null;
 
-  const traineeUserIds = new Set(
-    trainees.map((t) => users.find((u) => u.name === t.name)?._id).filter(Boolean),
-  );
+  const traineeUserIds = new Set(trainees.map((t) => t.userId));
   const availableUsers = users.filter((u) => !u.isAdmin && !traineeUserIds.has(u._id));
 
   const handleAddTrainee = async () => {

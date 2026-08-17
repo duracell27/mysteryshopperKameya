@@ -9,7 +9,7 @@ interface OnboardingViewProps {
   track: '14' | '30' | '60';
 }
 
-export const OnboardingView: React.FC<OnboardingViewProps> = () => {
+export const OnboardingView: React.FC<OnboardingViewProps> = ({ track }) => {
   const [trainee, setTrainee] = useState<OnboardingTrainee | null>(null);
   const [loading, setLoading] = useState(true);
   const [noProfile, setNoProfile] = useState(false);
@@ -73,6 +73,18 @@ export const OnboardingView: React.FC<OnboardingViewProps> = () => {
   const completedDays = trainee.days.filter(
     (d) => d.tasks.length > 0 && d.tasks.every((t) => t.completed),
   ).length;
+
+  if (track !== '14') {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-kameya-burgundy/10 flex items-center justify-center mb-4">
+          <i className="fas fa-user-clock text-2xl text-kameya-burgundy" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Онбординг — {track} днів</h2>
+        <p className="text-slate-400 text-sm">Розділ в розробці</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
