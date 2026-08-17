@@ -34,3 +34,11 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     return res.status(401).json({ message: 'Невалідний токен' });
   }
 };
+
+export const adminOnly = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (!req.user?.isAdmin) {
+    res.status(403).json({ message: 'Доступ заборонено' });
+    return;
+  }
+  next();
+};
