@@ -87,15 +87,23 @@ export const AdminOnboardingView: React.FC = () => {
 
   const handleDeleteTrainee = async (id: string) => {
     if (!confirm('Видалити профіль стажера? Прогрес буде втрачено.')) return;
-    await deleteTrainee(id);
-    setTrainees((prev) => prev.filter((t) => t.id !== id));
-    setSelectedTraineeId(null);
+    try {
+      await deleteTrainee(id);
+      setTrainees((prev) => prev.filter((t) => t.id !== id));
+      setSelectedTraineeId(null);
+    } catch (err: unknown) {
+      alert('Помилка: ' + (err instanceof Error ? err.message : 'невідома помилка'));
+    }
   };
 
   const handleUpdateStartDate = async (id: string, date: string) => {
-    const updated = await updateTraineeStartDate(id, date);
-    setTrainees((prev) => prev.map((t) => (t.id === id ? updated : t)));
-    setEditStartDate(null);
+    try {
+      const updated = await updateTraineeStartDate(id, date);
+      setTrainees((prev) => prev.map((t) => (t.id === id ? updated : t)));
+      setEditStartDate(null);
+    } catch (err: unknown) {
+      alert('Помилка: ' + (err instanceof Error ? err.message : 'невідома помилка'));
+    }
   };
 
   const handleAnalyze = async (trainee: OnboardingTrainee) => {
@@ -133,28 +141,44 @@ export const AdminOnboardingView: React.FC = () => {
   };
 
   const handleToggleHoliday = async (day: number, current: boolean) => {
-    const updated = await setDayHoliday(day, !current);
-    setDayPlans((prev) => prev.map((p) => (p.day === day ? updated : p)));
+    try {
+      const updated = await setDayHoliday(day, !current);
+      setDayPlans((prev) => prev.map((p) => (p.day === day ? updated : p)));
+    } catch (err: unknown) {
+      alert('Помилка: ' + (err instanceof Error ? err.message : 'невідома помилка'));
+    }
   };
 
   const handleAddTask = async () => {
     if (!selectedPlanDay || !newTask.title.trim()) return;
-    const updated = await addTask(selectedPlanDay, newTask);
-    setDayPlans((prev) => prev.map((p) => (p.day === selectedPlanDay ? updated : p)));
-    setNewTask({ title: '', description: '', type: 'other' });
+    try {
+      const updated = await addTask(selectedPlanDay, newTask);
+      setDayPlans((prev) => prev.map((p) => (p.day === selectedPlanDay ? updated : p)));
+      setNewTask({ title: '', description: '', type: 'other' });
+    } catch (err: unknown) {
+      alert('Помилка: ' + (err instanceof Error ? err.message : 'невідома помилка'));
+    }
   };
 
   const handleSaveTask = async (taskId: string) => {
     if (!selectedPlanDay) return;
-    const updated = await updateTask(selectedPlanDay, taskId, editTaskData);
-    setDayPlans((prev) => prev.map((p) => (p.day === selectedPlanDay ? updated : p)));
-    setEditTaskId(null);
+    try {
+      const updated = await updateTask(selectedPlanDay, taskId, editTaskData);
+      setDayPlans((prev) => prev.map((p) => (p.day === selectedPlanDay ? updated : p)));
+      setEditTaskId(null);
+    } catch (err: unknown) {
+      alert('Помилка: ' + (err instanceof Error ? err.message : 'невідома помилка'));
+    }
   };
 
   const handleDeleteTask = async (taskId: string) => {
     if (!selectedPlanDay) return;
-    const updated = await deleteTask(selectedPlanDay, taskId);
-    setDayPlans((prev) => prev.map((p) => (p.day === selectedPlanDay ? updated : p)));
+    try {
+      const updated = await deleteTask(selectedPlanDay, taskId);
+      setDayPlans((prev) => prev.map((p) => (p.day === selectedPlanDay ? updated : p)));
+    } catch (err: unknown) {
+      alert('Помилка: ' + (err instanceof Error ? err.message : 'невідома помилка'));
+    }
   };
 
   return (
@@ -246,7 +270,7 @@ export const AdminOnboardingView: React.FC = () => {
                   <p className="text-xs text-slate-400 mt-0.5">{t.position}</p>
                   <div className="mt-2 h-1.5 bg-slate-100 rounded-full">
                     <div
-                      className={`h-full rounded-full ${t.isCompleted ? 'bg-green-500' : 'bg-kameya-burgundy'}`}
+                      className="h-full rounded-full bg-kameya-burgundy"
                       style={{ width: `${Math.round(((t.currentDay ?? 0) / 14) * 100)}%` }}
                     />
                   </div>
@@ -519,11 +543,11 @@ export const AdminOnboardingView: React.FC = () => {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full mr-2
-                                ${task.type === 'theory' ? 'bg-blue-100 text-blue-700' :
-                                  task.type === 'practice' ? 'bg-green-100 text-green-700' :
-                                  task.type === 'meeting' ? 'bg-purple-100 text-purple-700' :
-                                  task.type === 'observation' ? 'bg-amber-100 text-amber-700' :
-                                  'bg-slate-100 text-slate-600'}`}>
+                                ${task.type === 'theory' ? 'bg-kameya-burgundy/10 text-kameya-burgundy' :
+                                  task.type === 'practice' ? 'bg-slate-100 text-slate-600' :
+                                  task.type === 'meeting' ? 'bg-amber-100 text-amber-700' :
+                                  task.type === 'observation' ? 'bg-slate-100 text-slate-500' :
+                                  'bg-slate-100 text-slate-500'}`}>
                                 {TYPE_LABELS[task.type]}
                               </span>
                               <span className="text-sm font-medium text-slate-800">{task.title}</span>
