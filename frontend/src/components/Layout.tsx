@@ -23,6 +23,7 @@ const ADMIN_NAV = [
   { id: Screen.ADMIN_REPORTS,            label: 'Завантаження звітів', icon: 'fa-file-arrow-up' },
   { id: Screen.ADMIN_REPORTS_LIST,       label: 'Всі звіти',           icon: 'fa-list-check' },
   { id: Screen.ADMIN_NOTIFICATIONS,      label: 'Сповіщення',          icon: 'fa-bell' },
+  { id: Screen.ADMIN_ONBOARDING,         label: 'Онбординг',           icon: 'fa-user-clock' },
 ];
 
 const MODULE_NAV = [

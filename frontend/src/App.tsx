@@ -14,6 +14,7 @@ import { UsersView } from './components/admin/UsersView';
 import { ReportsUploadView } from './components/admin/ReportsUploadView';
 import { AdminReportsListView } from './components/admin/AdminReportsListView';
 import { AdminNotificationsView } from './components/admin/AdminNotificationsView';
+import { AdminOnboardingView } from './components/admin/AdminOnboardingView';
 import { CompanyStructureView } from './components/admin/CompanyStructureView';
 import { AccessMatrixView } from './components/admin/AccessMatrixView';
 import { SystemNotificationsPanel } from './components/admin/SystemNotificationsPanel';
@@ -155,6 +156,8 @@ const AppContent: React.FC = () => {
             onMarkReadDecrement={() => setNotificationsUnread(c => Math.max(0, c - 1))}
           />
         );
+      case Screen.ADMIN_ONBOARDING:
+        return <AdminOnboardingView />;
       default:
         return <AdminDashboard />;
     }
