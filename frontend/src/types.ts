@@ -21,6 +21,7 @@ export enum Screen {
   LEARNING_MARKETING  = 'LEARNING_MARKETING',
   // Admin
   ADMIN_ACCESS_MATRIX = 'ADMIN_ACCESS_MATRIX',
+  ADMIN_ONBOARDING = 'ADMIN_ONBOARDING',
   MY_REPORTS = 'MY_REPORTS',
 }
 
@@ -216,4 +217,63 @@ export interface SystemLogEntry {
   ip: string | null;
   isRead: boolean;
   createdAt: string;
+}
+
+// ── Onboarding 14 ───────────────────────────────────────────────────────────
+
+export interface OnboardingTask {
+  id: string;
+  title: string;
+  description: string;
+  type: 'theory' | 'practice' | 'meeting' | 'observation' | 'other';
+  completed: boolean;
+}
+
+export interface OnboardingReflection {
+  q1: number; q2: number; q3: number;
+  q4: string; q5: number;
+  comments: string;
+  submittedAt: string;
+}
+
+export interface OnboardingDay {
+  day: number;
+  isHoliday: boolean;
+  isPreview: boolean;
+  tasks: OnboardingTask[];
+  reflection?: OnboardingReflection;
+}
+
+export interface OnboardingAiReport {
+  id: string;
+  analysis: string;
+  daysCount: number;
+  createdAt: string;
+}
+
+export interface OnboardingTrainee {
+  id: string;
+  name: string;
+  position: string;
+  startDate: string;
+  endDate?: string;
+  currentDay: number | null;
+  isCompleted: boolean;
+  days: OnboardingDay[];
+  aiReports: OnboardingAiReport[];
+}
+
+// Для адмін-управління планом (без прогресу стажера)
+export interface AdminOnboardingTaskItem {
+  _id: string;
+  title: string;
+  description: string;
+  type: 'theory' | 'practice' | 'meeting' | 'observation' | 'other';
+}
+
+export interface AdminDayPlan {
+  _id: string;
+  day: number;
+  isHoliday: boolean;
+  tasks: AdminOnboardingTaskItem[];
 }
