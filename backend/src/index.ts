@@ -12,6 +12,7 @@ import tipsRoutes from './routes/tips';
 import notificationsRoutes from './routes/notifications';
 import audioRoutes from './routes/audio';
 import accessMatrixRoutes from './routes/accessMatrix';
+import dayplanRoutes from './routes/dayplan';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +31,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/tips', tipsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/access-matrix', accessMatrixRoutes);
+app.use('/api/dayplans', dayplanRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
