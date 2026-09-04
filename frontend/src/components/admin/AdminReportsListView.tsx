@@ -96,12 +96,12 @@ export const AdminReportsListView: React.FC<AdminReportsListViewProps> = ({ init
   }, [selected?._id, selected?.id]);
 
   const getUserName = (r: ReportWithUser) => {
-    if (typeof r.userId === 'object') return r.userId.name;
+    if (r.userId && typeof r.userId === 'object') return r.userId.name;
     return '—';
   };
 
   const getUserPhone = (r: ReportWithUser) => {
-    if (typeof r.userId === 'object') return toDisplay(r.userId.phone);
+    if (r.userId && typeof r.userId === 'object') return toDisplay(r.userId.phone);
     return '';
   };
 
