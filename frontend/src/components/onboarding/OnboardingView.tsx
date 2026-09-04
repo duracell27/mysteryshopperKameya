@@ -14,7 +14,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ track }) => {
   const [loading, setLoading] = useState(true);
   const [noProfile, setNoProfile] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [showReflection, setShowReflection] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +50,54 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ track }) => {
 
   if (!trainee) return null;
 
+  const daysUntilStart = Math.ceil((new Date(trainee.startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+  if (daysUntilStart > 0) {
+    const startFormatted = new Date(trainee.startDate).toLocaleDateString('uk-UA', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    });
+    return (
+      <div className="max-w-lg mx-auto px-4 py-12 flex flex-col items-center text-center gap-6">
+        <div className="w-20 h-20 rounded-2xl bg-kameya-burgundy/10 flex items-center justify-center">
+          <i className="fas fa-gem text-3xl text-kameya-burgundy" />
+        </div>
+
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-1">
+            Привіт, {trainee.name}!
+          </h2>
+          <p className="text-slate-500 text-sm leading-relaxed">
+            Вітаємо в <span className="font-semibold text-kameya-burgundy">Камея</span>.<br />
+            Твоє стажування скоро розпочнеться — ми раді бачити тебе серед нас.
+          </p>
+        </div>
+
+        <div className="w-full bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-500">Початок стажування</span>
+            <span className="text-sm font-semibold text-slate-800">{startFormatted}</span>
+          </div>
+          <div className="border-t border-slate-100" />
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-500">Залишилось</span>
+            <span className="text-sm font-bold text-kameya-burgundy">
+              {daysUntilStart} {daysUntilStart === 1 ? 'день' : daysUntilStart < 5 ? 'дні' : 'днів'}
+            </span>
+          </div>
+          <div className="border-t border-slate-100" />
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-500">Тривалість</span>
+            <span className="text-sm font-semibold text-slate-800">14 днів</span>
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-400 leading-relaxed max-w-xs">
+          Ти отримаєш завдання та план на кожен день. Заходь сюди з першого дня стажування.
+        </p>
+      </div>
+    );
+  }
+
   const activeDayData = trainee.days.find((d) => d.day === selectedDay);
 
   const handleToggle = async (taskId: string) => {
@@ -67,12 +114,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ track }) => {
     if (selectedDay === null) return;
     const updated = await submitReflection(selectedDay, data);
     setTrainee(updated);
-    setShowReflection(false);
   };
-
-  const completedDays = trainee.days.filter(
-    (d) => d.tasks.length > 0 && d.tasks.every((t) => t.completed),
-  ).length;
 
   if (track !== '14') {
     return (
@@ -87,75 +129,46 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ track }) => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-      {/* Заголовок */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h2 className="text-lg font-bold text-slate-800">Онбординг 14 днів</h2>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {trainee.isCompleted
-                ? 'Стажування завершено'
-                : `День ${trainee.currentDay ?? '—'} з ${trainee.days.length}`}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-kameya-burgundy">{completedDays}</p>
-            <p className="text-xs text-slate-400">днів виконано</p>
-          </div>
-        </div>
-        {/* Прогрес-бар */}
-        <div className="mt-4 h-2 bg-slate-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-kameya-burgundy rounded-full transition-all"
-            style={{ width: `${Math.round((completedDays / trainee.days.length) * 100)}%` }}
-          />
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+      {/* Стрічка днів — по центру */}
+      <div className="flex justify-center">
+        <div className="flex gap-2 overflow-x-auto pb-1 max-w-full">
+          {trainee.days.map((d) => (
+            <DayCard
+              key={d.day}
+              dayPlan={d}
+              isActive={selectedDay === d.day}
+              isToday={d.day === trainee.currentDay}
+              onClick={() => {
+                if (!d.isPreview) setSelectedDay(d.day);
+              }}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Стрічка днів */}
-      <div className="flex gap-3 overflow-x-auto pb-2">
-        {trainee.days.map((d) => (
-          <DayCard
-            key={d.day}
-            dayPlan={d}
-            isActive={selectedDay === d.day}
-            isToday={d.day === trainee.currentDay}
-            onClick={() => {
-              if (!d.isPreview) {
-                setSelectedDay(d.day);
-                setShowReflection(false);
-              }
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Деталі дня */}
+      {/* Двоколонковий layout */}
       {activeDayData && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-800">
-              День {activeDayData.day}
-              {activeDayData.isHoliday && (
-                <span className="ml-2 text-xs font-normal text-slate-400">· Відпочинок</span>
-              )}
-            </h3>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
 
-          {activeDayData.isPreview ? (
-            <div className="bg-slate-50 rounded-xl p-4 text-center text-sm text-slate-400">
-              <i className="fas fa-lock mr-2" />
-              Цей день ще не настав
-            </div>
-          ) : activeDayData.isHoliday ? (
-            <div className="bg-kameya-burgundy/5 rounded-xl p-6 text-center">
-              <i className="fas fa-sun text-2xl text-kameya-burgundy mb-2 block" />
-              <p className="text-sm font-medium text-slate-600">День відпочинку — нікого завдань</p>
-            </div>
-          ) : (
-            <>
-              {/* Задачі */}
+          {/* Ліво: задачі */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
+            <h3 className="text-sm font-bold text-slate-700">
+              День {activeDayData.day}
+              {activeDayData.isHoliday && <span className="ml-2 text-xs font-normal text-slate-400">· Відпочинок</span>}
+            </h3>
+
+            {activeDayData.isPreview ? (
+              <div className="py-8 text-center text-sm text-slate-400">
+                <i className="fas fa-lock mr-2" />
+                Цей день ще не настав
+              </div>
+            ) : activeDayData.isHoliday ? (
+              <div className="py-8 text-center">
+                <i className="fas fa-sun text-2xl text-kameya-burgundy mb-2 block" />
+                <p className="text-sm font-medium text-slate-600">День відпочинку — ніяких завдань</p>
+              </div>
+            ) : (
               <div className="space-y-2">
                 {activeDayData.tasks.map((task) => (
                   <TaskItem
@@ -166,56 +179,19 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ track }) => {
                   />
                 ))}
                 {activeDayData.tasks.length === 0 && (
-                  <p className="text-sm text-slate-400 text-center py-4">Завдань для цього дня не додано</p>
+                  <p className="text-sm text-slate-400 text-center py-6">Завдань для цього дня не додано</p>
                 )}
               </div>
+            )}
+          </div>
 
-              {/* Рефлексія */}
-              <div className="pt-2">
-                {showReflection ? (
-                  <ReflectionForm
-                    existing={activeDayData.reflection}
-                    onSubmit={handleReflection}
-                    onCancel={() => setShowReflection(false)}
-                  />
-                ) : activeDayData.reflection ? (
-                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-semibold text-slate-700">Рефлексія заповнена</span>
-                      <button
-                        onClick={() => setShowReflection(true)}
-                        className="text-xs text-kameya-burgundy hover:underline"
-                      >
-                        Редагувати
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-4 gap-3 text-center">
-                      {(['q1','q2','q3','q5'] as const).map((key) => (
-                        <div key={key} className="bg-white rounded-lg p-2 border border-slate-100">
-                          <p className="text-xl font-bold text-kameya-burgundy">
-                            {activeDayData.reflection![key]}
-                          </p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">з 5</p>
-                        </div>
-                      ))}
-                    </div>
-                    {activeDayData.reflection.comments && (
-                      <p className="text-xs text-slate-500 mt-3 italic">
-                        "{activeDayData.reflection.comments}"
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowReflection(true)}
-                    className="w-full py-3 rounded-xl border-2 border-dashed border-kameya-burgundy/30 text-sm text-kameya-burgundy font-medium hover:bg-kameya-burgundy/5 transition-colors"
-                  >
-                    <i className="fas fa-pen-to-square mr-2" />
-                    Заповнити рефлексію дня
-                  </button>
-                )}
-              </div>
-            </>
+          {/* Право: рефлексія — завжди відкрита */}
+          {!activeDayData.isPreview && (
+            <ReflectionForm
+              key={activeDayData.day}
+              existing={activeDayData.reflection}
+              onSubmit={handleReflection}
+            />
           )}
         </div>
       )}

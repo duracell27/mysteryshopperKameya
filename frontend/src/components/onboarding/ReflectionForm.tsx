@@ -5,7 +5,7 @@ import { OnboardingReflection } from '../../types';
 interface ReflectionFormProps {
   existing?: OnboardingReflection;
   onSubmit: (data: ReflectionPayload) => Promise<void>;
-  onCancel: () => void;
+  onCancel?: () => void;
 }
 
 const RATING_QUESTIONS: { key: keyof Pick<ReflectionPayload, 'q1'|'q2'|'q3'|'q5'>; label: string }[] = [
@@ -18,17 +18,17 @@ const RATING_QUESTIONS: { key: keyof Pick<ReflectionPayload, 'q1'|'q2'|'q3'|'q5'
 function RatingRow({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
     <div>
-      <p className="text-sm font-medium text-slate-700 mb-2">{label}</p>
+      <p className="text-xs font-medium text-slate-600 mb-2">{label}</p>
       <div className="flex gap-2">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
             type="button"
             onClick={() => onChange(n)}
-            className={`w-10 h-10 rounded-lg border-2 text-sm font-bold transition-all
+            className={`w-9 h-9 rounded-full border-2 text-sm font-bold transition-all
               ${value === n
-                ? 'bg-kameya-burgundy border-kameya-burgundy text-white'
-                : 'border-slate-200 text-slate-500 hover:border-kameya-burgundy/50'}`}
+                ? 'bg-kameya-burgundy border-kameya-burgundy text-white shadow-sm'
+                : 'border-slate-200 text-slate-400 hover:border-kameya-burgundy/50 hover:text-kameya-burgundy'}`}
           >
             {n}
           </button>
@@ -40,11 +40,11 @@ function RatingRow({ label, value, onChange }: { label: string; value: number; o
 
 export const ReflectionForm: React.FC<ReflectionFormProps> = ({ existing, onSubmit, onCancel }) => {
   const [form, setForm] = useState<ReflectionPayload>({
-    q1: existing?.q1 ?? 0,
-    q2: existing?.q2 ?? 0,
-    q3: existing?.q3 ?? 0,
+    q1: existing?.q1 ?? 3,
+    q2: existing?.q2 ?? 3,
+    q3: existing?.q3 ?? 3,
     q4: existing?.q4 ?? '',
-    q5: existing?.q5 ?? 0,
+    q5: existing?.q5 ?? 3,
     comments: existing?.comments ?? '',
   });
   const [saving, setSaving] = useState(false);
@@ -69,10 +69,8 @@ export const ReflectionForm: React.FC<ReflectionFormProps> = ({ existing, onSubm
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
-      <h3 className="text-base font-bold text-slate-800">
-        {existing ? 'Оновити рефлексію' : 'Рефлексія дня'}
-      </h3>
+    <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+      <h3 className="text-sm font-bold text-slate-700">Рефлексія дня</h3>
 
       {RATING_QUESTIONS.map((q) => (
         <RatingRow
@@ -84,7 +82,7 @@ export const ReflectionForm: React.FC<ReflectionFormProps> = ({ existing, onSubm
       ))}
 
       <div>
-        <label className="text-sm font-medium text-slate-700 block mb-1">
+        <label className="text-xs font-medium text-slate-600 block mb-1">
           Що тебе стресувало або дивувало сьогодні?
         </label>
         <textarea
@@ -97,7 +95,7 @@ export const ReflectionForm: React.FC<ReflectionFormProps> = ({ existing, onSubm
       </div>
 
       <div>
-        <label className="text-sm font-medium text-slate-700 block mb-1">Коментар</label>
+        <label className="text-xs font-medium text-slate-600 block mb-1">Коментар</label>
         <textarea
           value={form.comments}
           onChange={(e) => setForm((f) => ({ ...f, comments: e.target.value }))}
@@ -107,24 +105,15 @@ export const ReflectionForm: React.FC<ReflectionFormProps> = ({ existing, onSubm
         />
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-xs text-red-500">{error}</p>}
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={saving}
-          className="flex-1 bg-kameya-burgundy text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-60"
-        >
-          {saving ? 'Збереження...' : existing ? 'Оновити' : 'Зберегти'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50"
-        >
-          Скасувати
-        </button>
-      </div>
+      <button
+        type="submit"
+        disabled={saving}
+        className="w-full bg-kameya-burgundy text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-60"
+      >
+        {saving ? 'Збереження...' : existing ? 'Оновити рефлексію' : 'Зберегти рефлексію'}
+      </button>
     </form>
   );
 };
