@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import multer from 'multer';
 import path from 'path';
 import { User } from '../models/User';
+import { Trainee } from '../models/Trainee';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { sendSms } from '../services/sms';
 import { PointsTransaction } from '../models/PointsTransaction';
@@ -101,6 +102,14 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       console.error('[SMS] Не вдалось надіслати:', smsError);
     }
 
+    if (user.position === 'Початківець консультант') {
+      try {
+        await Trainee.create({ user: user._id, startDate: new Date(), days: [] });
+      } catch (traineeError) {
+        console.error('[Trainee] Не вдалось створити профіль стажера:', traineeError);
+      }
+    }
+
     return res.status(201).json({
       _id:      user._id,
       phone:    user.phone,
@@ -148,6 +157,17 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 
     const user = await User.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, select: '-password' });
     if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+
+    if (position === 'Початківець консультант') {
+      try {
+        const exists = await Trainee.findOne({ user: user._id });
+        if (!exists) {
+          await Trainee.create({ user: user._id, startDate: new Date(), days: [] });
+        }
+      } catch (traineeError) {
+        console.error('[Trainee] Не вдалось створити профіль стажера:', traineeError);
+      }
+    }
 
     return res.json(user);
   } catch (error) {
