@@ -67,6 +67,17 @@ export const AdminOnboardingView: React.FC = () => {
   const traineeUserIds = new Set(trainees.map((t) => t.userId));
   const availableUsers = users.filter((u) => !u.isAdmin && !traineeUserIds.has(u._id));
 
+  const totalPlanTasks = dayPlans.reduce((sum, p) => sum + p.tasks.length, 0);
+
+  const sortedTrainees = [...trainees].sort((a, b) => {
+    if (a.isCompleted !== b.isCompleted) return a.isCompleted ? 1 : -1;
+    const now = new Date();
+    const aFuture = new Date(a.startDate) > now;
+    const bFuture = new Date(b.startDate) > now;
+    if (aFuture !== bFuture) return aFuture ? -1 : 1;
+    return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+  });
+
   const handleAddTrainee = async () => {
     if (!addUserId) return;
     setAddLoading(true);
@@ -253,31 +264,92 @@ export const AdminOnboardingView: React.FC = () => {
               <div className="text-center py-6 text-slate-400 text-sm">Завантаження...</div>
             ) : trainees.length === 0 ? (
               <div className="text-center py-6 text-slate-400 text-sm">Стажерів ще немає</div>
-            ) : (
-              trainees.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setSelectedTraineeId(t.id)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all ${
-                    selectedTraineeId === t.id
-                      ? 'border-kameya-burgundy bg-kameya-burgundy/5'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <p className="text-sm font-semibold text-slate-800">{t.name}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{t.position}</p>
-                  <div className="mt-2 h-1.5 bg-slate-100 rounded-full">
-                    <div
-                      className="h-full rounded-full bg-kameya-burgundy"
-                      style={{ width: `${Math.round(((t.currentDay ?? 0) / 14) * 100)}%` }}
-                    />
+            ) : (() => {
+                const now = new Date();
+                const upcoming = sortedTrainees.filter((t) => !t.isCompleted && new Date(t.startDate) > now);
+                const active   = sortedTrainees.filter((t) => !t.isCompleted && new Date(t.startDate) <= now);
+                const done     = sortedTrainees.filter((t) => t.isCompleted);
+
+                const renderCard = (t: typeof sortedTrainees[0], isFuture: boolean) => {
+                  const completedTasks = t.days.reduce((sum, d) => sum + d.tasks.filter((tk) => tk.completed).length, 0);
+                  const progress = totalPlanTasks > 0 ? Math.round((completedTasks / totalPlanTasks) * 100) : 0;
+                  const startStr = new Date(t.startDate).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
+                  const endDate = t.endDate ? new Date(t.endDate) : new Date(new Date(t.startDate).getTime() + 14 * 24 * 60 * 60 * 1000);
+                  const endStr = endDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setSelectedTraineeId(t.id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${
+                        selectedTraineeId === t.id
+                          ? 'border-kameya-burgundy bg-kameya-burgundy/5'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                          t.isCompleted ? 'bg-green-100 text-green-700' :
+                          isFuture ? 'bg-amber-100 text-amber-700' :
+                          'bg-kameya-burgundy/10 text-kameya-burgundy'
+                        }`}>
+                          {t.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('')}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{t.name}</p>
+                            <span className="text-[11px] text-slate-400 shrink-0">{progress}%</span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {startStr} — {endStr}
+                            {isFuture && (() => {
+                              const days = Math.ceil((new Date(t.startDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                              return <span className="ml-1.5 text-amber-600 font-medium">· через {days} {days === 1 ? 'день' : days < 5 ? 'дні' : 'днів'}</span>;
+                            })()}
+                          </p>
+                          <div className="mt-1.5 h-1 bg-slate-100 rounded-full">
+                            <div
+                              className={`h-full rounded-full transition-all ${t.isCompleted ? 'bg-green-500' : isFuture ? 'bg-amber-400' : 'bg-kameya-burgundy'}`}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                };
+
+                const SectionLabel = ({ label, count, color }: { label: string; count: number; color: string }) => (
+                  <div className={`flex items-center gap-2 px-1 pt-1 pb-0.5`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${color}`} />
+                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">{label}</span>
+                    <span className="text-[11px] text-slate-300 font-medium">{count}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    {t.isCompleted ? 'Завершено' : `День ${t.currentDay ?? '—'} / 14`}
-                  </p>
-                </button>
-              ))
-            )}
+                );
+
+                return (
+                  <>
+                    {upcoming.length > 0 && (
+                      <>
+                        <SectionLabel label="Очікують" count={upcoming.length} color="bg-amber-400" />
+                        {upcoming.map((t) => renderCard(t, true))}
+                      </>
+                    )}
+                    {active.length > 0 && (
+                      <>
+                        <SectionLabel label="Проходять" count={active.length} color="bg-kameya-burgundy" />
+                        {active.map((t) => renderCard(t, false))}
+                      </>
+                    )}
+                    {done.length > 0 && (
+                      <>
+                        <SectionLabel label="Завершили" count={done.length} color="bg-green-500" />
+                        {done.map((t) => renderCard(t, false))}
+                      </>
+                    )}
+                  </>
+                );
+              })()
+            }
           </div>
 
           {/* Деталі стажера */}
@@ -309,9 +381,11 @@ export const AdminOnboardingView: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => setEditStartDate({ id: selectedTrainee.id, value: new Date(selectedTrainee.startDate).toISOString().slice(0, 10) })}
-                          className="text-xs text-slate-400 mt-1 hover:text-kameya-burgundy"
+                          className="inline-flex items-center gap-1.5 mt-1.5 text-xs text-slate-500 bg-slate-100 hover:bg-kameya-burgundy/10 hover:text-kameya-burgundy px-2.5 py-1 rounded-lg transition-colors"
                         >
+                          <i className="fas fa-calendar-alt text-[10px]" />
                           Початок: {new Date(selectedTrainee.startDate).toLocaleDateString('uk-UA')}
+                          <i className="fas fa-pen text-[9px] opacity-60" />
                         </button>
                       )}
                     </div>
@@ -486,21 +560,24 @@ export const AdminOnboardingView: React.FC = () => {
                 <div className="bg-white rounded-2xl border border-slate-200 p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-base font-bold text-slate-800">День {selectedPlan.day}</h3>
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedPlan.isHoliday}
-                          onChange={() => handleToggleHoliday(selectedPlan.day, selectedPlan.isHoliday)}
-                          className="accent-kameya-burgundy"
-                        />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleHoliday(selectedPlan.day, selectedPlan.isHoliday)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                          selectedPlan.isHoliday
+                            ? 'bg-amber-50 border-amber-300 text-amber-700'
+                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                        }`}
+                      >
+                        <i className={`fas fa-umbrella-beach text-[10px] ${selectedPlan.isHoliday ? 'text-amber-500' : 'text-slate-400'}`} />
                         Вихідний
-                      </label>
+                      </button>
                       <button
                         onClick={() => handleDeleteDay(selectedPlan.day)}
-                        className="text-xs text-red-400 hover:text-red-600"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 text-red-500 bg-white hover:bg-red-50 hover:border-red-300 transition-all"
                       >
-                        <i className="fas fa-trash" /> Видалити день
+                        <i className="fas fa-trash text-[10px]" />
+                        Видалити
                       </button>
                     </div>
                   </div>
@@ -541,10 +618,10 @@ export const AdminOnboardingView: React.FC = () => {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full mr-2
-                                ${task.type === 'theory' ? 'bg-kameya-burgundy/10 text-kameya-burgundy' :
-                                  task.type === 'practice' ? 'bg-slate-100 text-slate-600' :
+                                ${task.type === 'theory' ? 'bg-violet-100 text-violet-700' :
+                                  task.type === 'practice' ? 'bg-emerald-100 text-emerald-700' :
                                   task.type === 'meeting' ? 'bg-amber-100 text-amber-700' :
-                                  task.type === 'observation' ? 'bg-slate-100 text-slate-500' :
+                                  task.type === 'observation' ? 'bg-sky-100 text-sky-700' :
                                   'bg-slate-100 text-slate-500'}`}>
                                 {TYPE_LABELS[task.type]}
                               </span>
