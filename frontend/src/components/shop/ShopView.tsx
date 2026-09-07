@@ -121,9 +121,9 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate }) => {
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                         : 'bg-kameya-burgundy text-white hover:bg-kameya-burgundy/90'
                     }`}
-                    title={noPoints ? 'Недостатньо балів' : outOfStock ? 'Немає в наявності' : ''}
+                    title={outOfStock ? 'Немає в наявності' : noPoints ? 'Недостатньо балів' : ''}
                   >
-                    {noPoints && !outOfStock ? 'Недостатньо балів' : 'Замовити'}
+                    {outOfStock ? 'Немає в наявності' : noPoints ? 'Недостатньо балів' : 'Замовити'}
                   </button>
                 </div>
               </div>
