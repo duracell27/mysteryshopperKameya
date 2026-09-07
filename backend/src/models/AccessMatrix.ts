@@ -7,6 +7,7 @@ export interface IAccessRule {
     mysteryShop: boolean;
     onboarding:  boolean;
     learning:    boolean;
+    shop:        boolean;
   };
 }
 
@@ -35,6 +36,7 @@ const AccessRuleSchema = new Schema<IAccessRule>({
     mysteryShop: { type: Boolean, default: false },
     onboarding:  { type: Boolean, default: false },
     learning:    { type: Boolean, default: true  },
+    shop:        { type: Boolean, default: false },
   },
 }, { _id: false });
 
@@ -59,13 +61,13 @@ const AccessMatrixSchema = new Schema<IAccessMatrix>({
 export const AccessMatrix = mongoose.model<IAccessMatrix>('AccessMatrix', AccessMatrixSchema);
 
 export const DEFAULT_RULES: IAccessRule[] = [
-  { division: 'stores',   position: 'Початківець консультант', modules: { mysteryShop: false, onboarding: true,  learning: true } },
-  { division: 'stores',   position: 'Консультант',             modules: { mysteryShop: true,  onboarding: false, learning: true } },
-  { division: 'stores',   position: 'Керівник',                modules: { mysteryShop: true,  onboarding: false, learning: true } },
-  { division: 'office',   position: 'Співробітник',            modules: { mysteryShop: false, onboarding: false, learning: true } },
-  { division: 'office',   position: 'Керівник',                modules: { mysteryShop: false, onboarding: false, learning: true } },
-  { division: 'security', position: 'Охоронець',               modules: { mysteryShop: false, onboarding: false, learning: true } },
-  { division: 'security', position: 'Керівник',                modules: { mysteryShop: false, onboarding: false, learning: true } },
+  { division: 'stores',   position: 'Початківець консультант', modules: { mysteryShop: false, onboarding: true,  learning: true, shop: false } },
+  { division: 'stores',   position: 'Консультант',             modules: { mysteryShop: true,  onboarding: false, learning: true, shop: false } },
+  { division: 'stores',   position: 'Керівник',                modules: { mysteryShop: true,  onboarding: false, learning: true, shop: false } },
+  { division: 'office',   position: 'Співробітник',            modules: { mysteryShop: false, onboarding: false, learning: true, shop: false } },
+  { division: 'office',   position: 'Керівник',                modules: { mysteryShop: false, onboarding: false, learning: true, shop: false } },
+  { division: 'security', position: 'Охоронець',               modules: { mysteryShop: false, onboarding: false, learning: true, shop: false } },
+  { division: 'security', position: 'Керівник',                modules: { mysteryShop: false, onboarding: false, learning: true, shop: false } },
 ];
 
 // group: 'other' means all office groups except 'marketing'
