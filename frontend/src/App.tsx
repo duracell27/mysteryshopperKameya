@@ -15,6 +15,10 @@ import { ReportsUploadView } from './components/admin/ReportsUploadView';
 import { AdminReportsListView } from './components/admin/AdminReportsListView';
 import { AdminNotificationsView } from './components/admin/AdminNotificationsView';
 import { AdminOnboardingView } from './components/admin/AdminOnboardingView';
+import { ShopView } from './components/shop/ShopView';
+import { MyOrdersView } from './components/shop/MyOrdersView';
+import { AdminShopProductsView } from './components/shop/AdminShopProductsView';
+import { AdminShopOrdersView } from './components/shop/AdminShopOrdersView';
 import { CompanyStructureView } from './components/admin/CompanyStructureView';
 import { AccessMatrixView } from './components/admin/AccessMatrixView';
 import { SystemNotificationsPanel } from './components/admin/SystemNotificationsPanel';
@@ -25,14 +29,16 @@ import { Screen, AIAnalysisResult, AuditResult, QuizQuestion } from './types';
 import { MOCK_AUDIT } from './constants';
 import { analyzeAuditResult, generateQuizQuestions } from './services/geminiService';
 import { getUnreadCount, getSystemUnreadCount } from './services/notificationsService';
+import { getPendingOrdersCount } from './services/shopOrdersService';
 
 const MYSTERY_SHOP_SCREENS = new Set([Screen.DASHBOARD, Screen.MY_REPORTS, Screen.PROGRESS, Screen.TRAINING_PLAN, Screen.AUDIT_DETAILS, Screen.QUIZ]);
 const ONBOARDING_SCREENS   = new Set([Screen.ONBOARDING_14, Screen.ONBOARDING_30, Screen.ONBOARDING_60]);
 const LEARNING_SCREENS     = new Set([Screen.LEARNING_GENERAL, Screen.LEARNING_START, Screen.LEARNING_CONSULTANT, Screen.LEARNING_MANAGERS, Screen.LEARNING_MARKETING]);
+const SHOP_SCREENS         = new Set([Screen.SHOP, Screen.MY_ORDERS]);
 
 const AppContent: React.FC = () => {
-  const { user, isLoading, logout } = useAuth();
-  const { canMysteryShop, canOnboarding, canLearning, isLoading: accessLoading } = useAccess();
+  const { user, isLoading, logout, updatePoints } = useAuth();
+  const { canMysteryShop, canOnboarding, canLearning, canShop, isLoading: accessLoading } = useAccess();
   const isAdmin = user?.isAdmin ?? false;
 
   const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.DASHBOARD);
@@ -46,6 +52,7 @@ const AppContent: React.FC = () => {
   // Notifications state (admin only)
   const [notificationsUnread, setNotificationsUnread] = useState(0);
   const [systemUnread, setSystemUnread] = useState(0);
+  const [shopOrdersPending, setShopOrdersPending] = useState(0);
   const [systemPanelOpen, setSystemPanelOpen] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [selectedReportAction, setSelectedReportAction] = useState<string | null>(null);
@@ -73,6 +80,7 @@ const AppContent: React.FC = () => {
     const onMystery  = MYSTERY_SHOP_SCREENS.has(currentScreen);
     const onOnboard  = ONBOARDING_SCREENS.has(currentScreen);
     const onLearning = LEARNING_SCREENS.has(currentScreen);
+    const onShop     = SHOP_SCREENS.has(currentScreen);
 
     if (onMystery && !canMysteryShop) {
       if (canOnboarding)  setCurrentScreen(Screen.ONBOARDING_14);
@@ -83,13 +91,18 @@ const AppContent: React.FC = () => {
     } else if (onLearning && !canLearning) {
       if (canMysteryShop) setCurrentScreen(Screen.DASHBOARD);
       else if (canOnboarding) setCurrentScreen(Screen.ONBOARDING_14);
+    } else if (onShop && !canShop) {
+      if (canMysteryShop) setCurrentScreen(Screen.DASHBOARD);
+      else if (canOnboarding) setCurrentScreen(Screen.ONBOARDING_14);
+      else setCurrentScreen(Screen.LEARNING_GENERAL);
     }
-  }, [user, isLoading, accessLoading, canMysteryShop, canOnboarding, canLearning, currentScreen]);
+  }, [user, isLoading, accessLoading, canMysteryShop, canOnboarding, canLearning, canShop, currentScreen]);
 
   const refreshUnreadCounts = useCallback(() => {
     if (!isAdmin) return;
     getUnreadCount().then(setNotificationsUnread).catch(() => {});
     getSystemUnreadCount().then(setSystemUnread).catch(() => {});
+    getPendingOrdersCount().then(setShopOrdersPending).catch(() => {});
   }, [isAdmin]);
 
   useEffect(() => {
@@ -158,6 +171,10 @@ const AppContent: React.FC = () => {
         );
       case Screen.ADMIN_ONBOARDING:
         return <AdminOnboardingView />;
+      case Screen.ADMIN_SHOP_PRODUCTS:
+        return <AdminShopProductsView />;
+      case Screen.ADMIN_SHOP_ORDERS:
+        return <AdminShopOrdersView />;
       default:
         return <AdminDashboard />;
     }
@@ -218,6 +235,10 @@ const AppContent: React.FC = () => {
       case Screen.LEARNING_CONSULTANT: return <LearningView section="consultant" />;
       case Screen.LEARNING_MANAGERS:   return <LearningView section="managers" />;
       case Screen.LEARNING_MARKETING:  return <LearningView section="marketing" />;
+      case Screen.SHOP:
+        return <ShopView onPointsUpdate={(pts) => updatePoints(pts)} />;
+      case Screen.MY_ORDERS:
+        return <MyOrdersView />;
       default:
         return <Dashboard onNavigate={handleNavigate} onNavigateToAuditDetails={handleNavigateToAuditDetails} />;
     }
@@ -231,6 +252,7 @@ const AppContent: React.FC = () => {
       onLogout={logout}
       notificationsUnread={notificationsUnread}
       systemUnread={systemUnread}
+      shopOrdersPending={shopOrdersPending}
       onOpenSystemPanel={() => setSystemPanelOpen(true)}
       onChangePassword={() => setChangePasswordOpen(true)}
     >

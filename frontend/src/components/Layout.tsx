@@ -11,6 +11,7 @@ interface LayoutProps {
   onLogout: () => void;
   notificationsUnread?: number;
   systemUnread?: number;
+  shopOrdersPending?: number;
   onOpenSystemPanel?: () => void;
   onChangePassword?: () => void;
 }
@@ -24,6 +25,8 @@ const ADMIN_NAV = [
   { id: Screen.ADMIN_REPORTS_LIST,       label: 'Всі звіти',           icon: 'fa-list-check' },
   { id: Screen.ADMIN_NOTIFICATIONS,      label: 'Сповіщення',          icon: 'fa-bell' },
   { id: Screen.ADMIN_ONBOARDING,         label: 'Онбординг',           icon: 'fa-user-clock' },
+  { id: Screen.ADMIN_SHOP_PRODUCTS,      label: 'Товари магазину',     icon: 'fa-store' },
+  { id: Screen.ADMIN_SHOP_ORDERS,        label: 'Замовлення',          icon: 'fa-shopping-bag' },
 ];
 
 const MODULE_NAV = [
@@ -63,6 +66,16 @@ const MODULE_NAV = [
       { id: Screen.LEARNING_MARKETING,  label: 'Маркетинг',             icon: 'fa-bullhorn' },
     ],
   },
+  {
+    key: 'shop' as const,
+    label: 'Магазин',
+    icon: 'fa-store',
+    screens: [Screen.SHOP, Screen.MY_ORDERS],
+    items: [
+      { id: Screen.SHOP,      label: 'Каталог товарів', icon: 'fa-tags' },
+      { id: Screen.MY_ORDERS, label: 'Мої замовлення',  icon: 'fa-box' },
+    ],
+  },
 ] as const;
 
 type ModuleKey = typeof MODULE_NAV[number]['key'];
@@ -98,13 +111,14 @@ export const Layout: React.FC<LayoutProps> = ({
   onLogout,
   notificationsUnread = 0,
   systemUnread = 0,
+  shopOrdersPending = 0,
   onOpenSystemPanel,
   onChangePassword,
 }) => {
   const isAdmin = user.isAdmin;
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const { canMysteryShop, canOnboarding, canLearning, learningAccess } = useAccess();
+  const { canMysteryShop, canOnboarding, canLearning, canShop, learningAccess } = useAccess();
 
   const LEARNING_SCREEN_SECTION: Partial<Record<Screen, keyof typeof learningAccess>> = {
     [Screen.LEARNING_GENERAL]:    'general',
@@ -118,6 +132,7 @@ export const Layout: React.FC<LayoutProps> = ({
     mysteryShop: canMysteryShop,
     onboarding:  canOnboarding,
     learning:    canLearning,
+    shop:        canShop,
   };
 
   const visibleModules = MODULE_NAV.filter(m => accessMap[m.key]);
@@ -138,7 +153,7 @@ export const Layout: React.FC<LayoutProps> = ({
   useEffect(() => {
     const active = MODULE_NAV.find(m => (m.screens as readonly Screen[]).includes(activeScreen));
     if (active && accessMap[active.key]) setOpenModule(active.key);
-  }, [activeScreen, canMysteryShop, canOnboarding, canLearning]);
+  }, [activeScreen, canMysteryShop, canOnboarding, canLearning, canShop]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
@@ -163,6 +178,9 @@ export const Layout: React.FC<LayoutProps> = ({
                 <span>{item.label}</span>
                 {item.id === Screen.ADMIN_NOTIFICATIONS && (
                   <Badge count={notificationsUnread} />
+                )}
+                {item.id === Screen.ADMIN_SHOP_ORDERS && (
+                  <Badge count={shopOrdersPending} />
                 )}
               </button>
             ))

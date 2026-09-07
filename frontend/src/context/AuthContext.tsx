@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (phone: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (patch: Partial<AuthUser>) => void;
+  updatePoints: (points: number) => void;
   isLoading: boolean;
 }
 
@@ -51,6 +52,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
+  const updatePoints = useCallback((points: number) => {
+    setUser(prev => prev ? { ...prev, points } : prev);
+  }, []);
+
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
@@ -64,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, updatePoints, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
