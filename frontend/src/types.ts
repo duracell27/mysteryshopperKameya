@@ -23,6 +23,11 @@ export enum Screen {
   ADMIN_ACCESS_MATRIX = 'ADMIN_ACCESS_MATRIX',
   ADMIN_ONBOARDING = 'ADMIN_ONBOARDING',
   MY_REPORTS = 'MY_REPORTS',
+  // Shop
+  SHOP                = 'SHOP',
+  MY_ORDERS           = 'MY_ORDERS',
+  ADMIN_SHOP_PRODUCTS = 'ADMIN_SHOP_PRODUCTS',
+  ADMIN_SHOP_ORDERS   = 'ADMIN_SHOP_ORDERS',
 }
 
 export interface AuditQuestion {
@@ -113,7 +118,7 @@ export interface UserListItem {
   avatarUrl?: string | null;
 }
 
-export type TransactionReason = 'score' | 'reflection' | 'streak' | 'reflection_penalty' | 'learning_plan_manual';
+export type TransactionReason = 'score' | 'reflection' | 'streak' | 'reflection_penalty' | 'learning_plan_manual' | 'shop_purchase' | 'shop_refund';
 
 export interface PointsTransaction {
   _id: string;
@@ -277,4 +282,31 @@ export interface AdminDayPlan {
   day: number;
   isHoliday: boolean;
   tasks: AdminOnboardingTaskItem[];
+}
+
+// ── Shop ─────────────────────────────────────────────────────────────────────
+
+export type OrderStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface ShopProduct {
+  _id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  price: number;
+  quantity: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface ShopOrder {
+  _id: string;
+  userId: string | { _id: string; name: string; phone: string };
+  productId: string;
+  productSnapshot: { name: string; price: number; imageUrl: string };
+  pointsSpent: number;
+  status: OrderStatus;
+  adminNote?: string;
+  createdAt: string;
+  updatedAt: string;
 }
