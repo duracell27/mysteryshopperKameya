@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ShopProduct } from '../../types';
 import { getShopProducts } from '../../services/shopProductsService';
 import { placeOrder } from '../../services/shopOrdersService';
@@ -135,8 +136,9 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
       )}
 
       {/* Confirm modal */}
-      {confirmProduct && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      {confirmProduct && createPortal(
+        <div className="fixed inset-0 z-[200] overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
             <h3 className="text-xl font-bold text-slate-800">Підтвердження замовлення</h3>
             <p className="text-slate-600">
@@ -162,7 +164,9 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
               </button>
             </div>
           </div>
-        </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
