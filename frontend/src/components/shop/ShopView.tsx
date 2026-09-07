@@ -95,7 +95,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate }) => {
               >
                 <div className="h-44 bg-slate-100 flex items-center justify-center overflow-hidden">
                   {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain" />
                   ) : (
                     <i className="fas fa-image text-4xl text-slate-300" />
                   )}
