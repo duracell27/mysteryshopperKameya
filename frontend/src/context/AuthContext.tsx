@@ -53,7 +53,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const updatePoints = useCallback((points: number) => {
-    setUser(prev => prev ? { ...prev, points } : prev);
+    setUser(prev => {
+      if (!prev) return prev;
+      const next = { ...prev, points };
+      localStorage.setItem('kameya_user', JSON.stringify(next));
+      return next;
+    });
   }, []);
 
   const logout = useCallback(() => {
