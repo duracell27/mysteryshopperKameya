@@ -20,11 +20,12 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
 export const MyOrdersView: React.FC = () => {
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getMyOrders()
       .then(setOrders)
-      .catch(() => {})
+      .catch(() => { setError('Не вдалося завантажити замовлення'); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -36,6 +37,11 @@ export const MyOrdersView: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl">
+          {error} <button className="ml-2 underline" onClick={() => setError(null)}>×</button>
+        </div>
+      )}
       <header>
         <h2 className="text-3xl font-bold text-slate-800">Мої замовлення</h2>
         <p className="text-slate-500 mt-1">Історія ваших замовлень у магазині</p>

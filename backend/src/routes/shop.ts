@@ -78,13 +78,18 @@ router.post('/products', adminOnly, (req: AuthRequest, res: Response) => {
         name: string; description: string; price: string; quantity: string;
       };
       if (!name || !price) return res.status(400).json({ message: 'Назва і ціна обовʼязкові' });
+      const parsedPrice = parseInt(price, 10);
+      const parsedQty = parseInt(quantity ?? '0', 10);
+      if (isNaN(parsedPrice) || parsedPrice < 1) {
+        return res.status(400).json({ message: 'Ціна має бути цілим числом більше 0' });
+      }
       const imageUrl = req.file ? `/uploads/products/${req.file.filename}` : '';
       const product = await ShopProduct.create({
         name,
         description: description ?? '',
         imageUrl,
-        price: parseInt(price, 10),
-        quantity: parseInt(quantity ?? '0', 10),
+        price: parsedPrice,
+        quantity: parsedQty,
       });
       return res.status(201).json(product);
     } catch {
@@ -158,7 +163,9 @@ router.post('/orders', async (req: AuthRequest, res: Response) => {
   try {
     if (!(await checkShopAccess(req))) return res.status(403).json({ message: 'Доступ заборонено' });
     const { productId } = req.body as { productId: string };
-    if (!productId) return res.status(400).json({ message: 'productId обовʼязковий' });
+    if (!productId || !/^[a-f\d]{24}$/i.test(productId)) {
+      return res.status(400).json({ message: 'Невалідний productId' });
+    }
 
     const product = await ShopProduct.findById(productId);
     if (!product || !product.isActive) return res.status(404).json({ message: 'Товар не знайдено або недоступний' });
@@ -264,10 +271,11 @@ router.put('/orders/:id/status', adminOnly, async (req: AuthRequest, res: Respon
     const order = await ShopOrder.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Замовлення не знайдено' });
 
+    if (order.status === 'cancelled' || order.status === 'completed') {
+      return res.status(400).json({ message: 'Не можна змінити статус завершеного або скасованого замовлення' });
+    }
+
     if (status === 'cancelled') {
-      if (order.status === 'completed' || order.status === 'cancelled') {
-        return res.status(400).json({ message: 'Не можна змінити статус цього замовлення' });
-      }
       const user = await User.findById(order.userId);
       if (user) {
         user.points += order.pointsSpent;
