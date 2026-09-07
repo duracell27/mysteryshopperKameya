@@ -52,7 +52,7 @@ router.use(authMiddleware);
 router.get('/products', async (req: AuthRequest, res: Response) => {
   try {
     if (!(await checkShopAccess(req))) return res.status(403).json({ message: 'Доступ заборонено' });
-    const products = await ShopProduct.find({ isActive: true }).sort({ createdAt: -1 });
+    const products = await ShopProduct.find({ isActive: true }).sort({ price: 1 });
     return res.json(products);
   } catch {
     return res.status(500).json({ message: 'Помилка сервера' });
@@ -62,7 +62,7 @@ router.get('/products', async (req: AuthRequest, res: Response) => {
 // GET /api/shop/products/all — admin: all products
 router.get('/products/all', adminOnly, async (_req: AuthRequest, res: Response) => {
   try {
-    const products = await ShopProduct.find().sort({ createdAt: -1 });
+    const products = await ShopProduct.find().sort({ price: 1 });
     return res.json(products);
   } catch {
     return res.status(500).json({ message: 'Помилка сервера' });
