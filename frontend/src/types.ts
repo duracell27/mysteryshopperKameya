@@ -26,6 +26,7 @@ export enum Screen {
   // Shop
   SHOP                = 'SHOP',
   MY_ORDERS           = 'MY_ORDERS',
+  ADMIN_SHOP          = 'ADMIN_SHOP',
   ADMIN_SHOP_PRODUCTS = 'ADMIN_SHOP_PRODUCTS',
   ADMIN_SHOP_ORDERS   = 'ADMIN_SHOP_ORDERS',
 }

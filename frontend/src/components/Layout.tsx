@@ -25,8 +25,7 @@ const ADMIN_NAV = [
   { id: Screen.ADMIN_REPORTS_LIST,       label: 'Всі звіти',           icon: 'fa-list-check' },
   { id: Screen.ADMIN_NOTIFICATIONS,      label: 'Сповіщення',          icon: 'fa-bell' },
   { id: Screen.ADMIN_ONBOARDING,         label: 'Онбординг',           icon: 'fa-user-clock' },
-  { id: Screen.ADMIN_SHOP_PRODUCTS,      label: 'Товари магазину',     icon: 'fa-store' },
-  { id: Screen.ADMIN_SHOP_ORDERS,        label: 'Замовлення',          icon: 'fa-shopping-bag' },
+  { id: Screen.ADMIN_SHOP,               label: 'Магазин',             icon: 'fa-store' },
 ];
 
 const MODULE_NAV = [
@@ -179,7 +178,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 {item.id === Screen.ADMIN_NOTIFICATIONS && (
                   <Badge count={notificationsUnread} />
                 )}
-                {item.id === Screen.ADMIN_SHOP_ORDERS && (
+                {item.id === Screen.ADMIN_SHOP && (
                   <Badge count={shopOrdersPending} />
                 )}
               </button>
