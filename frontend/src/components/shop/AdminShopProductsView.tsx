@@ -197,8 +197,9 @@ export const AdminShopProductsView: React.FC = () => {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 my-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-slate-800 mb-4">
               {editingProduct ? 'Редагувати товар' : 'Додати товар'}
             </h3>
@@ -273,6 +274,7 @@ export const AdminShopProductsView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
           </div>
         </div>
       )}
