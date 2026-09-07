@@ -11,6 +11,13 @@ import {
 type ProductForm = { name: string; description: string; price: string; quantity: string };
 const EMPTY_FORM: ProductForm = { name: '', description: '', price: '', quantity: '0' };
 
+const UAH_PER_POINT = 2;
+const uahToPoints = (uah: string): string => {
+  const v = parseFloat(uah);
+  if (isNaN(v) || v <= 0) return '';
+  return String(Math.round(v / UAH_PER_POINT));
+};
+
 export const AdminShopProductsView: React.FC = () => {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +25,7 @@ export const AdminShopProductsView: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [priceUah, setPriceUah] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -35,18 +43,21 @@ export const AdminShopProductsView: React.FC = () => {
   const openCreate = () => {
     setEditingProduct(null);
     setForm(EMPTY_FORM);
+    setPriceUah('');
     setImageFile(null);
     setShowForm(true);
   };
 
   const openEdit = (p: ShopProduct) => {
     setEditingProduct(p);
+    const uah = String(p.price * UAH_PER_POINT);
+    setPriceUah(uah);
     setForm({ name: p.name, description: p.description, price: String(p.price), quantity: String(p.quantity) });
     setImageFile(null);
     setShowForm(true);
   };
 
-  const closeForm = () => { setShowForm(false); setEditingProduct(null); setForm(EMPTY_FORM); setImageFile(null); setError(null); };
+  const closeForm = () => { setShowForm(false); setEditingProduct(null); setForm(EMPTY_FORM); setPriceUah(''); setImageFile(null); setError(null); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,8 +197,8 @@ export const AdminShopProductsView: React.FC = () => {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/40 flex items-start justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 my-auto">
             <h3 className="text-xl font-bold text-slate-800 mb-4">
               {editingProduct ? 'Редагувати товар' : 'Додати товар'}
             </h3>
@@ -208,23 +219,34 @@ export const AdminShopProductsView: React.FC = () => {
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 resize-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Ціна (бали) *</label>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Ціна в грн *</label>
+                <div className="flex items-center gap-3">
                   <input
-                    required type="number" min="1" value={form.price}
-                    onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30"
+                    required type="number" min="1" value={priceUah}
+                    onChange={e => {
+                      setPriceUah(e.target.value);
+                      setForm(f => ({ ...f, price: uahToPoints(e.target.value) }));
+                    }}
+                    placeholder="190"
+                    className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30"
                   />
+                  <span className="text-sm text-slate-500 whitespace-nowrap">
+                    {form.price ? (
+                      <span className="font-semibold text-kameya-burgundy">= {form.price} балів</span>
+                    ) : (
+                      <span className="text-slate-300">= — балів</span>
+                    )}
+                  </span>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Кількість</label>
-                  <input
-                    required type="number" min="0" value={form.quantity}
-                    onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30"
-                  />
-                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Кількість</label>
+                <input
+                  required type="number" min="0" value={form.quantity}
+                  onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
