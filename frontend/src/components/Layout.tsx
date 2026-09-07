@@ -25,7 +25,13 @@ const ADMIN_NAV = [
   { id: Screen.ADMIN_REPORTS_LIST,       label: 'Всі звіти',           icon: 'fa-list-check' },
   { id: Screen.ADMIN_NOTIFICATIONS,      label: 'Сповіщення',          icon: 'fa-bell' },
   { id: Screen.ADMIN_ONBOARDING,         label: 'Онбординг',           icon: 'fa-user-clock' },
-  { id: Screen.ADMIN_SHOP,               label: 'Магазин',             icon: 'fa-store' },
+];
+
+const ADMIN_SHOP_SCREENS = new Set([Screen.ADMIN_SHOP_PRODUCTS, Screen.ADMIN_SHOP_ORDERS, Screen.ADMIN_SHOP]);
+const ADMIN_SHOP_ITEMS = [
+  { id: Screen.ADMIN_SHOP_PRODUCTS, label: 'Товари',          icon: 'fa-boxes-stacked' },
+  { id: Screen.ADMIN_SHOP_ORDERS,   label: 'Замовлення',      icon: 'fa-shopping-bag'  },
+  { id: Screen.ADMIN_SHOP,          label: 'Вигляд магазину', icon: 'fa-eye'           },
 ];
 
 const MODULE_NAV = [
@@ -137,6 +143,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const visibleModules = MODULE_NAV.filter(m => accessMap[m.key]);
 
   const [openModule, setOpenModule] = useState<ModuleKey | null>(null);
+  const [adminShopOpen, setAdminShopOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -154,6 +161,10 @@ export const Layout: React.FC<LayoutProps> = ({
     if (active && accessMap[active.key]) setOpenModule(active.key);
   }, [activeScreen, canMysteryShop, canOnboarding, canLearning, canShop]);
 
+  useEffect(() => {
+    if (ADMIN_SHOP_SCREENS.has(activeScreen)) setAdminShopOpen(true);
+  }, [activeScreen]);
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
       {/* Sidebar для десктопу */}
@@ -164,25 +175,60 @@ export const Layout: React.FC<LayoutProps> = ({
 
         <nav className="flex-1 px-4 py-4 space-y-1">
           {isAdmin ? (
-            // Admin nav — unchanged flat list
-            ADMIN_NAV.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
-                }`}
-              >
-                <i className={`fas ${item.icon} w-4 text-center`}></i>
-                <span>{item.label}</span>
-                {item.id === Screen.ADMIN_NOTIFICATIONS && (
-                  <Badge count={notificationsUnread} />
+            <>
+              {ADMIN_NAV.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => onNavigate(item.id)}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                    activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                  }`}
+                >
+                  <i className={`fas ${item.icon} w-4 text-center`}></i>
+                  <span>{item.label}</span>
+                  {item.id === Screen.ADMIN_NOTIFICATIONS && (
+                    <Badge count={notificationsUnread} />
+                  )}
+                </button>
+              ))}
+              {/* Магазин — accordion */}
+              <div>
+                <button
+                  onClick={() => setAdminShopOpen(o => !o)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                    ADMIN_SHOP_SCREENS.has(activeScreen) ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <i className="fas fa-store w-4 text-center"></i>
+                    <span>Магазин</span>
+                    {shopOrdersPending > 0 && !adminShopOpen && (
+                      <Badge count={shopOrdersPending} />
+                    )}
+                  </div>
+                  <i className={`fas fa-chevron-${adminShopOpen ? 'up' : 'down'} text-xs opacity-50`}></i>
+                </button>
+                {adminShopOpen && (
+                  <div className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-3">
+                    {ADMIN_SHOP_ITEMS.map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => onNavigate(item.id)}
+                        className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors text-sm text-left ${
+                          activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                        }`}
+                      >
+                        <i className={`fas ${item.icon} w-4 text-center opacity-70`}></i>
+                        <span>{item.label}</span>
+                        {item.id === Screen.ADMIN_SHOP_ORDERS && (
+                          <Badge count={shopOrdersPending} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 )}
-                {item.id === Screen.ADMIN_SHOP && (
-                  <Badge count={shopOrdersPending} />
-                )}
-              </button>
-            ))
+              </div>
+            </>
           ) : (
             // Employee accordion nav
             visibleModules.map((module) => {

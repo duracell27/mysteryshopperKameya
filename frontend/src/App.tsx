@@ -17,7 +17,8 @@ import { AdminNotificationsView } from './components/admin/AdminNotificationsVie
 import { AdminOnboardingView } from './components/admin/AdminOnboardingView';
 import { ShopView } from './components/shop/ShopView';
 import { MyOrdersView } from './components/shop/MyOrdersView';
-import { AdminShopView } from './components/shop/AdminShopView';
+import { AdminShopProductsView } from './components/shop/AdminShopProductsView';
+import { AdminShopOrdersView } from './components/shop/AdminShopOrdersView';
 import { CompanyStructureView } from './components/admin/CompanyStructureView';
 import { AccessMatrixView } from './components/admin/AccessMatrixView';
 import { SystemNotificationsPanel } from './components/admin/SystemNotificationsPanel';
@@ -170,8 +171,12 @@ const AppContent: React.FC = () => {
         );
       case Screen.ADMIN_ONBOARDING:
         return <AdminOnboardingView />;
+      case Screen.ADMIN_SHOP_PRODUCTS:
+        return <AdminShopProductsView />;
+      case Screen.ADMIN_SHOP_ORDERS:
+        return <AdminShopOrdersView />;
       case Screen.ADMIN_SHOP:
-        return <AdminShopView pendingCount={shopOrdersPending} onPointsUpdate={updatePoints} />;
+        return <ShopView onPointsUpdate={updatePoints} />;
       default:
         return <AdminDashboard />;
     }
