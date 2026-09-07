@@ -81,7 +81,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate }) => {
           <p>Товари відсутні</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map(product => {
             const outOfStock = product.quantity === 0;
             const noPoints   = (user?.points ?? 0) < product.price;
@@ -93,7 +93,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate }) => {
                   outOfStock ? 'opacity-60 grayscale' : 'border-slate-100'
                 }`}
               >
-                <div className="aspect-square bg-slate-100 flex items-center justify-center overflow-hidden">
+                <div className="h-44 bg-white flex items-center justify-center overflow-hidden border-b border-slate-100">
                   {product.imageUrl ? (
                     <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain" />
                   ) : (
