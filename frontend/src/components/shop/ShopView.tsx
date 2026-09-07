@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 
 interface ShopViewProps {
   onPointsUpdate: (newPoints: number) => void;
+  pointsOverride?: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -13,8 +14,9 @@ const STATUS_COLORS: Record<string, string> = {
   unavailable: 'bg-slate-100 text-slate-500',
 };
 
-export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate }) => {
+export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverride }) => {
   const { user } = useAuth();
+  const displayPoints = pointsOverride !== undefined ? pointsOverride : (user?.points ?? 0);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmProduct, setConfirmProduct] = useState<ShopProduct | null>(null);
@@ -59,7 +61,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate }) => {
       <header>
         <h2 className="text-3xl font-bold text-slate-800">Магазин винагород</h2>
         <p className="text-slate-500 mt-1">
-          Ваш баланс: <span className="font-semibold text-kameya-burgundy">{user?.points ?? 0} балів</span>
+          Ваш баланс: <span className="font-semibold text-kameya-burgundy">{displayPoints} балів</span>
         </p>
       </header>
 
@@ -84,7 +86,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {products.map(product => {
             const outOfStock = product.quantity === 0;
-            const noPoints   = (user?.points ?? 0) < product.price;
+            const noPoints   = displayPoints < product.price;
             const disabled   = outOfStock || noPoints;
             return (
               <div
@@ -141,7 +143,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate }) => {
               Замовити <strong>{confirmProduct.name}</strong>?<br />
               З вашого рахунку буде списано{' '}
               <strong className="text-kameya-burgundy">{confirmProduct.price} балів</strong>.<br />
-              Залишок: <strong>{(user?.points ?? 0) - confirmProduct.price} балів</strong>.
+              Залишок: <strong>{displayPoints - confirmProduct.price} балів</strong>.
             </p>
             <div className="flex gap-3">
               <button

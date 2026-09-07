@@ -19,6 +19,7 @@ import { ShopView } from './components/shop/ShopView';
 import { MyOrdersView } from './components/shop/MyOrdersView';
 import { AdminShopProductsView } from './components/shop/AdminShopProductsView';
 import { AdminShopOrdersView } from './components/shop/AdminShopOrdersView';
+import { AdminShopPreview } from './components/shop/AdminShopPreview';
 import { CompanyStructureView } from './components/admin/CompanyStructureView';
 import { AccessMatrixView } from './components/admin/AccessMatrixView';
 import { SystemNotificationsPanel } from './components/admin/SystemNotificationsPanel';
@@ -176,7 +177,7 @@ const AppContent: React.FC = () => {
       case Screen.ADMIN_SHOP_ORDERS:
         return <AdminShopOrdersView />;
       case Screen.ADMIN_SHOP:
-        return <ShopView onPointsUpdate={updatePoints} />;
+        return <AdminShopPreview onPointsUpdate={updatePoints} />;
       default:
         return <AdminDashboard />;
     }
