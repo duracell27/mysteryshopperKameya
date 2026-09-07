@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ShopProduct } from '../../types';
 import {
   getAllShopProducts,
@@ -196,9 +197,9 @@ export const AdminShopProductsView: React.FC = () => {
         </div>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 bg-black/40">
+      {showForm && createPortal(
+        <div className="fixed inset-0 z-[200] overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-slate-800 mb-4">
               {editingProduct ? 'Редагувати товар' : 'Додати товар'}
@@ -276,7 +277,8 @@ export const AdminShopProductsView: React.FC = () => {
             </form>
           </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
