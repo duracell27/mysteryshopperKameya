@@ -60,7 +60,9 @@ export const AdminShopOrdersView: React.FC = () => {
     setChangingId(order._id);
     try {
       const updated = await updateOrderStatus(order._id, newStatus);
-      setOrders(prev => prev.map(o => o._id === order._id ? updated : o));
+      setOrders(prev => prev.map(o =>
+        o._id === order._id ? { ...o, status: updated.status, adminNote: updated.adminNote } : o
+      ));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Помилка зміни статусу');
     } finally {

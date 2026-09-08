@@ -10,13 +10,14 @@ import { fetchUsers } from '../../services/usersService';
 type Tab = 'trainees' | 'dayplans';
 type TaskType = 'theory' | 'practice' | 'meeting' | 'observation' | 'other';
 
+interface Props { tab: Tab; }
+
 const TYPE_LABELS: Record<TaskType, string> = {
   theory: 'Теорія', practice: 'Практика', meeting: 'Зустріч',
   observation: 'Спостереження', other: 'Інше',
 };
 
-export const AdminOnboardingView: React.FC = () => {
-  const [tab, setTab] = useState<Tab>('trainees');
+export const AdminOnboardingView: React.FC<Props> = ({ tab }) => {
 
   // ── Стажери ─────────────────────────────────────────────────────────────────
   const [trainees, setTrainees] = useState<OnboardingTrainee[]>([]);
@@ -192,22 +193,9 @@ export const AdminOnboardingView: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-slate-800 mb-6">Онбординг 14 днів</h1>
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl mb-6 w-fit">
-        {(['trainees', 'dayplans'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tab === t ? 'bg-white shadow text-kameya-burgundy' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            {t === 'trainees' ? 'Стажери' : 'Управління планом'}
-          </button>
-        ))}
-      </div>
+      <h1 className="text-2xl font-bold text-slate-800 mb-6">
+        {tab === 'trainees' ? 'Стажери' : 'Управління планом'}
+      </h1>
 
       {/* ── Tab: Стажери ── */}
       {tab === 'trainees' && (

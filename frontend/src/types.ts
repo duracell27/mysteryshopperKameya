@@ -31,6 +31,35 @@ export enum Screen {
   ADMIN_SHOP_ORDERS   = 'ADMIN_SHOP_ORDERS',
 }
 
+export const SCREEN_PATHS: Record<Screen, string> = {
+  [Screen.DASHBOARD]:               '/',
+  [Screen.AUDIT_DETAILS]:           '/reports',
+  [Screen.MY_REPORTS]:              '/reports',
+  [Screen.TRAINING_PLAN]:           '/development-plan',
+  [Screen.QUIZ]:                    '/quiz',
+  [Screen.PROGRESS]:                '/progress',
+  [Screen.ONBOARDING_14]:           '/onboarding/14',
+  [Screen.ONBOARDING_30]:           '/onboarding/30',
+  [Screen.ONBOARDING_60]:           '/onboarding/60',
+  [Screen.LEARNING_GENERAL]:        '/learning',
+  [Screen.LEARNING_START]:          '/learning/start',
+  [Screen.LEARNING_CONSULTANT]:     '/learning/consultant',
+  [Screen.LEARNING_MANAGERS]:       '/learning/managers',
+  [Screen.LEARNING_MARKETING]:      '/learning/marketing',
+  [Screen.SHOP]:                    '/shop',
+  [Screen.MY_ORDERS]:               '/orders',
+  [Screen.ADMIN_USERS]:             '/admin/users',
+  [Screen.ADMIN_REPORTS]:           '/admin/reports/upload',
+  [Screen.ADMIN_REPORTS_LIST]:      '/admin/reports',
+  [Screen.ADMIN_NOTIFICATIONS]:     '/admin/notifications',
+  [Screen.ADMIN_COMPANY_STRUCTURE]: '/admin/structure',
+  [Screen.ADMIN_ACCESS_MATRIX]:     '/admin/access',
+  [Screen.ADMIN_ONBOARDING]:        '/admin/onboarding',
+  [Screen.ADMIN_SHOP]:              '/admin/shop/preview',
+  [Screen.ADMIN_SHOP_PRODUCTS]:     '/admin/shop/products',
+  [Screen.ADMIN_SHOP_ORDERS]:       '/admin/shop/orders',
+};
+
 export interface AuditQuestion {
   question: string;
   answer: string;

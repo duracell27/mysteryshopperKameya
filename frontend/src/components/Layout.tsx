@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Screen, AuthUser } from '../types';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { AuthUser } from '../types';
 import { getDivisionLabel, getGroupLabel } from '../config/org-structure';
 import { useAccess } from '../context/AccessContext';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeScreen: Screen;
-  onNavigate: (screen: Screen) => void;
   user: AuthUser;
   onLogout: () => void;
   notificationsUnread?: number;
@@ -17,68 +16,89 @@ interface LayoutProps {
 }
 
 const ADMIN_NAV = [
-  { id: Screen.DASHBOARD,                 label: 'Дашборд',             icon: 'fa-house' },
-  { id: Screen.ADMIN_USERS,              label: 'Користувачі',         icon: 'fa-users' },
-  { id: Screen.ADMIN_COMPANY_STRUCTURE, label: 'Структура компанії',  icon: 'fa-sitemap' },
-  { id: Screen.ADMIN_ACCESS_MATRIX,      label: 'Доступи',             icon: 'fa-sliders' },
-  { id: Screen.ADMIN_REPORTS,            label: 'Завантаження звітів', icon: 'fa-file-arrow-up' },
-  { id: Screen.ADMIN_REPORTS_LIST,       label: 'Всі звіти',           icon: 'fa-list-check' },
-  { id: Screen.ADMIN_NOTIFICATIONS,      label: 'Сповіщення',          icon: 'fa-bell' },
-  { id: Screen.ADMIN_ONBOARDING,         label: 'Онбординг',           icon: 'fa-user-clock' },
+  { path: '/admin',               label: 'Дашборд',    icon: 'fa-house',   notifKey: null },
+  { path: '/admin/access',        label: 'Доступи',    icon: 'fa-sliders', notifKey: null },
+  { path: '/admin/notifications', label: 'Сповіщення', icon: 'fa-bell',    notifKey: 'notifications' as const },
 ];
 
-const ADMIN_SHOP_SCREENS = new Set([Screen.ADMIN_SHOP_PRODUCTS, Screen.ADMIN_SHOP_ORDERS, Screen.ADMIN_SHOP]);
-const ADMIN_SHOP_ITEMS = [
-  { id: Screen.ADMIN_SHOP_PRODUCTS, label: 'Товари',          icon: 'fa-boxes-stacked' },
-  { id: Screen.ADMIN_SHOP_ORDERS,   label: 'Замовлення',      icon: 'fa-shopping-bag'  },
-  { id: Screen.ADMIN_SHOP,          label: 'Вигляд магазину', icon: 'fa-eye'           },
+const ADMIN_TEAM_ITEMS = [
+  { path: '/admin/users',     label: 'Користувачі',        icon: 'fa-users'   },
+  { path: '/admin/structure', label: 'Структура компанії', icon: 'fa-sitemap' },
 ];
+
+const ADMIN_REPORTS_ITEMS = [
+  { path: '/admin/reports/upload', label: 'Завантаження звітів', icon: 'fa-file-arrow-up' },
+  { path: '/admin/reports',        label: 'Всі звіти',           icon: 'fa-list-check'    },
+];
+
+const ADMIN_ONBOARDING_ITEMS = [
+  { path: '/admin/onboarding/trainees', label: 'Стажери',           icon: 'fa-people-group'  },
+  { path: '/admin/onboarding/dayplans', label: 'Управління планом', icon: 'fa-calendar-days' },
+];
+
+const ADMIN_SHOP_ITEMS = [
+  { path: '/admin/shop/products', label: 'Товари',          icon: 'fa-boxes-stacked' },
+  { path: '/admin/shop/orders',   label: 'Замовлення',      icon: 'fa-shopping-bag'  },
+  { path: '/admin/shop/preview',  label: 'Вигляд магазину', icon: 'fa-eye'           },
+];
+
+const LEARNING_PATH_SECTION: Record<string, 'general' | 'start' | 'consultant' | 'managers' | 'marketing'> = {
+  '/learning':            'general',
+  '/learning/start':      'start',
+  '/learning/consultant': 'consultant',
+  '/learning/managers':   'managers',
+  '/learning/marketing':  'marketing',
+};
 
 const MODULE_NAV = [
   {
     key: 'mysteryShop' as const,
     label: 'Таємний покупець',
     icon: 'fa-user-secret',
-    screens: [Screen.DASHBOARD, Screen.MY_REPORTS, Screen.PROGRESS, Screen.TRAINING_PLAN, Screen.AUDIT_DETAILS, Screen.QUIZ],
+    paths: ['/', '/reports', '/progress', '/development-plan', '/quiz'],
+    defaultPath: '/',
     items: [
-      { id: Screen.DASHBOARD,     label: 'Дашборд',       icon: 'fa-house' },
-      { id: Screen.MY_REPORTS,    label: 'Мої звіти',     icon: 'fa-clipboard-list' },
-      { id: Screen.PROGRESS,      label: 'Мій прогрес',   icon: 'fa-trophy' },
-      { id: Screen.TRAINING_PLAN, label: 'План розвитку', icon: 'fa-graduation-cap' },
+      { path: '/',                label: 'Дашборд',       icon: 'fa-clipboard-list', learningKey: null },
+      { path: '/reports',         label: 'Мої звіти',     icon: 'fa-clipboard-list', learningKey: null },
+      { path: '/progress',        label: 'Мій прогрес',   icon: 'fa-trophy',          learningKey: null },
+      { path: '/development-plan', label: 'План розвитку', icon: 'fa-graduation-cap', learningKey: null },
     ],
   },
   {
     key: 'onboarding' as const,
     label: 'Онбординг',
     icon: 'fa-user-clock',
-    screens: [Screen.ONBOARDING_14, Screen.ONBOARDING_30, Screen.ONBOARDING_60],
+    paths: ['/onboarding/14', '/onboarding/30', '/onboarding/60'],
+    defaultPath: '/onboarding/14',
     items: [
-      { id: Screen.ONBOARDING_14, label: '14 днів', icon: 'fa-calendar-days' },
-      { id: Screen.ONBOARDING_30, label: '30 днів', icon: 'fa-calendar-days' },
-      { id: Screen.ONBOARDING_60, label: '60 днів', icon: 'fa-calendar-days' },
+      { path: '/onboarding/14', label: '14 днів', icon: 'fa-calendar-days', learningKey: null },
+      { path: '/onboarding/30', label: '30 днів', icon: 'fa-calendar-days', learningKey: null },
+      { path: '/onboarding/60', label: '60 днів', icon: 'fa-calendar-days', learningKey: null },
     ],
   },
   {
     key: 'learning' as const,
     label: 'Навчання',
     icon: 'fa-book-open',
-    screens: [Screen.LEARNING_GENERAL, Screen.LEARNING_START, Screen.LEARNING_CONSULTANT, Screen.LEARNING_MANAGERS, Screen.LEARNING_MARKETING],
+    paths: ['/learning', '/learning/start', '/learning/consultant', '/learning/managers', '/learning/marketing'],
+    defaultPath: '/learning',
     items: [
-      { id: Screen.LEARNING_GENERAL,    label: 'Загальний розвиток',    icon: 'fa-seedling' },
-      { id: Screen.LEARNING_START,      label: 'Старт роботи',          icon: 'fa-play' },
-      { id: Screen.LEARNING_CONSULTANT, label: 'Продавець-консультант', icon: 'fa-tag' },
-      { id: Screen.LEARNING_MANAGERS,   label: 'Керівники',             icon: 'fa-crown' },
-      { id: Screen.LEARNING_MARKETING,  label: 'Маркетинг',             icon: 'fa-bullhorn' },
+      { path: '/learning',             label: 'Загальний розвиток',    icon: 'fa-seedling', learningKey: 'general' as const },
+      { path: '/learning/start',       label: 'Старт роботи',          icon: 'fa-play',     learningKey: 'start' as const },
+      { path: '/learning/consultant',  label: 'Продавець-консультант', icon: 'fa-tag',      learningKey: 'consultant' as const },
+      { path: '/learning/managers',    label: 'Керівники',             icon: 'fa-crown',    learningKey: 'managers' as const },
+      { path: '/learning/marketing',   label: 'Маркетинг',             icon: 'fa-bullhorn', learningKey: 'marketing' as const },
     ],
   },
   {
     key: 'shop' as const,
     label: 'Магазин',
     icon: 'fa-store',
-    screens: [Screen.SHOP, Screen.MY_ORDERS],
+    paths: ['/shop', '/orders'],
+    defaultPath: '/shop',
     items: [
-      { id: Screen.SHOP,      label: 'Каталог товарів', icon: 'fa-tags' },
-      { id: Screen.MY_ORDERS, label: 'Мої замовлення',  icon: 'fa-box' },
+      { path: '/shop',   label: 'Каталог товарів', icon: 'fa-tags', learningKey: null },
+      { path: '/orders', label: 'Мої замовлення',  icon: 'fa-box',  learningKey: null },
     ],
   },
 ] as const;
@@ -110,8 +130,6 @@ const AvatarCircle: React.FC<{ avatarUrl?: string | null; name: string; phone: s
 
 export const Layout: React.FC<LayoutProps> = ({
   children,
-  activeScreen,
-  onNavigate,
   user,
   onLogout,
   notificationsUnread = 0,
@@ -121,17 +139,11 @@ export const Layout: React.FC<LayoutProps> = ({
   onChangePassword,
 }) => {
   const isAdmin = user.isAdmin;
+  const navigate = useNavigate();
+  const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const { canMysteryShop, canOnboarding, canLearning, canShop, learningAccess } = useAccess();
-
-  const LEARNING_SCREEN_SECTION: Partial<Record<Screen, keyof typeof learningAccess>> = {
-    [Screen.LEARNING_GENERAL]:    'general',
-    [Screen.LEARNING_START]:      'start',
-    [Screen.LEARNING_CONSULTANT]: 'consultant',
-    [Screen.LEARNING_MANAGERS]:   'managers',
-    [Screen.LEARNING_MARKETING]:  'marketing',
-  };
 
   const accessMap: Record<ModuleKey, boolean> = {
     mysteryShop: canMysteryShop,
@@ -142,9 +154,43 @@ export const Layout: React.FC<LayoutProps> = ({
 
   const visibleModules = MODULE_NAV.filter(m => accessMap[m.key]);
 
-  const [openModule, setOpenModule] = useState<ModuleKey | null>(null);
-  const [adminShopOpen, setAdminShopOpen] = useState(false);
+  const isAdminShopActive       = location.pathname.startsWith('/admin/shop');
+  const isAdminOnboardingActive = location.pathname.startsWith('/admin/onboarding');
+  const isAdminTeamActive       = ['/admin/users', '/admin/structure'].some(p => location.pathname.startsWith(p));
+  const isAdminReportsActive    = ['/admin/reports'].some(p => location.pathname.startsWith(p));
+
+  const getActiveModule = (): ModuleKey | null => {
+    const found = visibleModules.find(m =>
+      (m.paths as readonly string[]).includes(location.pathname)
+    );
+    return found?.key ?? null;
+  };
+
+  type AdminAccordion = 'team' | 'reports' | 'onboarding' | 'shop' | null;
+
+  const getActiveAdminAccordion = (): AdminAccordion => {
+    if (isAdminTeamActive)       return 'team';
+    if (isAdminReportsActive)    return 'reports';
+    if (isAdminOnboardingActive) return 'onboarding';
+    if (isAdminShopActive)       return 'shop';
+    return null;
+  };
+
+  const [openModule,       setOpenModule]       = useState<ModuleKey | null>(getActiveModule);
+  const [adminAccordion,   setAdminAccordion]   = useState<AdminAccordion>(getActiveAdminAccordion);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const active = getActiveModule();
+    if (active) setOpenModule(active);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, canMysteryShop, canOnboarding, canLearning, canShop]);
+
+  useEffect(() => {
+    const active = getActiveAdminAccordion();
+    if (active) setAdminAccordion(active);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -156,14 +202,54 @@ export const Layout: React.FC<LayoutProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [userMenuOpen]);
 
-  useEffect(() => {
-    const active = MODULE_NAV.find(m => (m.screens as readonly Screen[]).includes(activeScreen));
-    if (active && accessMap[active.key]) setOpenModule(active.key);
-  }, [activeScreen, canMysteryShop, canOnboarding, canLearning, canShop]);
+  const isActive = (path: string) => location.pathname === path;
 
-  useEffect(() => {
-    if (ADMIN_SHOP_SCREENS.has(activeScreen)) setAdminShopOpen(true);
-  }, [activeScreen]);
+  const renderAccordion = ({
+    label, icon, isActive: active, isOpen, setOpen,
+    items,
+  }: {
+    label: string; icon: string; isActive: boolean; isOpen: boolean;
+    setOpen: (v: boolean) => void;
+    items: { path: string; label: string; icon: string }[];
+  }) => (
+    <div>
+      <button
+        onClick={() => {
+          if (!isOpen) {
+            setOpen(true);
+            navigate(items[0].path);
+          } else {
+            setOpen(false);
+          }
+        }}
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+          active ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+        }`}
+      >
+        <div className="flex items-center space-x-3">
+          <i className={`fas ${icon} w-4 text-center`}></i>
+          <span>{label}</span>
+        </div>
+        <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-xs opacity-50`}></i>
+      </button>
+      {isOpen && (
+        <div className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-3">
+          {items.map(item => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors text-sm text-left ${
+                isActive(item.path) ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+              }`}
+            >
+              <i className={`fas ${item.icon} w-4 text-center opacity-70`}></i>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
@@ -173,54 +259,104 @@ export const Layout: React.FC<LayoutProps> = ({
           <img src="/LogoLight.png" alt="Kameya Academy" className="w-full" />
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1">
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
           {isAdmin ? (
             <>
-              {ADMIN_NAV.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onNavigate(item.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
-                  }`}
-                >
-                  <i className={`fas ${item.icon} w-4 text-center`}></i>
-                  <span>{item.label}</span>
-                  {item.id === Screen.ADMIN_NOTIFICATIONS && (
-                    <Badge count={notificationsUnread} />
-                  )}
-                </button>
-              ))}
+              {/* Дашборд */}
+              <button
+                onClick={() => navigate('/admin')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive('/admin') ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                }`}
+              >
+                <i className="fas fa-house w-4 text-center"></i>
+                <span>Дашборд</span>
+              </button>
+
+              {/* Команда — accordion */}
+              {renderAccordion({
+                label: 'Команда', icon: 'fa-users',
+                isActive: isAdminTeamActive, isOpen: adminAccordion === 'team',
+                setOpen: v => setAdminAccordion(v ? 'team' : null),
+                items: ADMIN_TEAM_ITEMS,
+              })}
+
+              {/* Доступи */}
+              <button
+                onClick={() => navigate('/admin/access')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/access') ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                }`}
+              >
+                <i className="fas fa-sliders w-4 text-center"></i>
+                <span>Доступи</span>
+              </button>
+
+              {/* Звіти — accordion */}
+              {renderAccordion({
+                label: 'Звіти', icon: 'fa-chart-bar',
+                isActive: isAdminReportsActive, isOpen: adminAccordion === 'reports',
+                setOpen: v => setAdminAccordion(v ? 'reports' : null),
+                items: ADMIN_REPORTS_ITEMS,
+              })}
+
+              {/* Сповіщення */}
+              <button
+                onClick={() => navigate('/admin/notifications')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/notifications') ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                }`}
+              >
+                <i className="fas fa-bell w-4 text-center"></i>
+                <span>Сповіщення</span>
+                <Badge count={notificationsUnread} />
+              </button>
+
+              {/* Онбординг — accordion */}
+              {renderAccordion({
+                label: 'Онбординг', icon: 'fa-user-clock',
+                isActive: isAdminOnboardingActive, isOpen: adminAccordion === 'onboarding',
+                setOpen: v => setAdminAccordion(v ? 'onboarding' : null),
+                items: ADMIN_ONBOARDING_ITEMS,
+              })}
+
               {/* Магазин — accordion */}
               <div>
                 <button
-                  onClick={() => setAdminShopOpen(o => !o)}
+                  onClick={() => {
+                    if (adminAccordion !== 'shop') {
+                      setAdminAccordion('shop');
+                      navigate('/admin/shop/products');
+                    } else {
+                      setAdminAccordion(null);
+                    }
+                  }}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                    ADMIN_SHOP_SCREENS.has(activeScreen) ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                    isAdminShopActive ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     <i className="fas fa-store w-4 text-center"></i>
                     <span>Магазин</span>
-                    {shopOrdersPending > 0 && !adminShopOpen && (
+                    {shopOrdersPending > 0 && adminAccordion !== 'shop' && (
                       <Badge count={shopOrdersPending} />
                     )}
                   </div>
-                  <i className={`fas fa-chevron-${adminShopOpen ? 'up' : 'down'} text-xs opacity-50`}></i>
+                  <i className={`fas fa-chevron-${adminAccordion === 'shop' ? 'up' : 'down'} text-xs opacity-50`}></i>
                 </button>
-                {adminShopOpen && (
+                {adminAccordion === 'shop' && (
                   <div className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-3">
                     {ADMIN_SHOP_ITEMS.map(item => (
                       <button
-                        key={item.id}
-                        onClick={() => onNavigate(item.id)}
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
                         className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors text-sm text-left ${
-                          activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                          isActive(item.path) ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
                         }`}
                       >
                         <i className={`fas ${item.icon} w-4 text-center opacity-70`}></i>
                         <span>{item.label}</span>
-                        {item.id === Screen.ADMIN_SHOP_ORDERS && (
+                        {item.path === '/admin/shop/orders' && (
                           <Badge count={shopOrdersPending} />
                         )}
                       </button>
@@ -232,15 +368,15 @@ export const Layout: React.FC<LayoutProps> = ({
           ) : (
             // Employee accordion nav
             visibleModules.map((module) => {
-              const isOpen   = openModule === module.key;
-              const hasActive = (module.screens as readonly Screen[]).includes(activeScreen);
+              const isOpen    = openModule === module.key;
+              const hasActive = (module.paths as readonly string[]).includes(location.pathname);
               return (
                 <div key={module.key}>
                   <button
                     onClick={() => {
                       if (!isOpen) {
                         setOpenModule(module.key);
-                        onNavigate(module.items[0].id);
+                        navigate(module.defaultPath);
                       } else {
                         setOpenModule(null);
                       }
@@ -259,14 +395,14 @@ export const Layout: React.FC<LayoutProps> = ({
                     <div className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-3">
                       {module.items.filter(item => {
                         if (module.key !== 'learning') return true;
-                        const sec = LEARNING_SCREEN_SECTION[item.id as Screen];
-                        return sec ? learningAccess[sec] : true;
+                        const sec = item.learningKey;
+                        return !sec || learningAccess[sec];
                       }).map((item) => (
                         <button
-                          key={item.id}
-                          onClick={() => onNavigate(item.id)}
+                          key={item.path}
+                          onClick={() => navigate(item.path)}
                           className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-colors text-sm text-left ${
-                            activeScreen === item.id ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                            isActive(item.path) ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
                           }`}
                         >
                           <i className={`fas ${item.icon} w-4 text-center opacity-70`}></i>
@@ -332,18 +468,24 @@ export const Layout: React.FC<LayoutProps> = ({
       {/* Мобільна нижня навігація */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around p-2 z-50">
         {isAdmin ? (
-          ADMIN_NAV.slice(0, 5).map((item) => (
+          [
+            { path: '/admin',               icon: 'fa-house',          active: isActive('/admin') },
+            { path: '/admin/users',          icon: 'fa-users',          active: isAdminTeamActive },
+            { path: '/admin/reports',        icon: 'fa-chart-bar',      active: isAdminReportsActive },
+            { path: '/admin/notifications',  icon: 'fa-bell',           active: isActive('/admin/notifications'), badge: notificationsUnread },
+            { path: '/admin/onboarding/trainees', icon: 'fa-user-clock', active: isAdminOnboardingActive },
+          ].map((item) => (
             <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
+              key={item.path}
+              onClick={() => navigate(item.path)}
               className={`relative px-4 py-2.5 rounded-full transition-all ${
-                activeScreen === item.id ? 'text-kameya-burgundy bg-red-50' : 'text-gray-400'
+                item.active ? 'text-kameya-burgundy bg-red-50' : 'text-gray-400'
               }`}
             >
               <i className={`fas ${item.icon} text-lg`}></i>
-              {item.id === Screen.ADMIN_NOTIFICATIONS && notificationsUnread > 0 && (
+              {(item.badge ?? 0) > 0 && (
                 <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
-                  {notificationsUnread > 99 ? '99+' : notificationsUnread}
+                  {(item.badge ?? 0) > 99 ? '99+' : item.badge}
                 </span>
               )}
             </button>
@@ -352,9 +494,9 @@ export const Layout: React.FC<LayoutProps> = ({
           visibleModules.map((module) => (
             <button
               key={module.key}
-              onClick={() => onNavigate(module.items[0].id)}
+              onClick={() => navigate(module.defaultPath)}
               className={`relative px-5 py-2.5 rounded-full transition-all ${
-                (module.screens as readonly Screen[]).includes(activeScreen)
+                (module.paths as readonly string[]).includes(location.pathname)
                   ? 'text-kameya-burgundy bg-red-50'
                   : 'text-gray-400'
               }`}

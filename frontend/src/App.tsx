@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AccessProvider, useAccess } from './context/AccessContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
-import { TrainingPlanView } from './components/TrainingPlanView';
 import { DevelopmentPlanView } from './components/employee/DevelopmentPlanView';
 import { QuizView } from './components/QuizView';
 import { ProgressView } from './components/ProgressView';
@@ -26,31 +26,27 @@ import { SystemNotificationsPanel } from './components/admin/SystemNotifications
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { MyReportsView } from './components/employee/MyReportsView';
 import { LoginPage } from './pages/LoginPage';
-import { Screen, AIAnalysisResult, AuditResult, QuizQuestion } from './types';
-import { MOCK_AUDIT } from './constants';
-import { analyzeAuditResult, generateQuizQuestions } from './services/geminiService';
+import { Screen, SCREEN_PATHS, AIAnalysisResult, QuizQuestion } from './types';
+import { generateQuizQuestions } from './services/geminiService';
 import { getUnreadCount, getSystemUnreadCount } from './services/notificationsService';
 import { getPendingOrdersCount } from './services/shopOrdersService';
 
-const MYSTERY_SHOP_SCREENS = new Set([Screen.DASHBOARD, Screen.MY_REPORTS, Screen.PROGRESS, Screen.TRAINING_PLAN, Screen.AUDIT_DETAILS, Screen.QUIZ]);
-const ONBOARDING_SCREENS   = new Set([Screen.ONBOARDING_14, Screen.ONBOARDING_30, Screen.ONBOARDING_60]);
-const LEARNING_SCREENS     = new Set([Screen.LEARNING_GENERAL, Screen.LEARNING_START, Screen.LEARNING_CONSULTANT, Screen.LEARNING_MANAGERS, Screen.LEARNING_MARKETING]);
-const SHOP_SCREENS         = new Set([Screen.SHOP, Screen.MY_ORDERS]);
+const MYSTERY_SHOP_PATHS = new Set(['/', '/reports', '/progress', '/development-plan', '/quiz']);
+const ONBOARDING_PATHS   = new Set(['/onboarding/14', '/onboarding/30', '/onboarding/60']);
+const LEARNING_PATHS     = new Set(['/learning', '/learning/start', '/learning/consultant', '/learning/managers', '/learning/marketing']);
+const SHOP_PATHS         = new Set(['/shop', '/orders']);
 
 const AppContent: React.FC = () => {
   const { user, isLoading, logout, updatePoints } = useAuth();
   const { canMysteryShop, canOnboarding, canLearning, canShop, isLoading: accessLoading } = useAccess();
+  const navigate = useNavigate();
+  const location = useLocation();
   const isAdmin = user?.isAdmin ?? false;
 
-  const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.DASHBOARD);
-  const [selectedAudit, setSelectedAudit] = useState<AuditResult | null>(null);
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeQuiz, setActiveQuiz] = useState<{ topic: string; questions: QuizQuestion[] } | null>(null);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-
-  // Notifications state (admin only)
   const [notificationsUnread, setNotificationsUnread] = useState(0);
   const [systemUnread, setSystemUnread] = useState(0);
   const [shopOrdersPending, setShopOrdersPending] = useState(0);
@@ -59,45 +55,16 @@ const AppContent: React.FC = () => {
   const [selectedReportAction, setSelectedReportAction] = useState<string | null>(null);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
-  useEffect(() => {
-    if (!user) setChangePasswordOpen(false);
-  }, [user]);
+  useEffect(() => { if (!user) setChangePasswordOpen(false); }, [user]);
 
   useEffect(() => {
-    const savedAnalysis = localStorage.getItem('kameya_analysis');
-    if (savedAnalysis) {
-      try { setAnalysis(JSON.parse(savedAnalysis)); } catch { /* ignore */ }
-    }
+    const saved = localStorage.getItem('kameya_analysis');
+    if (saved) { try { setAnalysis(JSON.parse(saved)); } catch { /* ignore */ } }
   }, []);
 
   useEffect(() => {
     if (analysis) localStorage.setItem('kameya_analysis', JSON.stringify(analysis));
   }, [analysis]);
-
-  useEffect(() => {
-    if (!user || isLoading || accessLoading) return;
-    if (user.isAdmin) return;
-
-    const onMystery  = MYSTERY_SHOP_SCREENS.has(currentScreen);
-    const onOnboard  = ONBOARDING_SCREENS.has(currentScreen);
-    const onLearning = LEARNING_SCREENS.has(currentScreen);
-    const onShop     = SHOP_SCREENS.has(currentScreen);
-
-    if (onMystery && !canMysteryShop) {
-      if (canOnboarding)  setCurrentScreen(Screen.ONBOARDING_14);
-      else if (canLearning) setCurrentScreen(Screen.LEARNING_GENERAL);
-    } else if (onOnboard && !canOnboarding) {
-      if (canMysteryShop) setCurrentScreen(Screen.DASHBOARD);
-      else if (canLearning) setCurrentScreen(Screen.LEARNING_GENERAL);
-    } else if (onLearning && !canLearning) {
-      if (canMysteryShop) setCurrentScreen(Screen.DASHBOARD);
-      else if (canOnboarding) setCurrentScreen(Screen.ONBOARDING_14);
-    } else if (onShop && !canShop) {
-      if (canMysteryShop) setCurrentScreen(Screen.DASHBOARD);
-      else if (canOnboarding) setCurrentScreen(Screen.ONBOARDING_14);
-      else setCurrentScreen(Screen.LEARNING_GENERAL);
-    }
-  }, [user, isLoading, accessLoading, canMysteryShop, canOnboarding, canLearning, canShop, currentScreen]);
 
   const refreshUnreadCounts = useCallback(() => {
     if (!isAdmin) return;
@@ -118,28 +85,34 @@ const AppContent: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleNavigate = (screen: Screen) => {
-    setSelectedAudit(null);
+  const handleViewReport = (reportId: string, action?: string) => {
+    setSelectedReportId(reportId);
+    setSelectedReportAction(action ?? null);
+    navigate('/admin/reports');
+  };
+
+  const handleStartQuiz = async (topic: string) => {
+    setIsGeneratingQuiz(true);
+    try {
+      const questions = await generateQuizQuestions(topic);
+      setActiveQuiz({ topic, questions });
+      navigate('/quiz');
+    } catch { alert('Помилка при генерації тесту.'); }
+    finally { setIsGeneratingQuiz(false); }
+  };
+
+  // Збереження аналізу для handleNavigate (застарілі виклики Screen enum)
+  const handleNavigate = useCallback((screen: Screen) => {
+    const path = screen === Screen.DASHBOARD
+      ? (isAdmin ? '/admin' : '/')
+      : (SCREEN_PATHS[screen] ?? '/');
     if (screen !== Screen.ADMIN_REPORTS_LIST) {
       setSelectedReportId(null);
       setSelectedReportAction(null);
     }
-    setCurrentScreen(screen);
+    navigate(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleNavigateToAuditDetails = (audit: AuditResult) => {
-    setSelectedAudit(audit);
-    setCurrentScreen(Screen.MY_REPORTS);
-  };
-
-  const handleViewReport = (reportId: string, action?: string) => {
-    setSelectedReportId(reportId);
-    setSelectedReportAction(action ?? null);
-    setCurrentScreen(Screen.ADMIN_REPORTS_LIST);
-  };
-
-  const handleCloseSystemPanel = useCallback(() => setSystemPanelOpen(false), []);
+  }, [isAdmin, navigate]);
 
   if (isLoading) {
     return (
@@ -149,120 +122,55 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (!user) return <LoginPage />;
+  // Не авторизований — показуємо /login
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
-  const renderAdminScreen = () => {
-    switch (currentScreen) {
-      case Screen.ADMIN_USERS:
-        return <UsersView />;
-      case Screen.ADMIN_COMPANY_STRUCTURE:
-        return <CompanyStructureView />;
-      case Screen.ADMIN_ACCESS_MATRIX:
-        return <AccessMatrixView />;
-      case Screen.ADMIN_REPORTS:
-        return <ReportsUploadView />;
-      case Screen.ADMIN_REPORTS_LIST:
-        return <AdminReportsListView initialReportId={selectedReportId} initialAction={selectedReportAction} />;
-      case Screen.ADMIN_NOTIFICATIONS:
-        return (
-          <AdminNotificationsView
-            onViewReport={handleViewReport}
-            onMarkReadDecrement={() => setNotificationsUnread(c => Math.max(0, c - 1))}
-          />
-        );
-      case Screen.ADMIN_ONBOARDING:
-        return <AdminOnboardingView />;
-      case Screen.ADMIN_SHOP_PRODUCTS:
-        return <AdminShopProductsView />;
-      case Screen.ADMIN_SHOP_ORDERS:
-        return <AdminShopOrdersView />;
-      case Screen.ADMIN_SHOP:
-        return <AdminShopPreview onPointsUpdate={updatePoints} />;
-      default:
-        return <AdminDashboard />;
+  const { pathname } = location;
+  const isAdminPath = pathname === '/admin' || pathname.startsWith('/admin/');
+
+  // Редирект по ролі
+  if (isAdmin && !isAdminPath) return <Navigate to="/admin" replace />;
+  if (!isAdmin && isAdminPath) return <Navigate to="/" replace />;
+
+  // Редиректи за доступом (тільки для співробітників, після завантаження доступів)
+  if (!isAdmin && !accessLoading) {
+    if (MYSTERY_SHOP_PATHS.has(pathname) && !canMysteryShop) {
+      if (canOnboarding) return <Navigate to="/onboarding/14" replace />;
+      if (canLearning)   return <Navigate to="/learning" replace />;
+    } else if (ONBOARDING_PATHS.has(pathname) && !canOnboarding) {
+      if (canMysteryShop) return <Navigate to="/" replace />;
+      if (canLearning)    return <Navigate to="/learning" replace />;
+    } else if (LEARNING_PATHS.has(pathname) && !canLearning) {
+      if (canMysteryShop) return <Navigate to="/" replace />;
+      if (canOnboarding)  return <Navigate to="/onboarding/14" replace />;
+    } else if (SHOP_PATHS.has(pathname) && !canShop) {
+      if (canMysteryShop) return <Navigate to="/" replace />;
+      if (canOnboarding)  return <Navigate to="/onboarding/14" replace />;
+      if (canLearning)    return <Navigate to="/learning" replace />;
     }
-  };
+  }
 
-  const handleRunAnalysis = async () => {
-    setIsAnalyzing(true);
-    try {
-      const result = await analyzeAuditResult(MOCK_AUDIT);
-      setAnalysis(result);
-      setCurrentScreen(Screen.TRAINING_PLAN);
-      showToast('Аналіз завершено успішно!');
-    } catch { alert('Помилка при аналізі AI.'); }
-    finally { setIsAnalyzing(false); }
-  };
-
-  const handleStartQuiz = async (topic: string) => {
-    setIsGeneratingQuiz(true);
-    try {
-      const questions = await generateQuizQuestions(topic);
-      setActiveQuiz({ topic, questions });
-      setCurrentScreen(Screen.QUIZ);
-    } catch { alert('Помилка при генерації тесту.'); }
-    finally { setIsGeneratingQuiz(false); }
-  };
-
-  const handleShare = async () => {
-    const shareText = `Мій результат у Kameya Academy: ${MOCK_AUDIT.totalScore}%\nПосада: ${user.position ?? ''}\nКрокуємо до досконалості разом!`;
-    if (navigator.share) {
-      try { await navigator.share({ title: 'Kameya Academy', text: shareText, url: window.location.href }); }
-      catch { /* cancelled */ }
-    } else {
-      navigator.clipboard.writeText(shareText);
-      showToast('Результат скопійовано у буфер обміну!');
-    }
-  };
-
-  const renderEmployeeScreen = () => {
-    switch (currentScreen) {
-      case Screen.MY_REPORTS:
-        return <MyReportsView initialSelected={selectedAudit} onNavigate={handleNavigate} />;
-      case Screen.TRAINING_PLAN:
-        return <DevelopmentPlanView />;
-      case Screen.QUIZ:
-        return activeQuiz ? (
-          <QuizView topic={activeQuiz.topic} questions={activeQuiz.questions} onFinish={() => {
-            setCurrentScreen(Screen.TRAINING_PLAN);
-            showToast('Тест пройдено! Прогрес оновлено.');
-          }} />
-        ) : null;
-      case Screen.PROGRESS:
-        return <ProgressView />;
-      case Screen.ONBOARDING_14: return <OnboardingView track="14" />;
-      case Screen.ONBOARDING_30: return <OnboardingView track="30" />;
-      case Screen.ONBOARDING_60: return <OnboardingView track="60" />;
-      case Screen.LEARNING_GENERAL:    return <LearningView section="general" />;
-      case Screen.LEARNING_START:      return <LearningView section="start" />;
-      case Screen.LEARNING_CONSULTANT: return <LearningView section="consultant" />;
-      case Screen.LEARNING_MANAGERS:   return <LearningView section="managers" />;
-      case Screen.LEARNING_MARKETING:  return <LearningView section="marketing" />;
-      case Screen.SHOP:
-        return <ShopView onPointsUpdate={(pts) => updatePoints(pts)} />;
-      case Screen.MY_ORDERS:
-        return <MyOrdersView />;
-      default:
-        return <Dashboard onNavigate={handleNavigate} onNavigateToAuditDetails={handleNavigateToAuditDetails} />;
-    }
+  const layoutProps = {
+    user,
+    onLogout: logout,
+    notificationsUnread,
+    systemUnread,
+    shopOrdersPending,
+    onOpenSystemPanel: () => setSystemPanelOpen(true),
+    onChangePassword:  () => setChangePasswordOpen(true),
   };
 
   return (
-    <Layout
-      activeScreen={currentScreen}
-      onNavigate={handleNavigate}
-      user={user}
-      onLogout={logout}
-      notificationsUnread={notificationsUnread}
-      systemUnread={systemUnread}
-      shopOrdersPending={shopOrdersPending}
-      onOpenSystemPanel={() => setSystemPanelOpen(true)}
-      onChangePassword={() => setChangePasswordOpen(true)}
-    >
-      <ChangePasswordModal
-        open={changePasswordOpen}
-        onClose={() => setChangePasswordOpen(false)}
-      />
+    <Layout {...layoutProps}>
+      <ChangePasswordModal open={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />
+
       {toast && (
         <div className="fixed top-4 right-4 z-[100] bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl animate-bounce-in flex items-center space-x-2">
           <i className="fas fa-circle-check text-green-400"></i>
@@ -283,12 +191,56 @@ const AppContent: React.FC = () => {
       {isAdmin && (
         <SystemNotificationsPanel
           open={systemPanelOpen}
-          onClose={handleCloseSystemPanel}
+          onClose={() => setSystemPanelOpen(false)}
           onMarkReadDecrement={() => setSystemUnread(c => Math.max(0, c - 1))}
         />
       )}
 
-      {isAdmin ? renderAdminScreen() : renderEmployeeScreen()}
+      {isAdmin ? (
+        <Routes>
+          <Route path="/admin"                  element={<AdminDashboard />} />
+          <Route path="/admin/users"            element={<UsersView />} />
+          <Route path="/admin/structure"        element={<CompanyStructureView />} />
+          <Route path="/admin/access"           element={<AccessMatrixView />} />
+          <Route path="/admin/reports/upload"   element={<ReportsUploadView />} />
+          <Route path="/admin/reports"          element={<AdminReportsListView initialReportId={selectedReportId} initialAction={selectedReportAction} />} />
+          <Route path="/admin/notifications"    element={<AdminNotificationsView onViewReport={handleViewReport} onMarkReadDecrement={() => setNotificationsUnread(c => Math.max(0, c - 1))} />} />
+          <Route path="/admin/onboarding" element={<Navigate to="/admin/onboarding/trainees" replace />} />
+          <Route path="/admin/onboarding/trainees" element={<AdminOnboardingView tab="trainees" />} />
+          <Route path="/admin/onboarding/dayplans" element={<AdminOnboardingView tab="dayplans" />} />
+          <Route path="/admin/shop/products"    element={<AdminShopProductsView />} />
+          <Route path="/admin/shop/orders"      element={<AdminShopOrdersView />} />
+          <Route path="/admin/shop/preview"     element={<AdminShopPreview onPointsUpdate={updatePoints} />} />
+          <Route path="*"                       element={<Navigate to="/admin" replace />} />
+        </Routes>
+      ) : (
+        <Routes>
+          <Route path="/"                  element={<Dashboard />} />
+          <Route path="/reports"           element={<MyReportsView />} />
+          <Route path="/development-plan"  element={<DevelopmentPlanView />} />
+          <Route path="/quiz"              element={
+            activeQuiz
+              ? <QuizView topic={activeQuiz.topic} questions={activeQuiz.questions} onFinish={() => {
+                  setActiveQuiz(null);
+                  navigate('/development-plan');
+                  showToast('Тест пройдено! Прогрес оновлено.');
+                }} />
+              : <Navigate to="/development-plan" replace />
+          } />
+          <Route path="/progress"          element={<ProgressView />} />
+          <Route path="/onboarding/14"     element={<OnboardingView track="14" />} />
+          <Route path="/onboarding/30"     element={<OnboardingView track="30" />} />
+          <Route path="/onboarding/60"     element={<OnboardingView track="60" />} />
+          <Route path="/learning"          element={<LearningView section="general" />} />
+          <Route path="/learning/start"    element={<LearningView section="start" />} />
+          <Route path="/learning/consultant" element={<LearningView section="consultant" />} />
+          <Route path="/learning/managers" element={<LearningView section="managers" />} />
+          <Route path="/learning/marketing" element={<LearningView section="marketing" />} />
+          <Route path="/shop"              element={<ShopView onPointsUpdate={updatePoints} />} />
+          <Route path="/orders"            element={<MyOrdersView />} />
+          <Route path="*"                  element={<Navigate to="/" replace />} />
+        </Routes>
+      )}
 
       <style>{`
         @keyframes bounce-in {

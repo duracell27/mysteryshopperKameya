@@ -631,15 +631,20 @@ export const UsersView: React.FC = () => {
                   </div>
                   {pointsHistory.map((tx) => {
                     const reportId = typeof tx.reportId === 'object' ? tx.reportId : null;
-                    const label = tx.reason === 'streak'
-                        ? `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`
-                        : tx.reason === 'reflection_penalty'
-                          ? `Не вчасно заповнена рефлексія ${tx.quarter ?? ''} ${tx.year}`
-                          : tx.reason === 'learning_plan_manual'
-                            ? (tx.note ?? `За проходження плану навчання ${tx.quarter ?? ''} ${tx.year}`)
-                            : tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0)
-                              ? `Рефлексія ${tx.quarter ?? ''} ${tx.year}`
-                              : `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
+                    const fmtQ = (q?: string) => q ? `Перевірка ${q.replace('Q', '')} квартал` : '';
+                    const label = tx.reason === 'shop_purchase'
+                        ? `Покупка: ${tx.note?.replace('Покупка: ', '') ?? 'товар'}`
+                        : tx.reason === 'shop_refund'
+                          ? `Повернення: ${tx.note?.replace('Повернення: ', '') ?? 'товар'}`
+                          : tx.reason === 'streak'
+                            ? `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`
+                            : tx.reason === 'reflection_penalty'
+                              ? `Не вчасно заповнена рефлексія ${fmtQ(tx.quarter)} ${tx.year}`
+                              : tx.reason === 'learning_plan_manual'
+                                ? (tx.note ?? `За проходження плану навчання ${fmtQ(tx.quarter)} ${tx.year}`)
+                                : tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0)
+                                  ? `Рефлексія ${fmtQ(tx.quarter)} ${tx.year}`
+                                  : `${fmtQ(tx.quarter)} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
                     return (
                       <div key={tx._id} className="flex items-center justify-between py-3 px-3 bg-slate-50 rounded-xl">
                         <div>

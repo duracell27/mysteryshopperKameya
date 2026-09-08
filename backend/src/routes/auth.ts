@@ -100,6 +100,26 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.user?.userId, '-password');
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+    return res.json({
+      id:       user._id,
+      phone:    user.phone,
+      name:     user.name,
+      isAdmin:  user.isAdmin,
+      division: user.division,
+      group:    user.group,
+      position: user.position,
+      points:   user.points ?? 0,
+      avatarUrl: user.avatarUrl ?? null,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 router.post('/request-reset-code', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const normalizedPhone = normalizePhone(req.user!.phone);

@@ -29,13 +29,17 @@ export const ProgressView: React.FC = () => {
   const totalPoints = loading ? 0 : transactions.reduce((sum, tx) => sum + tx.pointsAwarded, 0);
   const lastThree = transactions.slice(0, 3);
 
+  const fmtQ = (q?: string) => q ? `Перевірка ${q.replace('Q', '')} квартал` : '';
+
   const txLabel = (tx: PointsTransaction) => {
-    if (tx.reason === 'streak')                return `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`;
-    if (tx.reason === 'reflection_penalty')    return `Не вчасно заповнена рефлексія ${tx.quarter ?? ''} ${tx.year}`;
-    if (tx.reason === 'learning_plan_manual')  return tx.note ?? `За проходження плану навчання ${tx.quarter ?? ''} ${tx.year}`;
+    if (tx.reason === 'shop_purchase') return `Покупка: ${tx.note?.replace('Покупка: ', '') ?? 'товар'}`;
+    if (tx.reason === 'shop_refund')   return `Повернення: ${tx.note?.replace('Повернення: ', '') ?? 'товар'}`;
+    if (tx.reason === 'streak')               return `🔥 Стрік ${tx.streakQuarters} кварт. ${tx.streakYear ?? tx.year}`;
+    if (tx.reason === 'reflection_penalty')   return `Не вчасно заповнена рефлексія ${fmtQ(tx.quarter)} ${tx.year}`;
+    if (tx.reason === 'learning_plan_manual') return tx.note ?? `За проходження плану навчання ${fmtQ(tx.quarter)} ${tx.year}`;
     if (tx.reason === 'reflection' || (tx.reason == null && tx.scorePercent === 0))
-      return `Рефлексія ${tx.quarter ?? ''} ${tx.year}`;
-    return `${tx.quarter ?? ''} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
+      return `Рефлексія ${fmtQ(tx.quarter)} ${tx.year}`;
+    return `${fmtQ(tx.quarter)} ${tx.year} — ${Math.floor(tx.scorePercent)}%`;
   };
 
   return (

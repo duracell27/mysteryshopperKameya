@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Screen, AuditResult } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { AuditResult } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { getMyReports } from '../services/reportsService';
 import { getTodayTip, TipOfDay } from '../services/tipsService';
 import { formatDate } from '../utils/dateFormatter';
 import { ScoreChart } from './employee/ScoreChart';
 
-interface DashboardProps {
-  onNavigate: (screen: Screen) => void;
-  onNavigateToAuditDetails?: (audit: AuditResult) => void;
-}
-
-export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAuditDetails }) => {
+export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const fullName = user?.name ?? 'Вітаємо';
   const [lastAudit, setLastAudit] = useState<AuditResult | undefined>();
@@ -76,14 +73,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onNavigateToAu
             )}
             <div className="flex items-center gap-4 mt-4">
               <button
-                onClick={() => lastAudit && onNavigateToAuditDetails?.(lastAudit)}
+                onClick={() => lastAudit && navigate('/reports', { state: { selectedAudit: lastAudit } })}
                 className="text-kameya-burgundy font-bold text-sm hover:text-red-900 transition-colors flex items-center space-x-1"
               >
                 <span>Детальний звіт</span>
                 <i className="fas fa-arrow-right text-xs"></i>
               </button>
               <button
-                onClick={() => onNavigate(Screen.TRAINING_PLAN)}
+                onClick={() => navigate('/development-plan')}
                 className="text-slate-500 font-bold text-sm hover:text-slate-700 transition-colors flex items-center space-x-1"
               >
                 <span>План розвитку</span>
