@@ -23,7 +23,7 @@ const avatarStorage = multer.diskStorage({
 
 const avatarUpload = multer({
   storage: avatarStorage,
-  limits: { fileSize: 2 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Тільки зображення'));
