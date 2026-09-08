@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { AuditResult, AuditSection, Reflection, Screen } from '../../types';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { AuditResult, AuditSection, Reflection } from '../../types';
 import { getMyReports, submitReflection, getAudioStreamUrl } from '../../services/reportsService';
 import { formatDate } from '../../utils/dateFormatter';
 import { useAuth } from '../../context/AuthContext';
 import { scoreTextClass, scoreBgBorderClass, formatScore } from '../../utils/scoreColor';
 import confetti from 'canvas-confetti';
 
-interface MyReportsViewProps {
-  initialSelected?: AuditResult | null;
-  onNavigate?: (screen: Screen) => void;
-}
-
-export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, onNavigate }) => {
+export const MyReportsView: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const locationAudit = (location.state as { selectedAudit?: AuditResult } | null)?.selectedAudit ?? null;
   const { user } = useAuth();
   const [reports, setReports] = useState<AuditResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AuditResult | null>(initialSelected ?? null);
+  const [selected, setSelected] = useState<AuditResult | null>(locationAudit);
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
   const [showReflection, setShowReflection] = useState(false);
   const [reflAnswer1, setReflAnswer1] = useState('');
@@ -67,8 +66,8 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, o
     getMyReports()
       .then(data => {
         setReports(data);
-        if (initialSelected) {
-          const initId = initialSelected._id ?? initialSelected.id;
+        if (locationAudit) {
+          const initId = locationAudit._id ?? locationAudit.id;
           const fresh = data.find(r => (r._id ?? r.id) === initId);
           if (fresh) setSelected(fresh);
         }
@@ -275,7 +274,7 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, o
 
         {selected.totalScore < 100 ? (
           <button
-            onClick={() => onNavigate?.(Screen.TRAINING_PLAN)}
+            onClick={() => navigate('/development-plan')}
             className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
           >
             <i className="fas fa-graduation-cap"></i>
@@ -297,7 +296,7 @@ export const MyReportsView: React.FC<MyReportsViewProps> = ({ initialSelected, o
         {/* Reflection modal */}
         {showReflection && ReactDOM.createPortal(
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-6 border-b border-slate-100">
                 <h3 className="text-lg font-bold text-slate-800">Рефлексія</h3>
                 <button onClick={() => { setShowReflection(false); setReflError(''); }} className="text-slate-400 hover:text-slate-600">
