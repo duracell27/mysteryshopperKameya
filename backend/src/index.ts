@@ -17,6 +17,7 @@ import traineeRoutes from './routes/trainee';
 import onboardingAiRoutes from './routes/onboardingAi';
 import shopRoutes from './routes/shop';
 import libraryRoutes from './routes/library';
+import { scheduleLoanReminders } from './services/libraryReminderService';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -58,5 +59,6 @@ connectDB().then(async () => {
   }
   app.listen(PORT, () => {
     console.log(`🚀 Сервер запущено: http://localhost:${PORT}`);
+    scheduleLoanReminders();
   });
 });
