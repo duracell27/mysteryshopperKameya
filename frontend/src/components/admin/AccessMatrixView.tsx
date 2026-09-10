@@ -14,13 +14,14 @@ const MODULE_ROW_LABELS: { division: string; position: string; label: string }[]
   { division: 'security', position: 'Керівник',                label: 'Охорона / Керівник' },
 ];
 
-type ModuleField = 'mysteryShop' | 'onboarding' | 'learning' | 'shop';
+type ModuleField = 'mysteryShop' | 'onboarding' | 'learning' | 'shop' | 'library';
 
 const MODULE_COLS: { key: ModuleField; label: string }[] = [
   { key: 'mysteryShop', label: 'Таємний покупець' },
   { key: 'onboarding',  label: 'Онбординг' },
   { key: 'learning',    label: 'Навчання' },
   { key: 'shop',        label: 'Магазин' },
+  { key: 'library',     label: 'Бібліотека' },
 ];
 
 // ─── Learning section matrix ──────────────────────────────────────────────────
@@ -83,7 +84,7 @@ export const AccessMatrixView: React.FC = () => {
     setSaving(key);
     const updated: AccessRule[] = MODULE_ROW_LABELS.map(row => {
       const existing = getModuleRule(row.division, row.position);
-      const modules  = existing?.modules ?? { mysteryShop: false, onboarding: false, learning: true, shop: false };
+      const modules  = existing?.modules ?? { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false };
       if (row.division === division && row.position === position) {
         return { division: row.division, position: row.position, modules: { ...modules, [field]: value } };
       }
