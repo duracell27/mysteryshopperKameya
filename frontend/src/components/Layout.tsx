@@ -198,7 +198,7 @@ export const Layout: React.FC<LayoutProps> = ({
     const active = getActiveModule();
     if (active) setOpenModule(active);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, canMysteryShop, canOnboarding, canLearning, canShop]);
+  }, [location.pathname, canMysteryShop, canOnboarding, canLearning, canShop, canLibrary]);
 
   useEffect(() => {
     const active = getActiveAdminAccordion();
