@@ -94,7 +94,8 @@ router.delete('/genres/:id', adminOnly, async (req: AuthRequest, res: Response) 
   try {
     const hasBooks = await Book.exists({ genreId: req.params.id });
     if (hasBooks) return res.status(400).json({ message: 'Жанр використовується книгами' });
-    await BookGenre.findByIdAndDelete(req.params.id);
+    const deleted = await BookGenre.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Жанр не знайдено' });
     return res.json({ deleted: true });
   } catch {
     return res.status(500).json({ message: 'Помилка сервера' });
