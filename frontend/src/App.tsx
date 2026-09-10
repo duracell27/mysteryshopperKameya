@@ -17,6 +17,10 @@ import { AdminNotificationsView } from './components/admin/AdminNotificationsVie
 import { AdminOnboardingView } from './components/admin/AdminOnboardingView';
 import { ShopView } from './components/shop/ShopView';
 import { MyOrdersView } from './components/shop/MyOrdersView';
+import { LibraryView }             from './components/library/LibraryView';
+import { MyLoansView }             from './components/library/MyLoansView';
+import { AdminLibraryBooksView }   from './components/library/AdminLibraryBooksView';
+import { AdminLibraryLoansView }   from './components/library/AdminLibraryLoansView';
 import { AdminShopProductsView } from './components/shop/AdminShopProductsView';
 import { AdminShopOrdersView } from './components/shop/AdminShopOrdersView';
 import { AdminShopPreview } from './components/shop/AdminShopPreview';
@@ -35,10 +39,11 @@ const MYSTERY_SHOP_PATHS = new Set(['/', '/reports', '/progress', '/development-
 const ONBOARDING_PATHS   = new Set(['/onboarding/14', '/onboarding/30', '/onboarding/60']);
 const LEARNING_PATHS     = new Set(['/learning', '/learning/start', '/learning/consultant', '/learning/managers', '/learning/marketing']);
 const SHOP_PATHS         = new Set(['/shop', '/orders']);
+const LIBRARY_PATHS      = new Set(['/library', '/library/my-loans']);
 
 const AppContent: React.FC = () => {
   const { user, isLoading, logout, updatePoints } = useAuth();
-  const { canMysteryShop, canOnboarding, canLearning, canShop, isLoading: accessLoading } = useAccess();
+  const { canMysteryShop, canOnboarding, canLearning, canShop, canLibrary, isLoading: accessLoading } = useAccess();
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = user?.isAdmin ?? false;
@@ -154,6 +159,10 @@ const AppContent: React.FC = () => {
       if (canMysteryShop) return <Navigate to="/" replace />;
       if (canOnboarding)  return <Navigate to="/onboarding/14" replace />;
       if (canLearning)    return <Navigate to="/learning" replace />;
+    } else if (LIBRARY_PATHS.has(pathname) && !canLibrary) {
+      if (canMysteryShop) return <Navigate to="/" replace />;
+      if (canOnboarding)  return <Navigate to="/onboarding/14" replace />;
+      if (canLearning)    return <Navigate to="/learning" replace />;
     }
   }
 
@@ -211,6 +220,8 @@ const AppContent: React.FC = () => {
           <Route path="/admin/shop/products"    element={<AdminShopProductsView />} />
           <Route path="/admin/shop/orders"      element={<AdminShopOrdersView />} />
           <Route path="/admin/shop/preview"     element={<AdminShopPreview onPointsUpdate={updatePoints} />} />
+          <Route path="/admin/library/books"    element={<AdminLibraryBooksView />} />
+          <Route path="/admin/library/loans"    element={<AdminLibraryLoansView />} />
           <Route path="*"                       element={<Navigate to="/admin" replace />} />
         </Routes>
       ) : (
@@ -238,6 +249,8 @@ const AppContent: React.FC = () => {
           <Route path="/learning/marketing" element={<LearningView section="marketing" />} />
           <Route path="/shop"              element={<ShopView onPointsUpdate={updatePoints} />} />
           <Route path="/orders"            element={<MyOrdersView />} />
+          <Route path="/library"           element={<LibraryView />} />
+          <Route path="/library/my-loans"  element={<MyLoansView />} />
           <Route path="*"                  element={<Navigate to="/" replace />} />
         </Routes>
       )}

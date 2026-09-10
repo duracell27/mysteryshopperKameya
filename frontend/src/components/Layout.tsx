@@ -101,6 +101,17 @@ const MODULE_NAV = [
       { path: '/orders', label: 'Мої замовлення',  icon: 'fa-box',  learningKey: null },
     ],
   },
+  {
+    key: 'library' as const,
+    label: 'Бібліотека',
+    icon: 'fa-book-open',
+    paths: ['/library', '/library/my-loans'] as const,
+    defaultPath: '/library',
+    items: [
+      { path: '/library',          label: 'Каталог книг', icon: 'fa-book-open', learningKey: null },
+      { path: '/library/my-loans', label: 'Мої книги',    icon: 'fa-bookmark',  learningKey: null },
+    ],
+  },
 ] as const;
 
 type ModuleKey = typeof MODULE_NAV[number]['key'];
@@ -143,13 +154,14 @@ export const Layout: React.FC<LayoutProps> = ({
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const { canMysteryShop, canOnboarding, canLearning, canShop, learningAccess } = useAccess();
+  const { canMysteryShop, canOnboarding, canLearning, canShop, canLibrary, learningAccess } = useAccess();
 
   const accessMap: Record<ModuleKey, boolean> = {
     mysteryShop: canMysteryShop,
     onboarding:  canOnboarding,
     learning:    canLearning,
     shop:        canShop,
+    library:     canLibrary,
   };
 
   const visibleModules = MODULE_NAV.filter(m => accessMap[m.key]);
@@ -158,6 +170,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const isAdminOnboardingActive = location.pathname.startsWith('/admin/onboarding');
   const isAdminTeamActive       = ['/admin/users', '/admin/structure'].some(p => location.pathname.startsWith(p));
   const isAdminReportsActive    = ['/admin/reports'].some(p => location.pathname.startsWith(p));
+  const isAdminLibraryActive    = location.pathname.startsWith('/admin/library');
 
   const getActiveModule = (): ModuleKey | null => {
     const found = visibleModules.find(m =>
@@ -166,13 +179,14 @@ export const Layout: React.FC<LayoutProps> = ({
     return found?.key ?? null;
   };
 
-  type AdminAccordion = 'team' | 'reports' | 'onboarding' | 'shop' | null;
+  type AdminAccordion = 'team' | 'reports' | 'onboarding' | 'shop' | 'library' | null;
 
   const getActiveAdminAccordion = (): AdminAccordion => {
     if (isAdminTeamActive)       return 'team';
     if (isAdminReportsActive)    return 'reports';
     if (isAdminOnboardingActive) return 'onboarding';
     if (isAdminShopActive)       return 'shop';
+    if (isAdminLibraryActive)    return 'library';
     return null;
   };
 
@@ -364,6 +378,17 @@ export const Layout: React.FC<LayoutProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Бібліотека — accordion */}
+              {renderAccordion({
+                label: 'Бібліотека', icon: 'fa-book-open',
+                isActive: isAdminLibraryActive, isOpen: adminAccordion === 'library',
+                setOpen: v => setAdminAccordion(v ? 'library' : null),
+                items: [
+                  { path: '/admin/library/books', label: 'Каталог', icon: 'fa-books' },
+                  { path: '/admin/library/loans', label: 'Запити',  icon: 'fa-list-check' },
+                ],
+              })}
             </>
           ) : (
             // Employee accordion nav
