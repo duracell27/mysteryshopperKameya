@@ -16,6 +16,7 @@ import dayplanRoutes from './routes/dayplan';
 import traineeRoutes from './routes/trainee';
 import onboardingAiRoutes from './routes/onboardingAi';
 import shopRoutes from './routes/shop';
+import libraryRoutes from './routes/library';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,11 +24,13 @@ const PORT = process.env.PORT || 3001;
 fs.mkdirSync(path.join(process.cwd(), 'uploads', 'audio'), { recursive: true });
 fs.mkdirSync(path.join(process.cwd(), 'uploads', 'avatars'), { recursive: true });
 fs.mkdirSync(path.join(process.cwd(), 'uploads', 'products'), { recursive: true });
+fs.mkdirSync(path.join(process.cwd(), 'uploads', 'books'), { recursive: true });
 
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 app.use('/uploads/avatars', express.static(path.join(process.cwd(), 'uploads', 'avatars')));
 app.use('/uploads/products', express.static(path.join(process.cwd(), 'uploads', 'products')));
+app.use('/uploads/books', express.static(path.join(process.cwd(), 'uploads', 'books')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
@@ -40,6 +43,7 @@ app.use('/api/dayplans', dayplanRoutes);
 app.use('/api/trainees', traineeRoutes);
 app.use('/api/onboarding-ai', onboardingAiRoutes);
 app.use('/api/shop', shopRoutes);
+app.use('/api/library', libraryRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
