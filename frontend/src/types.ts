@@ -340,3 +340,43 @@ export interface ShopOrder {
   createdAt: string;
   updatedAt: string;
 }
+
+// ── Library ──────────────────────────────────────────────────────────────────
+
+export type BookLoanStatus = 'pending' | 'active' | 'return_pending' | 'returned' | 'cancelled';
+
+export interface BookGenre {
+  _id:  string;
+  name: string;
+}
+
+export interface Book {
+  _id:          string;
+  title:        string;
+  author:       string;
+  genreId:      string | BookGenre;
+  coverUrl:     string;
+  annotation:   string;
+  isActive:     boolean;
+  avgRating:    number;
+  ratingsCount: number;
+  isBorrowed?:  boolean;
+  createdAt:    string;
+  updatedAt:    string;
+}
+
+export interface BookLoan {
+  _id:                string;
+  bookId:             string | Book;
+  userId:             string | { _id: string; name: string; phone: string; division?: string };
+  status:             BookLoanStatus;
+  requestedAt:        string;
+  deliveredAt?:       string;
+  dueDate?:           string;
+  dueDateExtendedAt?: string;
+  returnRequestedAt?: string;
+  returnedAt?:        string;
+  rating?:            number;
+  warningDay27Sent:   boolean;
+  warningDay31Sent:   boolean;
+}
