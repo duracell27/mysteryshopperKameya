@@ -19,6 +19,50 @@ const DaysIndicator: React.FC<{ dueDate: string }> = ({ dueDate }) => {
   return <span className={`text-xs font-medium px-2 py-1 rounded-full ${color}`}>{label}</span>;
 };
 
+const STEPS = [
+  { key: 'pending',        label: 'Доставка',  icon: 'fa-truck' },
+  { key: 'active',         label: 'На руках',  icon: 'fa-book-open' },
+  { key: 'return_pending', label: 'Повернення', icon: 'fa-rotate-left' },
+] as const;
+
+const stepIndex = (status: string) => STEPS.findIndex(s => s.key === status);
+
+const StatusStepper: React.FC<{ status: string }> = ({ status }) => {
+  const current = stepIndex(status);
+  return (
+    <div className="flex items-center w-full mt-4 mb-1">
+      {STEPS.map((step, i) => {
+        const done   = i < current;
+        const active = i === current;
+        return (
+          <React.Fragment key={step.key}>
+            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                done   ? 'bg-kameya-burgundy/20 text-kameya-burgundy' :
+                active ? 'bg-kameya-burgundy text-white shadow-md' :
+                         'bg-slate-100 text-slate-300'
+              }`}>
+                {done
+                  ? <i className="fas fa-check text-xs"></i>
+                  : <i className={`fas ${step.icon} text-xs`}></i>
+                }
+              </div>
+              <span className={`text-[10px] font-medium text-center leading-tight ${
+                active ? 'text-kameya-burgundy' : done ? 'text-slate-500' : 'text-slate-300'
+              }`}>{step.label}</span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div className={`flex-1 h-0.5 mx-1 mb-4 rounded-full transition-colors ${
+                i < current ? 'bg-kameya-burgundy/40' : 'bg-slate-100'
+              }`} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
 const StarPicker: React.FC<{ value: number; onChange: (v: number) => void }> = ({ value, onChange }) => (
   <div className="flex space-x-1">
     {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
@@ -142,7 +186,10 @@ export const MyLoansView: React.FC = () => {
               {activeLoan.dueDate && activeLoan.status === 'active' && (
                 <DaysIndicator dueDate={activeLoan.dueDate} />
               )}
-              <div className="flex space-x-2 pt-1">
+            </div>
+          </div>
+          <StatusStepper status={activeLoan.status} />
+          <div className="flex space-x-2 pt-1">
                 {activeLoan.status === 'active' && (
                   <button onClick={() => setReturnModal(activeLoan)}
                     className="bg-kameya-burgundy text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-kameya-burgundy/90">
@@ -158,8 +205,6 @@ export const MyLoansView: React.FC = () => {
                 {activeLoan.status === 'return_pending' && (
                   <span className="text-xs text-slate-400 italic">Очікуємо підтвердження адміна</span>
                 )}
-              </div>
-            </div>
           </div>
         </div>
       ) : (
