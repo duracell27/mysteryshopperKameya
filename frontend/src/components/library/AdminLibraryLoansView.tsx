@@ -292,36 +292,20 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
                   </div>
                   {/* Дії */}
                   <div className="flex flex-col items-end justify-between flex-shrink-0 self-stretch">
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLOR[loan.status]}`}>
-                          {STATUS_LABEL[loan.status]}
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLOR[loan.status]}`}>
+                        {STATUS_LABEL[loan.status]}
+                      </span>
+                      {loan.status === 'active' && <DueBadge dueDate={loan.dueDate} />}
+                      {loan.status === 'active' && loan.warningDay27Sent && (
+                        <span title="СМС за 3 дні до закінчення надіслано" className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-600 flex items-center gap-0.5">
+                          <i className="fas fa-comment-sms text-[9px]"></i> 27д
                         </span>
-                        {loan.status === 'active' && <DueBadge dueDate={loan.dueDate} />}
-                      </div>
-                      {loan.status === 'active' && (
-                        <div className="flex items-center gap-1">
-                          <span
-                            title="СМС за 3 дні до закінчення (день 27)"
-                            className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
-                              loan.warningDay27Sent
-                                ? 'bg-green-50 text-green-600'
-                                : 'bg-slate-100 text-slate-400'
-                            }`}
-                          >
-                            <i className="fas fa-comment-sms text-[9px]"></i> 27д
-                          </span>
-                          <span
-                            title="СМС після прострочення (день 31+)"
-                            className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
-                              loan.warningDay31Sent
-                                ? 'bg-orange-50 text-orange-600'
-                                : 'bg-slate-100 text-slate-400'
-                            }`}
-                          >
-                            <i className="fas fa-comment-sms text-[9px]"></i> 31д
-                          </span>
-                        </div>
+                      )}
+                      {loan.status === 'active' && loan.warningDay31Sent && (
+                        <span title="СМС про прострочення надіслано" className="text-[10px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 flex items-center gap-0.5">
+                          <i className="fas fa-comment-sms text-[9px]"></i> 31д
+                        </span>
                       )}
                     </div>
                     {loan.status === 'pending' && (

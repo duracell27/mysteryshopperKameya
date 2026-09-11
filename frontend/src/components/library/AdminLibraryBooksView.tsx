@@ -268,24 +268,24 @@ export const AdminLibraryBooksView: React.FC = () => {
             <div className="flex justify-center py-8"><i className="fas fa-spinner fa-spin text-xl text-kameya-burgundy"></i></div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm border-separate border-spacing-y-1">
                 <thead>
-                  <tr className="text-left text-slate-500 border-b border-slate-100">
-                    <th className="pb-3 font-medium">Книга</th>
-                    <th className="pb-3 font-medium">Жанр</th>
-                    <th className="pb-3 font-medium">Рейтинг</th>
-                    <th className="pb-3 font-medium">Статус</th>
-                    <th className="pb-3 font-medium">Дії</th>
+                  <tr className="text-left text-kameya-burgundy bg-kameya-burgundy/10">
+                    <th className="pb-2 pt-2 pl-1.5 font-medium rounded-l-xl">Книга</th>
+                    <th className="pb-2 pt-2 font-medium">Жанр</th>
+                    <th className="pb-2 pt-2 font-medium">Рейтинг</th>
+                    <th className="pb-2 pt-2 font-medium">Статус</th>
+                    <th className="pb-2 pt-2 pr-4 font-medium rounded-r-xl">Дії</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody>
                   {books.map((book, idx) => (
-                    <tr key={book._id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-kameya-burgundy/[0.03]'} hover:bg-kameya-burgundy/[0.07] transition-colors`}>
-                      <td className="py-3 pr-4">
+                    <tr key={book._id} className="bg-white hover:bg-kameya-burgundy/[0.06] transition-colors">
+                      <td className="py-1.5 pl-1.5 pr-4 rounded-l-xl">
                         <div className="flex items-center space-x-3">
                           {book.coverUrl
-                            ? <img src={book.coverUrl} alt="" className="w-10 h-14 object-cover rounded" />
-                            : <div className="w-10 h-14 bg-slate-100 rounded flex items-center justify-center"><i className="fas fa-book text-slate-300 text-xs"></i></div>
+                            ? <img src={book.coverUrl} alt="" className="w-12 h-16 object-cover rounded" />
+                            : <div className="w-12 h-16 bg-slate-100 rounded flex items-center justify-center"><i className="fas fa-book text-slate-300 text-xs"></i></div>
                           }
                           <div>
                             <p className="font-medium text-slate-800">{book.title}</p>
@@ -311,7 +311,7 @@ export const AdminLibraryBooksView: React.FC = () => {
                             : <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Вільна</span>
                         }
                       </td>
-                      <td className="py-3">
+                      <td className="py-3 pr-4 rounded-r-xl">
                         <div className="flex space-x-2">
                           <button onClick={() => openBookEdit(book)}
                             className="text-slate-500 hover:text-kameya-burgundy transition-colors" title="Редагувати">
