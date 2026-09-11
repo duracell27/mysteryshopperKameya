@@ -219,6 +219,7 @@ export const LibraryView: React.FC = () => {
   const [books,      setBooks]      = useState<BookWithBorrowed[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState('');
+  const [activeGenre, setActiveGenre] = useState<string>('');
   const [toast,      setToast]      = useState<string | null>(null);
   const [selected,   setSelected]   = useState<BookWithBorrowed | null>(null);
 
@@ -236,10 +237,10 @@ export const LibraryView: React.FC = () => {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return books;
-    return books.filter(b =>
-      b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)
-    );
+    return books.filter(b => {
+      if (q && !b.title.toLowerCase().includes(q) && !b.author.toLowerCase().includes(q)) return false;
+      return true;
+    });
   }, [books, search]);
 
   const byGenre = useMemo(() => {
@@ -256,8 +257,11 @@ export const LibraryView: React.FC = () => {
     }
     const sections = [...genreMap.values()].filter(s => s.books.length > 0);
     if (noGenre.length > 0) sections.push({ name: 'Інше', books: noGenre });
-    return sections;
-  }, [filtered, genres]);
+    if (!activeGenre) return sections;
+    const active = genres.find(g => g._id === activeGenre);
+    if (!active) return sections;
+    return sections.filter(s => s.name === active.name);
+  }, [filtered, genres, activeGenre]);
 
   return (
     <div className="space-y-6">
@@ -285,6 +289,35 @@ export const LibraryView: React.FC = () => {
           className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50"
         />
       </div>
+
+      {/* Жанр-таби */}
+      {genres.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setActiveGenre('')}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              activeGenre === ''
+                ? 'bg-kameya-burgundy text-white'
+                : 'bg-white border border-slate-200 text-slate-600 hover:border-kameya-burgundy/50 hover:text-kameya-burgundy'
+            }`}
+          >
+            Всі
+          </button>
+          {genres.map(g => (
+            <button
+              key={g._id}
+              onClick={() => setActiveGenre(g._id === activeGenre ? '' : g._id)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeGenre === g._id
+                  ? 'bg-kameya-burgundy text-white'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-kameya-burgundy/50 hover:text-kameya-burgundy'
+              }`}
+            >
+              {g.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-16">
