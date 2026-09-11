@@ -252,7 +252,9 @@ router.post('/loans', async (req: AuthRequest, res: Response) => {
     });
     if (hasActiveLoan) return res.status(409).json({ message: 'У вас вже є активна позика. Поверніть книгу перед тим як взяти нову.' });
 
-    const loan = await BookLoan.create({ bookId, userId: req.user!.userId });
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 30);
+    const loan = await BookLoan.create({ bookId, userId: req.user!.userId, dueDate });
     return res.status(201).json(loan);
   } catch {
     return res.status(500).json({ message: 'Помилка сервера' });
