@@ -346,8 +346,9 @@ export interface ShopOrder {
 export type BookLoanStatus = 'pending' | 'active' | 'return_pending' | 'returned' | 'cancelled';
 
 export interface BookGenre {
-  _id:  string;
-  name: string;
+  _id:       string;
+  name:      string;
+  sortOrder?: number;
 }
 
 export interface Book {
@@ -369,7 +370,7 @@ export interface Book {
 export interface BookLoan {
   _id:                string;
   bookId:             string | Book;
-  userId:             string | { _id: string; name: string; phone: string; division?: string };
+  userId:             string | { _id: string; name: string; phone: string; division?: string; group?: string };
   status:             BookLoanStatus;
   requestedAt:        string;
   deliveredAt?:       string;

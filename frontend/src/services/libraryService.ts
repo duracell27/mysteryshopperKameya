@@ -169,6 +169,22 @@ export const confirmReturn = async (id: string): Promise<BookLoan> => {
   return res.json();
 };
 
+export const forceCancelLoan = async (id: string): Promise<BookLoan> => {
+  const res = await apiFetch(`/api/library/loans/${id}/force-cancel`, { method: 'PATCH' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Помилка скасування');
+  }
+  return res.json();
+};
+
+export const getPendingLoansCount = async (): Promise<number> => {
+  const res = await apiFetch('/api/library/loans/pending-count');
+  if (!res.ok) return 0;
+  const data = await res.json();
+  return (data as { count: number }).count ?? 0;
+};
+
 export const cancelLoan = async (id: string): Promise<BookLoan> => {
   const res = await apiFetch(`/api/library/loans/${id}/cancel`, { method: 'PATCH' });
   if (!res.ok) {
@@ -176,4 +192,13 @@ export const cancelLoan = async (id: string): Promise<BookLoan> => {
     throw new Error((err as { message?: string }).message ?? 'Помилка скасування');
   }
   return res.json();
+};
+
+export const reorderGenres = async (ids: string[]): Promise<void> => {
+  const res = await apiFetch('/api/library/genres/reorder', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) throw new Error('Помилка збереження порядку');
 };

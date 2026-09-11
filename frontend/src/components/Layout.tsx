@@ -11,6 +11,7 @@ interface LayoutProps {
   notificationsUnread?: number;
   systemUnread?: number;
   shopOrdersPending?: number;
+  libraryLoansPending?: number;
   onOpenSystemPanel?: () => void;
   onChangePassword?: () => void;
 }
@@ -146,6 +147,7 @@ export const Layout: React.FC<LayoutProps> = ({
   notificationsUnread = 0,
   systemUnread = 0,
   shopOrdersPending = 0,
+  libraryLoansPending = 0,
   onOpenSystemPanel,
   onChangePassword,
 }) => {
@@ -220,11 +222,12 @@ export const Layout: React.FC<LayoutProps> = ({
 
   const renderAccordion = ({
     label, icon, isActive: active, isOpen, setOpen,
-    items,
+    items, headerBadge,
   }: {
     label: string; icon: string; isActive: boolean; isOpen: boolean;
     setOpen: (v: boolean) => void;
-    items: { path: string; label: string; icon: string }[];
+    items: { path: string; label: string; icon: string; badge?: number }[];
+    headerBadge?: number;
   }) => (
     <div>
       <button
@@ -243,6 +246,7 @@ export const Layout: React.FC<LayoutProps> = ({
         <div className="flex items-center space-x-3">
           <i className={`fas ${icon} w-4 text-center`}></i>
           <span>{label}</span>
+          {!isOpen && (headerBadge ?? 0) > 0 && <Badge count={headerBadge!} />}
         </div>
         <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-xs opacity-50`}></i>
       </button>
@@ -258,6 +262,7 @@ export const Layout: React.FC<LayoutProps> = ({
             >
               <i className={`fas ${item.icon} w-4 text-center opacity-70`}></i>
               <span>{item.label}</span>
+              {(item.badge ?? 0) > 0 && <Badge count={item.badge!} />}
             </button>
           ))}
         </div>
@@ -384,9 +389,10 @@ export const Layout: React.FC<LayoutProps> = ({
                 label: 'Бібліотека', icon: 'fa-book-open',
                 isActive: isAdminLibraryActive, isOpen: adminAccordion === 'library',
                 setOpen: v => setAdminAccordion(v ? 'library' : null),
+                headerBadge: libraryLoansPending,
                 items: [
                   { path: '/admin/library/books', label: 'Каталог', icon: 'fa-book-open' },
-                  { path: '/admin/library/loans', label: 'Запити',  icon: 'fa-list-check' },
+                  { path: '/admin/library/loans', label: 'Запити',  icon: 'fa-list-check', badge: libraryLoansPending },
                 ],
               })}
             </>

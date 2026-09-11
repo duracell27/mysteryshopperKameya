@@ -34,6 +34,7 @@ import { Screen, SCREEN_PATHS, AIAnalysisResult, QuizQuestion } from './types';
 import { generateQuizQuestions } from './services/geminiService';
 import { getUnreadCount, getSystemUnreadCount } from './services/notificationsService';
 import { getPendingOrdersCount } from './services/shopOrdersService';
+import { getPendingLoansCount } from './services/libraryService';
 
 const MYSTERY_SHOP_PATHS = new Set(['/', '/reports', '/progress', '/development-plan', '/quiz']);
 const ONBOARDING_PATHS   = new Set(['/onboarding/14', '/onboarding/30', '/onboarding/60']);
@@ -55,6 +56,7 @@ const AppContent: React.FC = () => {
   const [notificationsUnread, setNotificationsUnread] = useState(0);
   const [systemUnread, setSystemUnread] = useState(0);
   const [shopOrdersPending, setShopOrdersPending] = useState(0);
+  const [libraryLoansPending, setLibraryLoansPending] = useState(0);
   const [systemPanelOpen, setSystemPanelOpen] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [selectedReportAction, setSelectedReportAction] = useState<string | null>(null);
@@ -76,6 +78,7 @@ const AppContent: React.FC = () => {
     getUnreadCount().then(setNotificationsUnread).catch(() => {});
     getSystemUnreadCount().then(setSystemUnread).catch(() => {});
     getPendingOrdersCount().then(setShopOrdersPending).catch(() => {});
+    getPendingLoansCount().then(setLibraryLoansPending).catch(() => {});
   }, [isAdmin]);
 
   useEffect(() => {
@@ -172,6 +175,7 @@ const AppContent: React.FC = () => {
     notificationsUnread,
     systemUnread,
     shopOrdersPending,
+    libraryLoansPending,
     onOpenSystemPanel: () => setSystemPanelOpen(true),
     onChangePassword:  () => setChangePasswordOpen(true),
   };
@@ -221,7 +225,7 @@ const AppContent: React.FC = () => {
           <Route path="/admin/shop/orders"      element={<AdminShopOrdersView />} />
           <Route path="/admin/shop/preview"     element={<AdminShopPreview onPointsUpdate={updatePoints} />} />
           <Route path="/admin/library/books"    element={<AdminLibraryBooksView />} />
-          <Route path="/admin/library/loans"    element={<AdminLibraryLoansView />} />
+          <Route path="/admin/library/loans"    element={<AdminLibraryLoansView onRefresh={refreshUnreadCounts} />} />
           <Route path="*"                       element={<Navigate to="/admin" replace />} />
         </Routes>
       ) : (
@@ -249,7 +253,7 @@ const AppContent: React.FC = () => {
           <Route path="/learning/marketing" element={<LearningView section="marketing" />} />
           <Route path="/shop"              element={<ShopView onPointsUpdate={updatePoints} />} />
           <Route path="/orders"            element={<MyOrdersView />} />
-          <Route path="/library"           element={<LibraryView />} />
+          <Route path="/library"           element={<LibraryView onRefresh={refreshUnreadCounts} />} />
           <Route path="/library/my-loans"  element={<MyLoansView />} />
           <Route path="*"                  element={<Navigate to="/" replace />} />
         </Routes>

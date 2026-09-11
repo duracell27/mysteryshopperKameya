@@ -51,8 +51,20 @@ router.use(authMiddleware);
 // GET /api/library/genres
 router.get('/genres', async (_req: AuthRequest, res: Response) => {
   try {
-    const genres = await BookGenre.find().sort({ name: 1 });
+    const genres = await BookGenre.find().sort({ sortOrder: 1, name: 1 });
     return res.json(genres);
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// PATCH /api/library/genres/reorder
+router.patch('/genres/reorder', adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    if (!Array.isArray(ids)) return res.status(400).json({ message: 'ids має бути масивом' });
+    await Promise.all(ids.map((id, idx) => BookGenre.findByIdAndUpdate(id, { sortOrder: idx })));
+    return res.json({ ok: true });
   } catch {
     return res.status(500).json({ message: 'Помилка сервера' });
   }
@@ -261,6 +273,16 @@ router.post('/loans', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /api/library/loans/pending-count — admin: count of pending loans
+router.get('/loans/pending-count', adminOnly, async (_req: AuthRequest, res: Response) => {
+  try {
+    const count = await BookLoan.countDocuments({ status: { $in: ['pending', 'return_pending'] } });
+    return res.json({ count });
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 // GET /api/library/loans/my — employee: active + history
 router.get('/loans/my', async (req: AuthRequest, res: Response) => {
   try {
@@ -298,7 +320,7 @@ router.get('/loans', adminOnly, async (req: AuthRequest, res: Response) => {
 
     const loans = await BookLoan.find(filter)
       .populate('bookId', 'title author coverUrl')
-      .populate('userId', 'name phone division')
+      .populate('userId', 'name phone division group')
       .sort({ requestedAt: -1 })
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum + 1);
@@ -414,6 +436,22 @@ router.patch('/loans/:id/cancel', async (req: AuthRequest, res: Response) => {
     const isOwner = loan.userId.toString() === req.user!.userId;
     if (!req.user?.isAdmin && !isOwner) return res.status(403).json({ message: 'Доступ заборонено' });
 
+    loan.status = 'cancelled';
+    await loan.save();
+    return res.json(loan);
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// PATCH /api/library/loans/:id/force-cancel — admin: force cancel any active loan
+router.patch('/loans/:id/force-cancel', adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const loan = await BookLoan.findById(req.params.id);
+    if (!loan) return res.status(404).json({ message: 'Позику не знайдено' });
+    if (['returned', 'cancelled'].includes(loan.status)) {
+      return res.status(400).json({ message: 'Позика вже завершена' });
+    }
     loan.status = 'cancelled';
     await loan.save();
     return res.json(loan);

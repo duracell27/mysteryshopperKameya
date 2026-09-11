@@ -42,7 +42,6 @@ const BookCard: React.FC<{
       <div className="p-2.5 flex flex-col flex-1 gap-1">
         <p className="text-xs font-semibold text-slate-800 leading-tight line-clamp-2">{book.title}</p>
         <p className="text-[10px] text-slate-500 truncate">{book.author}</p>
-        <StarRating value={book.avgRating} count={book.ratingsCount} />
         <div className="mt-auto pt-1">
           {book.isBorrowed ? (
             <span className="flex flex-col items-center justify-center text-[10px] text-slate-400 bg-slate-100 px-2 py-1 rounded-md w-full leading-tight">
@@ -64,7 +63,8 @@ const BookModal: React.FC<{
   book: BookWithBorrowed;
   onClose: () => void;
   onReload: () => void;
-}> = ({ book, onClose, onReload }) => {
+  onRefresh?: () => void;
+}> = ({ book, onClose, onReload, onRefresh }) => {
   const { user } = useAuth();
   const [step, setStep]           = useState<ModalStep>('detail');
   const [submitting, setSubmitting] = useState(false);
@@ -86,6 +86,7 @@ const BookModal: React.FC<{
       await requestLoan(book._id);
       setStep('success');
       onReload();
+      onRefresh?.();
     } catch (e: unknown) {
       setError((e as { message?: string }).message ?? 'Помилка замовлення');
     } finally {
@@ -96,48 +97,57 @@ const BookModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div
-        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
+        className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Detail step */}
         {step === 'detail' && (
           <>
-            <div className="flex gap-4 p-5">
-              {book.coverUrl ? (
-                <img src={book.coverUrl} alt={book.title} className="w-24 h-36 object-cover rounded-xl flex-shrink-0 shadow-sm" />
-              ) : (
-                <div className="w-24 h-36 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <i className="fas fa-book text-3xl text-slate-300"></i>
-                </div>
-              )}
-              <div className="flex-1 min-w-0 pt-1">
-                <h2 className="text-base font-bold text-slate-800 leading-snug">{book.title}</h2>
-                <p className="text-sm text-slate-500 mt-1">{book.author}</p>
-                {genreName && (
-                  <span className="inline-block mt-2 text-xs bg-kameya-burgundy/10 text-kameya-burgundy px-2 py-0.5 rounded-full">{genreName}</span>
+            {/* Burgundy header */}
+            <div className="bg-kameya-burgundy px-5 pt-5 pb-6 rounded-t-3xl sm:rounded-t-2xl relative">
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+              >
+                <i className="fas fa-times text-xs"></i>
+              </button>
+              <div className="flex gap-4">
+                {book.coverUrl ? (
+                  <img src={book.coverUrl} alt={book.title} className="w-24 h-36 object-cover rounded-xl flex-shrink-0 shadow-md" />
+                ) : (
+                  <div className="w-24 h-36 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i className="fas fa-book text-3xl text-white/50"></i>
+                  </div>
                 )}
-                <div className="mt-3">
-                  {book.isBorrowed ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
-                      <i className="fas fa-clock text-[10px]"></i>
-                      {dueDateStr ? `Зайнята до ${dueDateStr}` : 'Зайнята'}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-3 py-1.5 rounded-full">
-                      <i className="fas fa-check text-[10px]"></i>В наявності
-                    </span>
+                <div className="flex-1 min-w-0 pt-1 pr-8">
+                  <h2 className="text-base font-bold text-white leading-snug">{book.title}</h2>
+                  <p className="text-sm text-white/70 mt-1">{book.author}</p>
+                  {genreName && (
+                    <span className="inline-block mt-2 text-xs bg-white/20 text-white px-2.5 py-0.5 rounded-full">{genreName}</span>
                   )}
+                  <div className="mt-3">
+                    {book.isBorrowed ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-white/80 bg-white/15 px-3 py-1.5 rounded-full">
+                        <i className="fas fa-clock text-[10px]"></i>
+                        {dueDateStr ? `Зайнята до ${dueDateStr}` : 'Зайнята'}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-300 bg-white/10 px-3 py-1.5 rounded-full">
+                        <i className="fas fa-check text-[10px]"></i>В наявності
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
             {book.annotation && (
-              <div className="px-5 pb-4">
-                <p className="text-sm text-slate-600 leading-relaxed line-clamp-4">{book.annotation}</p>
+              <div className="px-5 pt-4 pb-2 overflow-y-auto max-h-[35vh]">
+                <p className="text-sm text-slate-600 leading-relaxed">{book.annotation}</p>
               </div>
             )}
 
-            <div className="px-5 pb-5 flex gap-3">
+            <div className="px-5 py-4 flex gap-3 border-t border-slate-100">
               <button onClick={onClose} className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm hover:bg-slate-50">
                 Закрити
               </button>
@@ -157,11 +167,27 @@ const BookModal: React.FC<{
         {step === 'confirm' && (
           <>
             <div className="p-5">
-              <button onClick={() => setStep('detail')} className="text-slate-400 hover:text-slate-600 mb-4">
-                <i className="fas fa-arrow-left"></i>
-              </button>
-              <h2 className="text-lg font-bold text-slate-800 mb-1">Підтвердження замовлення</h2>
-              <p className="text-sm text-slate-500 mb-5">«{book.title}»</p>
+              <div className="flex items-center mb-4">
+                <button onClick={() => setStep('detail')} className="text-slate-400 hover:text-slate-600">
+                  <i className="fas fa-arrow-left"></i>
+                </button>
+                <h2 className="flex-1 text-center text-base font-bold text-slate-800">Підтвердження замовлення</h2>
+                <div className="w-4" />
+              </div>
+
+              <div className="flex items-center gap-4 mb-5">
+                {book.coverUrl ? (
+                  <img src={book.coverUrl} alt={book.title} className="w-14 h-20 object-cover rounded-lg flex-shrink-0 shadow-sm" />
+                ) : (
+                  <div className="w-14 h-20 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <i className="fas fa-book text-slate-300 text-xl"></i>
+                  </div>
+                )}
+                <div>
+                  <p className="font-bold text-slate-900 text-base leading-snug">{book.title}</p>
+                  <p className="text-sm text-slate-500 mt-0.5">{book.author}</p>
+                </div>
+              </div>
 
               <div className="bg-slate-50 rounded-xl p-4 space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -214,7 +240,7 @@ const BookModal: React.FC<{
   );
 };
 
-export const LibraryView: React.FC = () => {
+export const LibraryView: React.FC<{ onRefresh?: () => void }> = ({ onRefresh }) => {
   const [genres,     setGenres]     = useState<BookGenre[]>([]);
   const [books,      setBooks]      = useState<BookWithBorrowed[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -276,6 +302,7 @@ export const LibraryView: React.FC = () => {
           book={selected}
           onClose={() => setSelected(null)}
           onReload={loadBooks}
+          onRefresh={onRefresh}
         />
       )}
 

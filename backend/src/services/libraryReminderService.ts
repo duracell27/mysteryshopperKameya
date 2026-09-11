@@ -25,10 +25,10 @@ async function processLoanReminders(): Promise<void> {
 
       const book = await Book.findById(loan.bookId).select('title').lean();
       const title = book?.title ?? 'книгу';
-      const dueDateStr = loan.dueDate.toLocaleDateString('uk-UA');
 
-      if (daysLeft <= 3 && !loan.warningDay27Sent) {
-        const msg = `Kameya: нагадування — поверніть книгу «${title}» до ${dueDateStr}.`;
+      // Нагадування за 3 дні (27-й день)
+      if (daysLeft === 3 && !loan.warningDay27Sent) {
+        const msg = `Привіт! Термін користування книгою «${title}» закінчується через 3 дні. Встигаєш дочитати чи готовий(а) повернути?`;
         try {
           await sendSms(user.phone, msg);
           await BookLoan.findByIdAndUpdate(loan._id, { warningDay27Sent: true });
@@ -37,8 +37,9 @@ async function processLoanReminders(): Promise<void> {
         }
       }
 
+      // Сповіщення про прострочення (31-й день і далі)
       if (daysLeft < 0 && !loan.warningDay31Sent) {
-        const msg = `Kameya: термін повернення книги «${title}» минув ${dueDateStr}. Будь ласка, поверніть якнайшвидше.`;
+        const msg = `Привіт! 30 днів користування книгою «${title}» минули. Будь ласка, поверни книгу в HR-відділ або звернися до HR для продовження.`;
         try {
           await sendSms(user.phone, msg);
           await BookLoan.findByIdAndUpdate(loan._id, { warningDay31Sent: true });

@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Book, BookGenre } from '../../types';
 import {
-  getGenres, createGenre, updateGenre, deleteGenre,
+  getGenres, createGenre, updateGenre, deleteGenre, reorderGenres,
   getBooks, createBook, updateBook, deactivateBook,
 } from '../../services/libraryService';
 
@@ -30,6 +30,9 @@ export const AdminLibraryBooksView: React.FC = () => {
   const [genreModal, setGenreModal] = useState<{ mode: 'create' | 'edit'; genre?: BookGenre } | null>(null);
   const [genreName,  setGenreName]  = useState('');
   const [savingGenre, setSavingGenre] = useState(false);
+
+  // Genre drag state
+  const dragIndex = useRef<number | null>(null);
 
   // Filter
   const [search, setSearch] = useState('');
@@ -113,6 +116,22 @@ export const AdminLibraryBooksView: React.FC = () => {
     if (!confirm('Видалити жанр?')) return;
     try { await deleteGenre(id); showToast('Жанр видалено'); loadData(); }
     catch (e: unknown) { showToast((e as Error).message ?? 'Помилка'); }
+  };
+
+  const handleDragStart = (idx: number) => { dragIndex.current = idx; };
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (dragIndex.current === null || dragIndex.current === idx) return;
+    const next = [...genres];
+    const [moved] = next.splice(dragIndex.current, 1);
+    next.splice(idx, 0, moved);
+    dragIndex.current = idx;
+    setGenres(next);
+  };
+  const handleDrop = async () => {
+    dragIndex.current = null;
+    try { await reorderGenres(genres.map(g => g._id)); }
+    catch { showToast('Помилка збереження порядку'); }
   };
 
   const genreName_of = (book: Book) =>
@@ -256,7 +275,7 @@ export const AdminLibraryBooksView: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-3 pr-4 text-slate-600">{genreName_of(book)}</td>
-                      <td className="py-3 pr-4">
+                      <td className="py-3 pr-4 whitespace-nowrap">
                         {book.ratingsCount > 0
                           ? <span className="text-yellow-500">★ {book.avgRating.toFixed(1)} <span className="text-slate-400 text-xs">({book.ratingsCount})</span></span>
                           : <span className="text-slate-400 text-xs">—</span>
@@ -266,7 +285,10 @@ export const AdminLibraryBooksView: React.FC = () => {
                         {book.isActive === false
                           ? <span className="bg-slate-100 text-slate-400 text-xs px-2 py-0.5 rounded-full">Деактивована</span>
                           : book.isBorrowed
-                            ? <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">Зайнята</span>
+                            ? <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full inline-flex flex-col items-center leading-tight">
+                                <span>Зайнята</span>
+                                {book.dueDate && <span className="opacity-75">до {new Date(book.dueDate).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' })}</span>}
+                              </span>
                             : <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Вільна</span>
                         }
                       </td>
@@ -303,9 +325,19 @@ export const AdminLibraryBooksView: React.FC = () => {
 
       {tab === 'genres' && (
         <div className="space-y-2">
-          {genres.map(g => (
-            <div key={g._id} className="flex items-center justify-between bg-white border border-slate-100 rounded-xl px-4 py-3">
-              <span className="text-slate-800 text-sm">{g.name}</span>
+          {genres.map((g, idx) => (
+            <div
+              key={g._id}
+              draggable
+              onDragStart={() => handleDragStart(idx)}
+              onDragOver={e => handleDragOver(e, idx)}
+              onDrop={handleDrop}
+              className="flex items-center justify-between bg-white border border-slate-100 rounded-xl px-4 py-3 cursor-grab active:cursor-grabbing select-none"
+            >
+              <div className="flex items-center gap-3">
+                <i className="fas fa-grip-vertical text-slate-300 text-xs flex-shrink-0"></i>
+                <span className="text-slate-800 text-sm">{g.name}</span>
+              </div>
               <div className="flex space-x-2">
                 <button onClick={() => { setGenreName(g.name); setGenreModal({ mode: 'edit', genre: g }); }}
                   className="text-slate-400 hover:text-kameya-burgundy"><i className="fas fa-pen text-xs"></i></button>
@@ -315,6 +347,11 @@ export const AdminLibraryBooksView: React.FC = () => {
             </div>
           ))}
           {genres.length === 0 && <p className="text-center py-8 text-slate-400 text-sm">Жанрів поки немає</p>}
+          {genres.length > 1 && (
+            <p className="text-center text-[11px] text-slate-300 pt-1">
+              <i className="fas fa-grip-vertical mr-1"></i>Перетягніть для зміни порядку
+            </p>
+          )}
         </div>
       )}
     </div>
