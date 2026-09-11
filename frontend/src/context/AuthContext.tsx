@@ -3,6 +3,26 @@ import { AuthUser } from '../types';
 import { loginApi } from '../services/authService';
 import { UNAUTHORIZED_EVENT } from '../services/apiFetch';
 
+function decodeTokenUser(token: string): AuthUser | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (!payload.userId) return null;
+    return {
+      id: payload.userId,
+      phone: payload.phone ?? '',
+      name: payload.name ?? '',
+      isAdmin: payload.isAdmin ?? false,
+      division: payload.division ?? '',
+      group: payload.group ?? '',
+      position: payload.position ?? '',
+      points: payload.points ?? 0,
+      avatarUrl: payload.avatarUrl ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
@@ -30,14 +50,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetch('/api/auth/me', {
       headers: { Authorization: `Bearer ${storedToken}` },
     })
-      .then(res => {
-        if (!res.ok) throw new Error('Unauthorized');
-        return res.json();
+      .then(async res => {
+        if (res.status === 401) {
+          localStorage.removeItem('kameya_token');
+          setToken(null);
+          return;
+        }
+        if (!res.ok) {
+          // Server/network error — use JWT payload as fallback so user stays logged in
+          const fallback = decodeTokenUser(storedToken);
+          if (fallback) setUser(fallback);
+          return;
+        }
+        const userData: AuthUser = await res.json();
+        setUser(userData);
       })
-      .then((userData: AuthUser) => setUser(userData))
       .catch(() => {
-        localStorage.removeItem('kameya_token');
-        setToken(null);
+        // Network error — use JWT payload as fallback, don't remove token
+        const fallback = decodeTokenUser(storedToken);
+        if (fallback) setUser(fallback);
       })
       .finally(() => setIsLoading(false));
   }, []);

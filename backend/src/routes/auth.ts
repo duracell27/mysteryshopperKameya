@@ -67,10 +67,12 @@ router.post('/login', async (req: Request, res: Response) => {
       {
         userId:   user._id,
         phone:    user.phone,
+        name:     user.name,
         isAdmin:  user.isAdmin,
         division: user.division,
         group:    user.group,
         position: user.position,
+        points:   user.points ?? 0,
         avatarUrl: user.avatarUrl ?? null,
       },
       process.env.JWT_SECRET || 'fallback-secret',
