@@ -253,7 +253,7 @@ export const LibraryView: React.FC<{ onRefresh?: () => void }> = ({ onRefresh })
 
   const loadBooks = useCallback(async () => {
     setLoading(true);
-    try { setBooks(await getBooks({})); }
+    try { const { books } = await getBooks({ limit: 100 }); setBooks(books); }
     catch { showToast('Помилка завантаження каталогу'); }
     finally { setLoading(false); }
   }, []);

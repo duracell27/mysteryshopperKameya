@@ -121,7 +121,7 @@ router.get('/books', async (req: AuthRequest, res: Response) => {
   try {
     if (!(await checkLibraryAccess(req))) return res.status(403).json({ message: 'Доступ заборонено' });
 
-    const { genre, status, search, page = '1', limit = '200', includeInactive } = req.query as Record<string, string>;
+    const { genre, status, search, page = '1', limit = '20', includeInactive } = req.query as Record<string, string>;
     const isAdminIncludeInactive = includeInactive === 'true' && req.user?.isAdmin;
     const filter: Record<string, unknown> = isAdminIncludeInactive ? {} : { isActive: true };
     if (genre) filter.genreId = genre;
@@ -137,7 +137,10 @@ router.get('/books', async (req: AuthRequest, res: Response) => {
       .populate('genreId', 'name')
       .sort({ title: 1 })
       .skip((pageNum - 1) * limitNum)
-      .limit(limitNum);
+      .limit(limitNum + 1);
+
+    const hasMore = books.length > limitNum;
+    if (hasMore) books.pop();
 
     // Визначаємо статус кожної книги
     const bookIds = books.map(b => b._id);
@@ -156,7 +159,7 @@ router.get('/books', async (req: AuthRequest, res: Response) => {
     if (status === 'available') result = result.filter(b => !b.isBorrowed);
     if (status === 'borrowed')  result = result.filter(b =>  b.isBorrowed);
 
-    return res.json(result);
+    return res.json({ books: result, hasMore });
   } catch {
     return res.status(500).json({ message: 'Помилка сервера' });
   }

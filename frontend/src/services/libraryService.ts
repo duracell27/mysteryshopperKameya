@@ -44,13 +44,14 @@ export const deleteGenre = async (id: string): Promise<void> => {
 
 // Books
 export const getBooks = async (params?: {
-  genre?: string; status?: 'available' | 'borrowed'; search?: string; page?: number; includeInactive?: boolean;
-}): Promise<(Book & { isBorrowed: boolean })[]> => {
+  genre?: string; status?: 'available' | 'borrowed'; search?: string; page?: number; limit?: number; includeInactive?: boolean;
+}): Promise<{ books: (Book & { isBorrowed: boolean })[]; hasMore: boolean }> => {
   const q = new URLSearchParams();
   if (params?.genre)            q.set('genre',           params.genre);
   if (params?.status)           q.set('status',          params.status);
   if (params?.search)           q.set('search',          params.search);
   if (params?.page)             q.set('page',            String(params.page));
+  if (params?.limit)            q.set('limit',           String(params.limit));
   if (params?.includeInactive)  q.set('includeInactive', 'true');
   const res = await apiFetch(`/api/library/books?${q}`);
   if (!res.ok) throw new Error('Помилка завантаження книг');

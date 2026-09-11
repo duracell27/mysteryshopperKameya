@@ -17,6 +17,9 @@ export const AdminLibraryBooksView: React.FC = () => {
   const [tab,     setTab]     = useState<Tab>('books');
   const [genres,  setGenres]  = useState<BookGenre[]>([]);
   const [books,   setBooks]   = useState<(Book & { isBorrowed: boolean })[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [page,    setPage]    = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast,   setToast]   = useState<string | null>(null);
 
@@ -42,18 +45,34 @@ export const AdminLibraryBooksView: React.FC = () => {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setPage(1);
     try {
-      const [g, b] = await Promise.all([
+      const [g, { books: b, hasMore: more }] = await Promise.all([
         getGenres(),
-        getBooks({ search: search || undefined, genre: filterGenre || undefined, includeInactive: true }),
+        getBooks({ search: search || undefined, genre: filterGenre || undefined, includeInactive: true, page: 1 }),
       ]);
       setGenres(g);
       setBooks(b);
+      setHasMore(more);
     } catch { showToast('Помилка завантаження'); }
     finally { setLoading(false); }
   }, [search, filterGenre]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  const loadMore = async () => {
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    try {
+      const { books: b, hasMore: more } = await getBooks({
+        search: search || undefined, genre: filterGenre || undefined, includeInactive: true, page: nextPage,
+      });
+      setBooks(prev => [...prev, ...b]);
+      setHasMore(more);
+      setPage(nextPage);
+    } catch { showToast('Помилка завантаження'); }
+    finally { setLoadingMore(false); }
+  };
 
   const openBookCreate = () => { setForm(EMPTY_FORM); setCoverFile(null); setBookModal({ mode: 'create' }); };
   const openBookEdit = (book: Book) => {
@@ -260,8 +279,8 @@ export const AdminLibraryBooksView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {books.map(book => (
-                    <tr key={book._id} className="hover:bg-slate-50">
+                  {books.map((book, idx) => (
+                    <tr key={book._id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-kameya-burgundy/[0.03]'} hover:bg-kameya-burgundy/[0.07] transition-colors`}>
                       <td className="py-3 pr-4">
                         <div className="flex items-center space-x-3">
                           {book.coverUrl
@@ -318,6 +337,20 @@ export const AdminLibraryBooksView: React.FC = () => {
                 </tbody>
               </table>
               {books.length === 0 && <p className="text-center py-8 text-slate-400 text-sm">Книг не знайдено</p>}
+            </div>
+          )}
+          {hasMore && (
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="px-6 py-2.5 rounded-xl border border-kameya-burgundy/30 text-kameya-burgundy text-sm hover:bg-kameya-burgundy/5 disabled:opacity-50 flex items-center gap-2"
+              >
+                {loadingMore
+                  ? <><i className="fas fa-spinner fa-spin"></i> Завантаження...</>
+                  : <><i className="fas fa-chevron-down"></i> Завантажити ще</>
+                }
+              </button>
             </div>
           )}
         </>
