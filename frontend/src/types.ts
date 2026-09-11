@@ -361,6 +361,7 @@ export interface Book {
   avgRating:    number;
   ratingsCount: number;
   isBorrowed?:  boolean;
+  dueDate?:     string | null;
   createdAt:    string;
   updatedAt:    string;
 }

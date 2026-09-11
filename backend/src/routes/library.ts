@@ -132,12 +132,13 @@ router.get('/books', async (req: AuthRequest, res: Response) => {
     const activeLoans = await BookLoan.find({
       bookId: { $in: bookIds },
       status: { $in: ACTIVE_LOAN_STATUSES },
-    }).select('bookId').lean();
-    const borrowedSet = new Set(activeLoans.map(l => l.bookId.toString()));
+    }).select('bookId dueDate').lean();
+    const loanMap = new Map(activeLoans.map(l => [l.bookId.toString(), l.dueDate ?? null]));
 
     let result = books.map(b => ({
       ...b.toObject(),
-      isBorrowed: borrowedSet.has(b._id.toString()),
+      isBorrowed: loanMap.has(b._id.toString()),
+      dueDate: loanMap.get(b._id.toString()) ?? null,
     }));
 
     if (status === 'available') result = result.filter(b => !b.isBorrowed);
