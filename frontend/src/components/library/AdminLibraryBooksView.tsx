@@ -42,7 +42,7 @@ export const AdminLibraryBooksView: React.FC = () => {
     try {
       const [g, b] = await Promise.all([
         getGenres(),
-        getBooks({ search: search || undefined, genre: filterGenre || undefined }),
+        getBooks({ search: search || undefined, genre: filterGenre || undefined, includeInactive: true }),
       ]);
       setGenres(g);
       setBooks(b);
@@ -89,6 +89,11 @@ export const AdminLibraryBooksView: React.FC = () => {
   const handleDeactivate = async (id: string) => {
     if (!confirm('Деактивувати книгу?')) return;
     try { await deactivateBook(id); showToast('Книгу деактивовано'); loadData(); }
+    catch (e: unknown) { showToast((e as Error).message ?? 'Помилка'); }
+  };
+
+  const handleRestore = async (id: string) => {
+    try { await updateBook(id, { isActive: true }); showToast('Книгу відновлено'); loadData(); }
     catch (e: unknown) { showToast((e as Error).message ?? 'Помилка'); }
   };
 
@@ -258,9 +263,11 @@ export const AdminLibraryBooksView: React.FC = () => {
                         }
                       </td>
                       <td className="py-3 pr-4">
-                        {book.isBorrowed
-                          ? <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">Зайнята</span>
-                          : <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Вільна</span>
+                        {book.isActive === false
+                          ? <span className="bg-slate-100 text-slate-400 text-xs px-2 py-0.5 rounded-full">Деактивована</span>
+                          : book.isBorrowed
+                            ? <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">Зайнята</span>
+                            : <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Вільна</span>
                         }
                       </td>
                       <td className="py-3">
@@ -269,10 +276,19 @@ export const AdminLibraryBooksView: React.FC = () => {
                             className="text-slate-500 hover:text-kameya-burgundy transition-colors" title="Редагувати">
                             <i className="fas fa-pen text-xs"></i>
                           </button>
-                          <button onClick={() => handleDeactivate(book._id)}
-                            className="text-slate-500 hover:text-red-500 transition-colors" title="Деактивувати">
-                            <i className="fas fa-eye-slash text-xs"></i>
-                          </button>
+                          {book.isActive === false
+                            ? (
+                              <button onClick={() => handleRestore(book._id)}
+                                className="text-slate-500 hover:text-green-600 transition-colors text-xs" title="Відновити">
+                                Відновити
+                              </button>
+                            ) : (
+                              <button onClick={() => handleDeactivate(book._id)}
+                                className="text-slate-500 hover:text-red-500 transition-colors" title="Деактивувати">
+                                <i className="fas fa-eye-slash text-xs"></i>
+                              </button>
+                            )
+                          }
                         </div>
                       </td>
                     </tr>

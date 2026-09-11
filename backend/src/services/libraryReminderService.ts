@@ -29,14 +29,22 @@ async function processLoanReminders(): Promise<void> {
 
       if (daysLeft <= 3 && !loan.warningDay27Sent) {
         const msg = `Kameya: нагадування — поверніть книгу «${title}» до ${dueDateStr}.`;
-        await sendSms(user.phone, msg).catch(console.error);
-        await BookLoan.findByIdAndUpdate(loan._id, { warningDay27Sent: true });
+        try {
+          await sendSms(user.phone, msg);
+          await BookLoan.findByIdAndUpdate(loan._id, { warningDay27Sent: true });
+        } catch (e) {
+          console.error('SMS send failed for loan', loan._id, e);
+        }
       }
 
       if (daysLeft < 0 && !loan.warningDay31Sent) {
         const msg = `Kameya: термін повернення книги «${title}» минув ${dueDateStr}. Будь ласка, поверніть якнайшвидше.`;
-        await sendSms(user.phone, msg).catch(console.error);
-        await BookLoan.findByIdAndUpdate(loan._id, { warningDay31Sent: true });
+        try {
+          await sendSms(user.phone, msg);
+          await BookLoan.findByIdAndUpdate(loan._id, { warningDay31Sent: true });
+        } catch (e) {
+          console.error('SMS send failed for loan', loan._id, e);
+        }
       }
     }
 

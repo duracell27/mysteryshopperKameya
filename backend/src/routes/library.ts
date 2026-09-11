@@ -109,8 +109,9 @@ router.get('/books', async (req: AuthRequest, res: Response) => {
   try {
     if (!(await checkLibraryAccess(req))) return res.status(403).json({ message: 'Доступ заборонено' });
 
-    const { genre, status, search, page = '1', limit = '20' } = req.query as Record<string, string>;
-    const filter: Record<string, unknown> = { isActive: true };
+    const { genre, status, search, page = '1', limit = '200', includeInactive } = req.query as Record<string, string>;
+    const isAdminIncludeInactive = includeInactive === 'true' && req.user?.isAdmin;
+    const filter: Record<string, unknown> = isAdminIncludeInactive ? {} : { isActive: true };
     if (genre) filter.genreId = genre;
     if (search) filter.$or = [
       { title:  { $regex: search.trim(), $options: 'i' } },
@@ -195,13 +196,15 @@ router.put('/books/:id', adminOnly, (req: AuthRequest, res: Response) => {
       const book = await Book.findById(req.params.id);
       if (!book) return res.status(404).json({ message: 'Книгу не знайдено' });
 
-      const { title, author, genreId, annotation } = req.body as {
-        title?: string; author?: string; genreId?: string; annotation?: string;
+      const { title, author, genreId, annotation, isActive: isActiveStr } = req.body as {
+        title?: string; author?: string; genreId?: string; annotation?: string; isActive?: string;
       };
+      const isActive = isActiveStr === 'true' ? true : isActiveStr === 'false' ? false : undefined;
       if (title     !== undefined) book.title     = title;
       if (author    !== undefined) book.author    = author;
       if (genreId   !== undefined) book.genreId   = genreId as any;
       if (annotation !== undefined) book.annotation = annotation;
+      if (isActive  !== undefined) book.isActive  = isActive;
       if (req.file) {
         deleteCover(book.coverUrl);
         book.coverUrl = `/uploads/books/${req.file.filename}`;
@@ -295,9 +298,11 @@ router.get('/loans', adminOnly, async (req: AuthRequest, res: Response) => {
       .populate('userId', 'name phone division')
       .sort({ requestedAt: -1 })
       .skip((pageNum - 1) * limitNum)
-      .limit(limitNum);
+      .limit(limitNum + 1);
 
-    return res.json(loans);
+    const hasMore = loans.length > limitNum;
+    if (hasMore) loans.pop();
+    return res.json({ loans, hasMore });
   } catch {
     return res.status(500).json({ message: 'Помилка сервера' });
   }

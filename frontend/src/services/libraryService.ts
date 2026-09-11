@@ -44,13 +44,14 @@ export const deleteGenre = async (id: string): Promise<void> => {
 
 // Books
 export const getBooks = async (params?: {
-  genre?: string; status?: 'available' | 'borrowed'; search?: string; page?: number;
+  genre?: string; status?: 'available' | 'borrowed'; search?: string; page?: number; includeInactive?: boolean;
 }): Promise<(Book & { isBorrowed: boolean })[]> => {
   const q = new URLSearchParams();
-  if (params?.genre)  q.set('genre',  params.genre);
-  if (params?.status) q.set('status', params.status);
-  if (params?.search) q.set('search', params.search);
-  if (params?.page)   q.set('page',   String(params.page));
+  if (params?.genre)            q.set('genre',           params.genre);
+  if (params?.status)           q.set('status',          params.status);
+  if (params?.search)           q.set('search',          params.search);
+  if (params?.page)             q.set('page',            String(params.page));
+  if (params?.includeInactive)  q.set('includeInactive', 'true');
   const res = await apiFetch(`/api/library/books?${q}`);
   if (!res.ok) throw new Error('Помилка завантаження книг');
   return res.json();
@@ -65,8 +66,17 @@ export const createBook = async (formData: FormData): Promise<Book> => {
   return res.json();
 };
 
-export const updateBook = async (id: string, formData: FormData): Promise<Book> => {
-  const res = await apiFetch(`/api/library/books/${id}`, { method: 'PUT', body: formData });
+export const updateBook = async (id: string, data: FormData | Record<string, unknown>): Promise<Book> => {
+  let body: FormData;
+  if (data instanceof FormData) {
+    body = data;
+  } else {
+    body = new FormData();
+    for (const [k, v] of Object.entries(data)) {
+      body.append(k, String(v));
+    }
+  }
+  const res = await apiFetch(`/api/library/books/${id}`, { method: 'PUT', body });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { message?: string }).message ?? 'Помилка оновлення книги');
@@ -104,7 +114,7 @@ export const getMyLoans = async (): Promise<BookLoan[]> => {
 
 export const getAllLoans = async (params?: {
   status?: string; overdue?: boolean; search?: string; page?: number;
-}): Promise<BookLoan[]> => {
+}): Promise<{ loans: BookLoan[]; hasMore: boolean }> => {
   const q = new URLSearchParams();
   if (params?.status)            q.set('status',  params.status);
   if (params?.overdue)           q.set('overdue', 'true');

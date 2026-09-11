@@ -385,7 +385,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 isActive: isAdminLibraryActive, isOpen: adminAccordion === 'library',
                 setOpen: v => setAdminAccordion(v ? 'library' : null),
                 items: [
-                  { path: '/admin/library/books', label: 'Каталог', icon: 'fa-books' },
+                  { path: '/admin/library/books', label: 'Каталог', icon: 'fa-book-open' },
                   { path: '/admin/library/loans', label: 'Запити',  icon: 'fa-list-check' },
                 ],
               })}

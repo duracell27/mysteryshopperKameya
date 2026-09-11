@@ -40,6 +40,8 @@ export const AdminLibraryLoansView: React.FC = () => {
   const [status,  setStatus]  = useState('all');
   const [overdue, setOverdue] = useState(false);
   const [search,  setSearch]  = useState('');
+  const [page,    setPage]    = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [extendModal, setExtendModal] = useState<BookLoan | null>(null);
   const [extendDays,  setExtendDays]  = useState('7');
   const [acting, setActing] = useState<string | null>(null);
@@ -49,15 +51,19 @@ export const AdminLibraryLoansView: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setLoans(await getAllLoans({
+      const { loans: data, hasMore: more } = await getAllLoans({
         status: status !== 'all' ? status : undefined,
         overdue,
         search: search || undefined,
-      }));
+        page,
+      });
+      setLoans(data);
+      setHasMore(more);
     } catch { showToast('Помилка завантаження'); }
     finally { setLoading(false); }
-  }, [status, overdue, search]);
+  }, [status, overdue, search, page]);
 
+  useEffect(() => { setPage(1); }, [status, overdue, search]);
   useEffect(() => { load(); }, [load]);
 
   const act = async (id: string, fn: () => Promise<unknown>, successMsg: string) => {
@@ -198,6 +204,25 @@ export const AdminLibraryLoansView: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {(page > 1 || hasMore) && (
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1 || loading}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 disabled:opacity-40 hover:bg-slate-50">
+            <i className="fas fa-chevron-left mr-1"></i> Назад
+          </button>
+          <span className="text-sm text-slate-500">Стор. {page}</span>
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={!hasMore || loading}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 disabled:opacity-40 hover:bg-slate-50">
+            Далі <i className="fas fa-chevron-right ml-1"></i>
+          </button>
         </div>
       )}
     </div>
