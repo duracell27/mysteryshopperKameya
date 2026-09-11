@@ -6,7 +6,7 @@ import { getGenres, getBooks, requestLoan } from '../../services/libraryService'
 type BookWithBorrowed = Book & { isBorrowed: boolean };
 
 const StarRating: React.FC<{ value: number; count: number }> = ({ value, count }) => {
-  if (count === 0) return <span className="text-[10px] text-slate-400">Без оцінок</span>;
+  if (count === 0) return null;
   const stars = Math.round(value);
   return (
     <div className="flex items-center gap-1">
