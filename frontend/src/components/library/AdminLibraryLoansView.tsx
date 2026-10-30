@@ -77,7 +77,7 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
 
   const [createModal,    setCreateModal]    = useState(false);
   const [createUsers,    setCreateUsers]    = useState<UserListItem[]>([]);
-  const [createBooks,    setCreateBooks]    = useState<(Book & { isBorrowed: boolean })[]>([]);
+  const [createBooks,    setCreateBooks]    = useState<(Book & { isBorrowed: boolean; dueDate?: string | null })[]>([]);
   const [createLoading,  setCreateLoading]  = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createForm, setCreateForm] = useState({
@@ -129,7 +129,7 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
     try {
       const [usersData, booksData] = await Promise.all([
         fetchUsers(),
-        getBooks({ status: 'available', limit: 100 }),
+        getBooks({ limit: 100 }),
       ]);
       setCreateUsers(usersData);
       setCreateBooks(booksData.books);
@@ -282,76 +282,113 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
                 {/* User search */}
                 <div>
                   <label className="text-xs font-medium text-slate-500 block mb-1.5">Користувач</label>
-                  <input
-                    type="text"
-                    placeholder="Пошук за іменем або телефоном..."
-                    value={createForm.userSearch}
-                    onChange={e => setCreateForm(f => ({ ...f, userSearch: e.target.value, userId: '' }))}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50 mb-1"
-                  />
                   {createForm.userId
                     ? (() => {
                         const u = createUsers.find(x => x._id === createForm.userId);
                         return u ? (
-                          <div className="flex items-center justify-between bg-kameya-burgundy/5 border border-kameya-burgundy/20 rounded-lg px-3 py-2 text-sm">
-                            <span className="font-medium text-slate-800">{u.name} · {u.phone}</span>
-                            <button onClick={() => setCreateForm(f => ({ ...f, userId: '', userSearch: '' }))} className="text-slate-400 hover:text-slate-600 ml-2"><i className="fas fa-xmark"></i></button>
+                          <div className="flex items-center gap-2 bg-kameya-burgundy/5 border border-kameya-burgundy/20 rounded-lg px-3 py-2 text-sm">
+                            {u.avatarUrl
+                              ? <img src={u.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                              : <div className="w-7 h-7 rounded-full bg-kameya-burgundy/20 flex items-center justify-center flex-shrink-0 text-kameya-burgundy text-xs font-bold">{u.name.charAt(0)}</div>
+                            }
+                            <span className="font-medium text-slate-800 flex-1">{u.name} · {u.phone}</span>
+                            <button onClick={() => setCreateForm(f => ({ ...f, userId: '', userSearch: '' }))} className="text-slate-400 hover:text-slate-600"><i className="fas fa-xmark"></i></button>
                           </div>
                         ) : null;
                       })()
-                    : createForm.userSearch.trim().length >= 1 && (() => {
-                        const q = createForm.userSearch.trim().toLowerCase();
-                        const filtered = createUsers.filter(u => u.name.toLowerCase().includes(q) || u.phone.includes(q)).slice(0, 6);
-                        return filtered.length > 0 ? (
-                          <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100 max-h-44 overflow-y-auto">
-                            {filtered.map(u => (
-                              <button key={u._id} onClick={() => setCreateForm(f => ({ ...f, userId: u._id, userSearch: u.name }))}
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50">
-                                <span className="font-medium text-slate-800">{u.name}</span>
-                                <span className="text-slate-400 ml-2">{u.phone}</span>
-                              </button>
-                            ))}
-                          </div>
-                        ) : <p className="text-xs text-slate-400 px-1">Не знайдено</p>;
-                      })()
+                    : (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Пошук за іменем або телефоном..."
+                          value={createForm.userSearch}
+                          onChange={e => setCreateForm(f => ({ ...f, userSearch: e.target.value }))}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50 mb-1"
+                        />
+                        {createForm.userSearch.trim().length >= 1 && (() => {
+                          const q = createForm.userSearch.trim().toLowerCase();
+                          const filtered = createUsers.filter(u => u.name.toLowerCase().includes(q) || u.phone.includes(q)).slice(0, 6);
+                          return filtered.length > 0 ? (
+                            <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100 max-h-44 overflow-y-auto">
+                              {filtered.map(u => (
+                                <button key={u._id} onClick={() => setCreateForm(f => ({ ...f, userId: u._id, userSearch: u.name }))}
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex items-center gap-2">
+                                  {u.avatarUrl
+                                    ? <img src={u.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                                    : <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 text-slate-500 text-xs font-bold">{u.name.charAt(0)}</div>
+                                  }
+                                  <span className="font-medium text-slate-800">{u.name}</span>
+                                  <span className="text-slate-400">{u.phone}</span>
+                                </button>
+                              ))}
+                            </div>
+                          ) : <p className="text-xs text-slate-400 px-1">Не знайдено</p>;
+                        })()}
+                      </>
+                    )
                   }
                 </div>
 
                 {/* Book search */}
                 <div>
-                  <label className="text-xs font-medium text-slate-500 block mb-1.5">Книга (доступні)</label>
-                  <input
-                    type="text"
-                    placeholder="Пошук за назвою або автором..."
-                    value={createForm.bookSearch}
-                    onChange={e => setCreateForm(f => ({ ...f, bookSearch: e.target.value, bookId: '' }))}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50 mb-1"
-                  />
+                  <label className="text-xs font-medium text-slate-500 block mb-1.5">Книга</label>
                   {createForm.bookId
                     ? (() => {
                         const b = createBooks.find(x => x._id === createForm.bookId);
                         return b ? (
-                          <div className="flex items-center justify-between bg-kameya-burgundy/5 border border-kameya-burgundy/20 rounded-lg px-3 py-2 text-sm">
-                            <span className="font-medium text-slate-800">{b.title} · {b.author}</span>
-                            <button onClick={() => setCreateForm(f => ({ ...f, bookId: '', bookSearch: '' }))} className="text-slate-400 hover:text-slate-600 ml-2"><i className="fas fa-xmark"></i></button>
+                          <div className="flex items-center gap-2 bg-kameya-burgundy/5 border border-kameya-burgundy/20 rounded-lg px-2 py-2 text-sm">
+                            {b.coverUrl
+                              ? <img src={b.coverUrl} alt="" className="w-8 h-10 rounded object-cover flex-shrink-0" />
+                              : <div className="w-8 h-10 rounded bg-slate-100 flex items-center justify-center flex-shrink-0"><i className="fas fa-book text-slate-300 text-xs"></i></div>
+                            }
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-800 truncate">{b.title}</p>
+                              <p className="text-xs text-slate-400 truncate">{b.author}</p>
+                            </div>
+                            <button onClick={() => setCreateForm(f => ({ ...f, bookId: '', bookSearch: '' }))} className="text-slate-400 hover:text-slate-600 flex-shrink-0"><i className="fas fa-xmark"></i></button>
                           </div>
                         ) : null;
                       })()
-                    : createForm.bookSearch.trim().length >= 1 && (() => {
-                        const q = createForm.bookSearch.trim().toLowerCase();
-                        const filtered = createBooks.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)).slice(0, 6);
-                        return filtered.length > 0 ? (
-                          <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100 max-h-44 overflow-y-auto">
-                            {filtered.map(b => (
-                              <button key={b._id} onClick={() => setCreateForm(f => ({ ...f, bookId: b._id, bookSearch: b.title }))}
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50">
-                                <span className="font-medium text-slate-800">{b.title}</span>
-                                <span className="text-slate-400 ml-2">{b.author}</span>
-                              </button>
-                            ))}
-                          </div>
-                        ) : <p className="text-xs text-slate-400 px-1">Не знайдено</p>;
-                      })()
+                    : (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Пошук за назвою або автором..."
+                          value={createForm.bookSearch}
+                          onChange={e => setCreateForm(f => ({ ...f, bookSearch: e.target.value }))}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50 mb-1"
+                        />
+                        {createForm.bookSearch.trim().length >= 1 && (() => {
+                          const q = createForm.bookSearch.trim().toLowerCase();
+                          const filtered = createBooks.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)).slice(0, 6);
+                          return filtered.length > 0 ? (
+                            <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100 max-h-52 overflow-y-auto">
+                              {filtered.map(b => (
+                                <button key={b._id} onClick={() => !b.isBorrowed && setCreateForm(f => ({ ...f, bookId: b._id, bookSearch: b.title }))}
+                                  className={`w-full text-left px-2 py-2 text-sm flex items-center gap-2 ${b.isBorrowed ? 'opacity-60 cursor-not-allowed' : 'hover:bg-slate-50'}`}>
+                                  {b.coverUrl
+                                    ? <img src={b.coverUrl} alt="" className="w-8 h-10 rounded object-cover flex-shrink-0" />
+                                    : <div className="w-8 h-10 rounded bg-slate-100 flex items-center justify-center flex-shrink-0"><i className="fas fa-book text-slate-300 text-xs"></i></div>
+                                  }
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-slate-800 truncate">{b.title}</p>
+                                    <p className="text-xs text-slate-400 truncate">{b.author}</p>
+                                    {b.isBorrowed && b.dueDate && (
+                                      <p className="text-xs text-orange-500 mt-0.5">
+                                        Зайнята до {new Date(b.dueDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })}
+                                      </p>
+                                    )}
+                                    {b.isBorrowed && !b.dueDate && (
+                                      <p className="text-xs text-orange-500 mt-0.5">Зайнята</p>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          ) : <p className="text-xs text-slate-400 px-1">Не знайдено</p>;
+                        })()}
+                      </>
+                    )
                   }
                 </div>
 
