@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { authMiddleware, adminOnly, AuthRequest } from '../middleware/auth';
 import { ShopProduct } from '../models/ShopProduct';
+import { ShopSettings } from '../models/ShopSettings';
 import { ShopOrder, OrderStatus } from '../models/ShopOrder';
 import { User } from '../models/User';
 import { PointsTransaction } from '../models/PointsTransaction';
@@ -45,6 +46,33 @@ async function checkShopAccess(req: AuthRequest): Promise<boolean> {
 
 const router = Router();
 router.use(authMiddleware);
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+
+// GET /api/shop/settings — authenticated: read shop settings
+router.get('/settings', async (_req: AuthRequest, res: Response) => {
+  try {
+    let settings = await ShopSettings.findOne();
+    if (!settings) settings = await ShopSettings.create({});
+    return res.json({ catalogOnly: settings.catalogOnly });
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
+// PUT /api/shop/settings — admin: update shop settings
+router.put('/settings', adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const { catalogOnly } = req.body as { catalogOnly?: boolean };
+    let settings = await ShopSettings.findOne();
+    if (!settings) settings = await ShopSettings.create({});
+    if (catalogOnly !== undefined) settings.catalogOnly = catalogOnly;
+    await settings.save();
+    return res.json({ catalogOnly: settings.catalogOnly });
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
 
 // ── Products ────────────────────────────────────────────────────────────────
 

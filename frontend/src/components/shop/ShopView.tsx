@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShopProduct } from '../../types';
-import { getShopProducts } from '../../services/shopProductsService';
+import { getShopProducts, getShopSettings } from '../../services/shopProductsService';
 import { placeOrder } from '../../services/shopOrdersService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -20,14 +20,18 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
   const displayPoints = pointsOverride !== undefined ? pointsOverride : (user?.points ?? 0);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [catalogOnly, setCatalogOnly] = useState(false);
   const [confirmProduct, setConfirmProduct] = useState<ShopProduct | null>(null);
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    getShopProducts()
-      .then(setProducts)
+    Promise.all([getShopProducts(), getShopSettings()])
+      .then(([prods, settings]) => {
+        setProducts(prods);
+        setCatalogOnly(settings.catalogOnly);
+      })
       .catch(() => setError('Не вдалося завантажити товари'))
       .finally(() => setLoading(false));
   }, []);
@@ -61,9 +65,11 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
     <div className="space-y-6">
       <header>
         <h2 className="text-3xl font-bold text-slate-800">Магазин винагород</h2>
-        <p className="text-slate-500 mt-1">
-          Ваш баланс: <span className="font-semibold text-kameya-burgundy">{displayPoints} балів</span>
-        </p>
+        {!catalogOnly && (
+          <p className="text-slate-500 mt-1">
+            Ваш баланс: <span className="font-semibold text-kameya-burgundy">{displayPoints} балів</span>
+          </p>
+        )}
       </header>
 
       {successMsg && (
@@ -105,29 +111,33 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
                 </div>
                 <div className="p-4 flex flex-col flex-1 gap-2">
                   <h3 className="font-semibold text-slate-800 text-lg leading-tight">{product.name}</h3>
-                  {product.description && (
+                  {!catalogOnly && product.description && (
                     <p className="text-slate-500 text-sm line-clamp-2">{product.description}</p>
                   )}
-                  <div className="flex items-center justify-between mt-auto">
-                    <span className="font-bold text-kameya-burgundy text-xl">{product.price} балів</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      outOfStock ? STATUS_COLORS.unavailable : STATUS_COLORS.available
-                    }`}>
-                      {outOfStock ? 'Немає в наявності' : `Залишок: ${product.quantity}`}
-                    </span>
-                  </div>
-                  <button
-                    disabled={disabled}
-                    onClick={() => setConfirmProduct(product)}
-                    className={`mt-2 w-full py-2 rounded-xl font-medium transition-colors ${
-                      disabled
-                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                        : 'bg-kameya-burgundy text-white hover:bg-kameya-burgundy/90'
-                    }`}
-                    title={outOfStock ? 'Немає в наявності' : noPoints ? 'Недостатньо балів' : ''}
-                  >
-                    {outOfStock ? 'Немає в наявності' : noPoints ? 'Недостатньо балів' : 'Замовити'}
-                  </button>
+                  {!catalogOnly && (
+                    <>
+                      <div className="flex items-center justify-between mt-auto">
+                        <span className="font-bold text-kameya-burgundy text-xl">{product.price} балів</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          outOfStock ? STATUS_COLORS.unavailable : STATUS_COLORS.available
+                        }`}>
+                          {outOfStock ? 'Немає в наявності' : `Залишок: ${product.quantity}`}
+                        </span>
+                      </div>
+                      <button
+                        disabled={disabled}
+                        onClick={() => setConfirmProduct(product)}
+                        className={`mt-2 w-full py-2 rounded-xl font-medium transition-colors ${
+                          disabled
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            : 'bg-kameya-burgundy text-white hover:bg-kameya-burgundy/90'
+                        }`}
+                        title={outOfStock ? 'Немає в наявності' : noPoints ? 'Недостатньо балів' : ''}
+                      >
+                        {outOfStock ? 'Немає в наявності' : noPoints ? 'Недостатньо балів' : 'Замовити'}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             );

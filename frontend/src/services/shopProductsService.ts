@@ -46,3 +46,19 @@ export const deleteShopProduct = async (id: string): Promise<{ deleted?: boolean
   if (!res.ok) throw new Error('Помилка видалення товару');
   return res.json();
 };
+
+export const getShopSettings = async (): Promise<{ catalogOnly: boolean }> => {
+  const res = await apiFetch('/api/shop/settings');
+  if (!res.ok) throw new Error('Помилка завантаження налаштувань');
+  return res.json();
+};
+
+export const updateShopSettings = async (data: { catalogOnly: boolean }): Promise<{ catalogOnly: boolean }> => {
+  const res = await apiFetch('/api/shop/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Помилка збереження налаштувань');
+  return res.json();
+};

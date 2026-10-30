@@ -7,6 +7,8 @@ import {
   updateShopProduct,
   replaceProductImage,
   deleteShopProduct,
+  getShopSettings,
+  updateShopSettings,
 } from '../../services/shopProductsService';
 
 type ProductForm = { name: string; description: string; price: string; quantity: string };
@@ -15,6 +17,8 @@ const EMPTY_FORM: ProductForm = { name: '', description: '', price: '', quantity
 export const AdminShopProductsView: React.FC = () => {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [catalogOnly, setCatalogOnly] = useState(false);
+  const [togglingCatalog, setTogglingCatalog] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
@@ -25,13 +29,28 @@ export const AdminShopProductsView: React.FC = () => {
 
   const load = () => {
     setLoading(true);
-    getAllShopProducts()
-      .then(setProducts)
+    Promise.all([getAllShopProducts(), getShopSettings()])
+      .then(([prods, settings]) => {
+        setProducts(prods);
+        setCatalogOnly(settings.catalogOnly);
+      })
       .catch(() => setError('Помилка завантаження'))
       .finally(() => setLoading(false));
   };
 
   useEffect(load, []);
+
+  const handleToggleCatalogOnly = async () => {
+    setTogglingCatalog(true);
+    try {
+      const updated = await updateShopSettings({ catalogOnly: !catalogOnly });
+      setCatalogOnly(updated.catalogOnly);
+    } catch {
+      setError('Помилка збереження налаштувань');
+    } finally {
+      setTogglingCatalog(false);
+    }
+  };
 
   const openCreate = () => {
     setEditingProduct(null);
@@ -112,15 +131,33 @@ export const AdminShopProductsView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-3xl font-bold text-slate-800">Товари магазину</h2>
           <p className="text-slate-500 mt-1">Управління каталогом</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-kameya-burgundy text-white rounded-xl hover:bg-kameya-burgundy/90 transition-colors">
-          <i className="fas fa-plus" />
-          Додати товар
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleToggleCatalogOnly}
+            disabled={togglingCatalog}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-colors disabled:opacity-60 ${
+              catalogOnly
+                ? 'bg-kameya-burgundy text-white border-kameya-burgundy'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-kameya-burgundy hover:text-kameya-burgundy'
+            }`}
+            title="Коли увімкнено — всі користувачі бачать тільки фото і назву товару"
+          >
+            <i className={`fas ${togglingCatalog ? 'fa-spinner fa-spin' : 'fa-eye-slash'}`} />
+            Тільки каталог
+            <span className={`ml-1 w-8 h-4 rounded-full relative inline-block transition-colors ${catalogOnly ? 'bg-white/30' : 'bg-slate-200'}`}>
+              <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all ${catalogOnly ? 'left-4' : 'left-0.5'}`} />
+            </span>
+          </button>
+          <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-kameya-burgundy text-white rounded-xl hover:bg-kameya-burgundy/90 transition-colors">
+            <i className="fas fa-plus" />
+            Додати товар
+          </button>
+        </div>
       </div>
 
       {error && (
