@@ -195,6 +195,21 @@ export const cancelLoan = async (id: string): Promise<BookLoan> => {
   return res.json();
 };
 
+export const adminCreateLoan = async (data: {
+  bookId: string; userId: string; deliveredAt?: string; dueDate?: string;
+}): Promise<BookLoan> => {
+  const res = await apiFetch('/api/library/loans/admin-create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Помилка створення позики');
+  }
+  return res.json();
+};
+
 export const reorderGenres = async (ids: string[]): Promise<void> => {
   const res = await apiFetch('/api/library/genres/reorder', {
     method: 'PATCH',

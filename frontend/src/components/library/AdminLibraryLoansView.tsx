@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { BookLoan, Book } from '../../types';
-import { getAllLoans, deliverLoan, extendLoan, confirmReturn, cancelLoan, forceCancelLoan } from '../../services/libraryService';
+import { BookLoan, Book, UserListItem } from '../../types';
+import { getAllLoans, deliverLoan, extendLoan, confirmReturn, cancelLoan, forceCancelLoan, adminCreateLoan, getBooks } from '../../services/libraryService';
+import { fetchUsers } from '../../services/usersService';
 import { getDivisionLabel, getGroupLabel } from '../../config/org-structure';
 
 function daysLeft(dueDate?: string): number | null {
@@ -74,6 +75,16 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
   const [forceCancelModal, setForceCancelModal] = useState<BookLoan | null>(null);
   const [acting, setActing] = useState<string | null>(null);
 
+  const [createModal,    setCreateModal]    = useState(false);
+  const [createUsers,    setCreateUsers]    = useState<UserListItem[]>([]);
+  const [createBooks,    setCreateBooks]    = useState<(Book & { isBorrowed: boolean })[]>([]);
+  const [createLoading,  setCreateLoading]  = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    userId: '', bookId: '', deliveredAt: '', dueDate: '',
+    userSearch: '', bookSearch: '',
+  });
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3500); };
 
   const load = useCallback(async () => {
@@ -106,6 +117,47 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
     if (isNaN(days) || days < 1) { showToast('Вкажіть кількість днів'); return; }
     await act(extendModal._id, () => extendLoan(extendModal._id, days), `Термін подовжено на ${days} днів`);
     setExtendModal(null);
+  };
+
+  const openCreateModal = async () => {
+    setCreateModal(true);
+    setCreateSubmitting(false);
+    const today = new Date().toISOString().slice(0, 10);
+    const due30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    setCreateForm({ userId: '', bookId: '', deliveredAt: today, dueDate: due30, userSearch: '', bookSearch: '' });
+    setCreateLoading(true);
+    try {
+      const [usersData, booksData] = await Promise.all([
+        fetchUsers(),
+        getBooks({ status: 'available', limit: 100 }),
+      ]);
+      setCreateUsers(usersData);
+      setCreateBooks(booksData.books);
+    } catch { showToast('Помилка завантаження даних'); }
+    finally { setCreateLoading(false); }
+  };
+
+  const handleCreateSubmit = async () => {
+    if (!createForm.userId) { showToast('Оберіть користувача'); return; }
+    if (!createForm.bookId) { showToast('Оберіть книгу'); return; }
+    if (!createForm.dueDate) { showToast('Вкажіть дату повернення'); return; }
+    setCreateSubmitting(true);
+    try {
+      await adminCreateLoan({
+        bookId: createForm.bookId,
+        userId: createForm.userId,
+        deliveredAt: createForm.deliveredAt || undefined,
+        dueDate: createForm.dueDate,
+      });
+      showToast('Книгу заброньовано');
+      setCreateModal(false);
+      load();
+      onRefresh?.();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'Помилка');
+    } finally {
+      setCreateSubmitting(false);
+    }
   };
 
   const bookOf  = (l: BookLoan) => l.bookId as Book;
@@ -215,7 +267,131 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
         </div>
       )}
 
-      <h1 className="text-2xl font-bold text-slate-800">Бібліотека — Запити</h1>
+      {/* Create loan modal */}
+      {createModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setCreateModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-kameya-burgundy px-5 py-4">
+              <h3 className="text-base font-bold text-white">Забронювати книгу</h3>
+              <p className="text-sm text-white/70 mt-0.5">Адмін видає книгу напряму</p>
+            </div>
+            {createLoading ? (
+              <div className="flex justify-center py-10"><i className="fas fa-spinner fa-spin text-xl text-kameya-burgundy"></i></div>
+            ) : (
+              <div className="p-5 space-y-4">
+                {/* User search */}
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-1.5">Користувач</label>
+                  <input
+                    type="text"
+                    placeholder="Пошук за іменем або телефоном..."
+                    value={createForm.userSearch}
+                    onChange={e => setCreateForm(f => ({ ...f, userSearch: e.target.value, userId: '' }))}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50 mb-1"
+                  />
+                  {createForm.userId
+                    ? (() => {
+                        const u = createUsers.find(x => x._id === createForm.userId);
+                        return u ? (
+                          <div className="flex items-center justify-between bg-kameya-burgundy/5 border border-kameya-burgundy/20 rounded-lg px-3 py-2 text-sm">
+                            <span className="font-medium text-slate-800">{u.name} · {u.phone}</span>
+                            <button onClick={() => setCreateForm(f => ({ ...f, userId: '', userSearch: '' }))} className="text-slate-400 hover:text-slate-600 ml-2"><i className="fas fa-xmark"></i></button>
+                          </div>
+                        ) : null;
+                      })()
+                    : createForm.userSearch.trim().length >= 1 && (() => {
+                        const q = createForm.userSearch.trim().toLowerCase();
+                        const filtered = createUsers.filter(u => u.name.toLowerCase().includes(q) || u.phone.includes(q)).slice(0, 6);
+                        return filtered.length > 0 ? (
+                          <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100 max-h-44 overflow-y-auto">
+                            {filtered.map(u => (
+                              <button key={u._id} onClick={() => setCreateForm(f => ({ ...f, userId: u._id, userSearch: u.name }))}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50">
+                                <span className="font-medium text-slate-800">{u.name}</span>
+                                <span className="text-slate-400 ml-2">{u.phone}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : <p className="text-xs text-slate-400 px-1">Не знайдено</p>;
+                      })()
+                  }
+                </div>
+
+                {/* Book search */}
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-1.5">Книга (доступні)</label>
+                  <input
+                    type="text"
+                    placeholder="Пошук за назвою або автором..."
+                    value={createForm.bookSearch}
+                    onChange={e => setCreateForm(f => ({ ...f, bookSearch: e.target.value, bookId: '' }))}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50 mb-1"
+                  />
+                  {createForm.bookId
+                    ? (() => {
+                        const b = createBooks.find(x => x._id === createForm.bookId);
+                        return b ? (
+                          <div className="flex items-center justify-between bg-kameya-burgundy/5 border border-kameya-burgundy/20 rounded-lg px-3 py-2 text-sm">
+                            <span className="font-medium text-slate-800">{b.title} · {b.author}</span>
+                            <button onClick={() => setCreateForm(f => ({ ...f, bookId: '', bookSearch: '' }))} className="text-slate-400 hover:text-slate-600 ml-2"><i className="fas fa-xmark"></i></button>
+                          </div>
+                        ) : null;
+                      })()
+                    : createForm.bookSearch.trim().length >= 1 && (() => {
+                        const q = createForm.bookSearch.trim().toLowerCase();
+                        const filtered = createBooks.filter(b => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)).slice(0, 6);
+                        return filtered.length > 0 ? (
+                          <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100 max-h-44 overflow-y-auto">
+                            {filtered.map(b => (
+                              <button key={b._id} onClick={() => setCreateForm(f => ({ ...f, bookId: b._id, bookSearch: b.title }))}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50">
+                                <span className="font-medium text-slate-800">{b.title}</span>
+                                <span className="text-slate-400 ml-2">{b.author}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : <p className="text-xs text-slate-400 px-1">Не знайдено</p>;
+                      })()
+                  }
+                </div>
+
+                {/* Dates */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 block mb-1.5">Дата видачі</label>
+                    <input type="date" value={createForm.deliveredAt} onChange={e => setCreateForm(f => ({ ...f, deliveredAt: e.target.value }))}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 block mb-1.5">Дата повернення</label>
+                    <input type="date" value={createForm.dueDate} onChange={e => setCreateForm(f => ({ ...f, dueDate: e.target.value }))}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50" />
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="px-5 pb-5 flex gap-3">
+              <button onClick={() => setCreateModal(false)}
+                className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm hover:bg-slate-50">
+                Скасувати
+              </button>
+              <button onClick={handleCreateSubmit} disabled={createLoading || createSubmitting}
+                className="flex-1 bg-kameya-burgundy text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-kameya-burgundy/90 disabled:opacity-50">
+                {createSubmitting ? <i className="fas fa-spinner fa-spin"></i> : 'Створити'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-800">Бібліотека — Запити</h1>
+        <button
+          onClick={openCreateModal}
+          className="flex items-center gap-2 bg-kameya-burgundy text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-kameya-burgundy/90">
+          <i className="fas fa-plus"></i> Забронювати книгу
+        </button>
+      </div>
 
       {/* Фільтри */}
       <div className="flex flex-wrap gap-3 items-center">

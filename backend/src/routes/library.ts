@@ -248,6 +248,43 @@ router.delete('/books/:id', adminOnly, async (req: AuthRequest, res: Response) =
 
 // ── Loans ────────────────────────────────────────────────────────────────────
 
+// POST /api/library/loans/admin-create — admin creates a loan directly (active)
+router.post('/loans/admin-create', adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const { bookId, userId, deliveredAt, dueDate } = req.body as {
+      bookId: string; userId: string; deliveredAt?: string; dueDate?: string;
+    };
+    if (!bookId || !userId) return res.status(400).json({ message: 'bookId та userId обов\'язкові' });
+
+    const book = await Book.findById(bookId);
+    if (!book || !book.isActive) return res.status(404).json({ message: 'Книгу не знайдено або недоступна' });
+
+    const alreadyBorrowed = await BookLoan.exists({ bookId, status: { $in: ACTIVE_LOAN_STATUSES } });
+    if (alreadyBorrowed) return res.status(409).json({ message: 'Книга вже на руках у іншого співробітника' });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+
+    const hasActiveLoan = await BookLoan.exists({ userId, status: { $in: ACTIVE_LOAN_STATUSES } });
+    if (hasActiveLoan) return res.status(409).json({ message: 'У цього користувача вже є активна позика' });
+
+    const now = deliveredAt ? new Date(deliveredAt) : new Date();
+    const due = dueDate ? new Date(dueDate) : (() => { const d = new Date(now); d.setDate(d.getDate() + 30); return d; })();
+
+    const loan = await BookLoan.create({
+      bookId,
+      userId,
+      status: 'active',
+      requestedAt: now,
+      deliveredAt: now,
+      dueDate: due,
+    });
+    return res.status(201).json(loan);
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 // POST /api/library/loans — employee requests a book
 router.post('/loans', async (req: AuthRequest, res: Response) => {
   try {
