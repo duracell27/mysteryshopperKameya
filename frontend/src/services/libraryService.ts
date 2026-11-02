@@ -148,16 +148,30 @@ export const extendLoan = async (id: string, days: number): Promise<BookLoan> =>
   return res.json();
 };
 
-export const requestReturn = async (id: string, rating?: number): Promise<BookLoan> => {
+export const requestReturn = async (id: string, rating: number, review: string): Promise<BookLoan> => {
   const res = await apiFetch(`/api/library/loans/${id}/request-return`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rating }),
+    body: JSON.stringify({ rating, review }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { message?: string }).message ?? 'Помилка запиту на повернення');
   }
+  return res.json();
+};
+
+export interface BookReview {
+  _id: string;
+  rating: number;
+  review: string;
+  returnedAt: string;
+  userId: { _id: string; name: string };
+}
+
+export const getBookReviews = async (bookId: string): Promise<BookReview[]> => {
+  const res = await apiFetch(`/api/library/books/${bookId}/reviews`);
+  if (!res.ok) return [];
   return res.json();
 };
 

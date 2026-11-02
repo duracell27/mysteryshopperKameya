@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Book, BookGenre } from '../../types';
-import { getGenres, getBooks, requestLoan } from '../../services/libraryService';
+import { getGenres, getBooks, requestLoan, getBookReviews, BookReview } from '../../services/libraryService';
 import { useAuth } from '../../context/AuthContext';
 import { getDivisionLabel, getGroupLabel } from '../../config/org-structure';
 
@@ -69,6 +69,11 @@ const BookModal: React.FC<{
   const [step, setStep]           = useState<ModalStep>('detail');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]          = useState<string | null>(null);
+  const [reviews, setReviews]      = useState<BookReview[]>([]);
+
+  useEffect(() => {
+    getBookReviews(book._id).then(setReviews).catch(() => {});
+  }, [book._id]);
 
   const genreName = typeof book.genreId === 'object' ? (book.genreId as BookGenre).name : '';
   const dueDateStr = book.dueDate
@@ -142,7 +147,7 @@ const BookModal: React.FC<{
             </div>
 
             {book.annotation && (
-              <div className="px-5 pt-4 pb-2 overflow-y-auto max-h-[35vh]">
+              <div className="px-5 pt-4 pb-2">
                 <p className="text-sm text-slate-600 leading-relaxed">{book.annotation}</p>
               </div>
             )}
@@ -160,6 +165,26 @@ const BookModal: React.FC<{
                 </button>
               )}
             </div>
+
+            {/* Відгуки */}
+            {reviews.length > 0 && (
+              <div className="border-t border-slate-100 px-5 pt-3 pb-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  Відгуки ({reviews.length})
+                </p>
+                <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                  {reviews.map(r => (
+                    <div key={r._id} className="bg-slate-50 rounded-xl px-3 py-2.5">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-slate-700">{r.userId?.name ?? 'Анонім'}</span>
+                        <span className="text-xs text-yellow-500 font-medium">★ {r.rating}/10</span>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed">{r.review}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
 

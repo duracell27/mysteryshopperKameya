@@ -15,6 +15,7 @@ export interface IBookLoan extends Document {
   returnRequestedAt?:   Date;
   returnedAt?:          Date;
   rating?:              number;
+  review?:              string;
   warningDay27Sent:     boolean;
   warningDay31Sent:     boolean;
 }
@@ -31,6 +32,7 @@ const BookLoanSchema = new Schema<IBookLoan>(
     returnRequestedAt:  { type: Date },
     returnedAt:         { type: Date },
     rating:             { type: Number, min: 1, max: 10 },
+    review:             { type: String, trim: true, maxlength: 2000 },
     warningDay27Sent:   { type: Boolean, default: false },
     warningDay31Sent:   { type: Boolean, default: false },
   },

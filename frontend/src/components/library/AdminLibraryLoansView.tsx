@@ -502,6 +502,11 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
                       {loan.returnedAt  && <span>· Повернено: {new Date(loan.returnedAt).toLocaleDateString('uk-UA')}</span>}
                       {loan.rating      && <span>· ★ {loan.rating}/10</span>}
                     </div>
+                    {loan.review && (
+                      <div className="mt-1.5 bg-slate-50 rounded-lg px-2.5 py-2 text-xs text-slate-600 leading-relaxed border-l-2 border-kameya-burgundy/30">
+                        <span className="font-medium text-slate-500 mr-1">Відгук:</span>{loan.review}
+                      </div>
+                    )}
                   </div>
                   {/* Дії */}
                   <div className="flex flex-col items-end justify-between flex-shrink-0 self-stretch">

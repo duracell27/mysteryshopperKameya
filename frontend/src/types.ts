@@ -379,6 +379,7 @@ export interface BookLoan {
   returnRequestedAt?: string;
   returnedAt?:        string;
   rating?:            number;
+  review?:            string;
   warningDay27Sent:   boolean;
   warningDay31Sent:   boolean;
 }

@@ -91,6 +91,8 @@ export const MyLoansView: React.FC = () => {
   const [toast,    setToast]    = useState<string | null>(null);
   const [returnModal, setReturnModal] = useState<BookLoan | null>(null);
   const [rating,   setRating]   = useState(0);
+  const [review,   setReview]   = useState('');
+  const [returnError, setReturnError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
@@ -109,15 +111,19 @@ export const MyLoansView: React.FC = () => {
 
   const handleReturn = async () => {
     if (!returnModal) return;
+    if (rating === 0) { setReturnError('Будь ласка, поставте оцінку'); return; }
+    if (!review.trim()) { setReturnError('Будь ласка, напишіть враження від книги'); return; }
+    setReturnError(null);
     setSubmitting(true);
     try {
-      await requestReturn(returnModal._id, rating > 0 ? rating : undefined);
+      await requestReturn(returnModal._id, rating, review.trim());
       showToast('Запит на повернення надіслано!');
       setReturnModal(null);
       setRating(0);
+      setReview('');
       load();
     } catch (e: any) {
-      showToast(e.message ?? 'Помилка');
+      setReturnError(e.message ?? 'Помилка');
     } finally { setSubmitting(false); }
   };
 
@@ -153,13 +159,13 @@ export const MyLoansView: React.FC = () => {
       {/* Модалка повернення */}
       {returnModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={() => { setReturnModal(null); setRating(0); }}>
+          onClick={() => { setReturnModal(null); setRating(0); setReview(''); setReturnError(null); }}>
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
             onClick={e => e.stopPropagation()}>
             {/* Burgundy header */}
             <div className="bg-kameya-burgundy px-5 pt-5 pb-6 relative">
               <button
-                onClick={() => { setReturnModal(null); setRating(0); }}
+                onClick={() => { setReturnModal(null); setRating(0); setReview(''); setReturnError(null); }}
                 className="absolute top-4 right-4 w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30"
               >
                 <i className="fas fa-times text-xs"></i>
@@ -180,12 +186,31 @@ export const MyLoansView: React.FC = () => {
               </div>
             </div>
             {/* Body */}
-            <div className="px-5 pt-4 pb-2 flex flex-col items-center">
-              <p className="text-sm font-medium text-slate-700 mb-3">Оцінка книги (необов'язково)</p>
-              <StarPicker value={rating} onChange={setRating} />
+            <div className="px-5 pt-4 pb-2 space-y-4">
+              <div className="flex flex-col items-center">
+                <p className="text-sm font-medium text-slate-700 mb-3">
+                  Оцінка книги <span className="text-red-500">*</span>
+                </p>
+                <StarPicker value={rating} onChange={v => { setRating(v); setReturnError(null); }} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Ваші враження від книги <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={review}
+                  onChange={e => { setReview(e.target.value); setReturnError(null); }}
+                  placeholder="Поділіться своїми враженнями..."
+                  rows={3}
+                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50"
+                />
+              </div>
+              {returnError && (
+                <p className="text-sm text-red-600 text-center">{returnError}</p>
+              )}
             </div>
             <div className="px-5 py-4 flex gap-3 border-t border-slate-100">
-              <button onClick={() => { setReturnModal(null); setRating(0); }}
+              <button onClick={() => { setReturnModal(null); setRating(0); setReview(''); setReturnError(null); }}
                 className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm hover:bg-slate-50">
                 Скасувати
               </button>

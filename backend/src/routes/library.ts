@@ -419,10 +419,33 @@ router.patch('/loans/:id/extend', adminOnly, async (req: AuthRequest, res: Respo
   }
 });
 
+// GET /api/library/books/:id/reviews — public reviews for a book
+router.get('/books/:id/reviews', async (req: AuthRequest, res: Response) => {
+  try {
+    if (!(await checkLibraryAccess(req))) return res.status(403).json({ message: 'Доступ заборонено' });
+    const reviews = await BookLoan.find({
+      bookId: req.params.id,
+      status: 'returned',
+      rating: { $exists: true },
+      review: { $exists: true, $ne: '' },
+    })
+      .populate('userId', 'name')
+      .select('rating review returnedAt userId')
+      .sort({ returnedAt: -1 })
+      .lean();
+    return res.json(reviews);
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 // PATCH /api/library/loans/:id/request-return — employee requests return
 router.patch('/loans/:id/request-return', async (req: AuthRequest, res: Response) => {
   try {
-    const { rating } = req.body as { rating?: number };
+    const { rating, review } = req.body as { rating?: number; review?: string };
+    if (!rating || rating < 1 || rating > 10) return res.status(400).json({ message: 'Оцінка від 1 до 10 обов\'язкова' });
+    if (!review?.trim()) return res.status(400).json({ message: 'Відгук про книгу обов\'язковий' });
+
     const loan = await BookLoan.findById(req.params.id);
     if (!loan) return res.status(404).json({ message: 'Позику не знайдено' });
     if (loan.userId.toString() !== req.user!.userId) return res.status(403).json({ message: 'Доступ заборонено' });
@@ -430,7 +453,8 @@ router.patch('/loans/:id/request-return', async (req: AuthRequest, res: Response
 
     loan.status             = 'return_pending';
     loan.returnRequestedAt  = new Date();
-    if (rating && rating >= 1 && rating <= 10) loan.rating = rating;
+    loan.rating             = rating;
+    loan.review             = review.trim();
     await loan.save();
     return res.json(loan);
   } catch {
