@@ -96,7 +96,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     try {
       await sendSms(
         '38' + normalizedPhone,
-        `Вітаємо в Камея Таємний.\nВаш доступ до платформи:\nНомер: ${normalizedPhone}\nПароль: ${password}\nАдреса: mysteryshopper.kameya.if.ua`
+        `Вітаємо в Камея Таємний.\nВаш доступ до платформи:\nНомер: ${normalizedPhone}\nПароль: ${password}\nАдреса: https://world.kameya.if.ua/`
       );
     } catch (smsError) {
       console.error('[SMS] Не вдалось надіслати:', smsError);

@@ -399,7 +399,7 @@ router.post('/confirm', async (req: AuthRequest, res: Response) => {
       try {
         await sendSms(
           '38' + user.phone,
-          'У вас доступна нова анкета для перегляду.\nmysteryshopper.kameya.if.ua',
+          'У вас доступна нова анкета для перегляду.\nhttps://world.kameya.if.ua/',
         );
         smsSent = true;
       } catch (err) {
