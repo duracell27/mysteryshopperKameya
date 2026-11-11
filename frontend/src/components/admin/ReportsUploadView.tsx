@@ -184,6 +184,9 @@ export const ReportsUploadView: React.FC = () => {
   };
 
   const openConfirmModal = () => {
+    if (pendingUrlInput.trim()) {
+      return;
+    }
     setSmsEnabled(true);
     setShowConfirmModal(true);
   };
@@ -395,7 +398,8 @@ export const ReportsUploadView: React.FC = () => {
 
         <button
           onClick={openConfirmModal}
-          disabled={step === 'saving'}
+          disabled={step === 'saving' || !!pendingUrlInput.trim()}
+          title={pendingUrlInput.trim() ? 'Спочатку натисніть «Додати» для аудіо-посилання' : undefined}
           className="w-full py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
         >
           {step === 'saving' ? (
@@ -868,6 +872,12 @@ export const ReportsUploadView: React.FC = () => {
                 MP3
               </button>
             </div>
+            {pendingUrlInput.trim() && (
+              <div className="mt-2 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                <i className="fas fa-triangle-exclamation flex-shrink-0 mt-0.5"></i>
+                <span>Посилання ще не додано до анкети — натисніть <strong>«Додати»</strong>, щоб прикріпити аудіо. Зберегти звіт без цього не вийде.</span>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3">
@@ -889,7 +899,8 @@ export const ReportsUploadView: React.FC = () => {
             </button>
             <button
               onClick={openConfirmModal}
-              disabled={step === 'saving'}
+              disabled={step === 'saving' || !!pendingUrlInput.trim()}
+              title={pendingUrlInput.trim() ? 'Спочатку натисніть «Додати» для аудіо-посилання' : undefined}
               className="flex-1 py-3 bg-kameya-burgundy text-white rounded-xl font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {step === 'saving' ? (
