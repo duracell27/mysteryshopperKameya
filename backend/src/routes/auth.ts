@@ -2,10 +2,33 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { randomInt } from 'crypto';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { User } from '../models/User';
 import { SystemLog } from '../models/SystemLog';
 import { sendSms } from '../services/sms';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+
+const AVATAR_DIR = path.join(process.cwd(), 'uploads', 'avatars');
+
+const selfAvatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, AVATAR_DIR),
+  filename: (req, file, cb) => {
+    const userId = (req as AuthRequest).user?.userId ?? 'unknown';
+    const ext = file.mimetype === 'image/jpeg' ? 'jpg' : file.mimetype.split('/')[1];
+    cb(null, `${userId}.${ext}`);
+  },
+});
+
+const selfAvatarUpload = multer({
+  storage: selfAvatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Тільки зображення'));
+  },
+});
 
 const router = Router();
 
@@ -334,6 +357,53 @@ router.post('/forgot/confirm', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('forgot/confirm error:', error);
     return res.status(500).json({ message: 'Внутрішня помилка сервера' });
+  }
+});
+
+router.post('/avatar', authMiddleware, selfAvatarUpload.single('avatar'), async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Файл не завантажено' });
+    }
+    const userId = req.user!.userId;
+    const newFilename = req.file.filename;
+    const avatarUrl = `/uploads/avatars/${newFilename}`;
+
+    // видаляємо старі файли цього юзера з іншим розширенням
+    try {
+      fs.readdirSync(AVATAR_DIR).forEach(f => {
+        if (f !== newFilename && f.startsWith(`${userId}.`)) {
+          fs.unlink(path.join(AVATAR_DIR, f), () => {});
+        }
+      });
+    } catch { /* ignore */ }
+
+    await User.findByIdAndUpdate(userId, { avatarUrl });
+
+    return res.json({ avatarUrl });
+  } catch (error) {
+    console.error('avatar upload error:', error);
+    return res.status(500).json({ message: 'Помилка завантаження аватарки' });
+  }
+});
+
+router.delete('/avatar', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+
+    if (user.avatarUrl) {
+      const filePath = path.join(process.cwd(), user.avatarUrl);
+      fs.unlink(filePath, () => {});
+    }
+
+    await User.findByIdAndUpdate(userId, { $unset: { avatarUrl: 1 } });
+
+    return res.json({ avatarUrl: null });
+  } catch (error) {
+    console.error('avatar delete error:', error);
+    return res.status(500).json({ message: 'Помилка видалення аватарки' });
   }
 });
 

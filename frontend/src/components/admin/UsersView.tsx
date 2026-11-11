@@ -28,11 +28,16 @@ const toDisplay = (phone: string) => {
 };
 
 // ─── Модалка через Portal (рендериться в document.body) ───────────────────────
-interface ModalProps { children: React.ReactNode }
-const Modal: React.FC<ModalProps> = ({ children }) =>
+interface ModalProps { children: React.ReactNode; onClose?: () => void }
+const Modal: React.FC<ModalProps> = ({ children, onClose }) =>
   ReactDOM.createPortal(
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-      {children}
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div onClick={e => e.stopPropagation()}>
+        {children}
+      </div>
     </div>,
     document.body
   );
@@ -356,15 +361,15 @@ export const UsersView: React.FC = () => {
 
       {/* ── Модалка СТВОРЕННЯ ── */}
       {showCreate && (
-        <Modal>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+        <Modal onClose={() => setShowCreate(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
               <h3 className="text-lg font-bold text-slate-800">Новий користувач</h3>
               <button onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-slate-600">
                 <i className="fas fa-xmark text-xl"></i>
               </button>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
+            <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto flex-1">
               <FormField label="Номер телефону">
                 <input type="tel" placeholder="0508098182" value={createForm.phone}
                   onChange={(e) => setCreateForm((f) => ({ ...f, phone: e.target.value }))}
@@ -469,15 +474,15 @@ export const UsersView: React.FC = () => {
 
       {/* ── Модалка РЕДАГУВАННЯ ── */}
       {editUser && (
-        <Modal>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+        <Modal onClose={() => setEditUser(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
               <h3 className="text-lg font-bold text-slate-800">Редагування: {editUser.name || toDisplay(editUser.phone)}</h3>
               <button onClick={() => setEditUser(null)} className="text-slate-400 hover:text-slate-600">
                 <i className="fas fa-xmark text-xl"></i>
               </button>
             </div>
-            <form onSubmit={handleEdit} className="p-6 space-y-4">
+            <form onSubmit={handleEdit} className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* Avatar upload */}
               <div className="flex flex-col items-center gap-2 pb-2">
                 <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-xl font-bold text-slate-500 overflow-hidden">
@@ -602,8 +607,8 @@ export const UsersView: React.FC = () => {
       )}
 
       {pointsUser && (
-        <Modal>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+        <Modal onClose={() => setPointsUser(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Історія балів</h3>
