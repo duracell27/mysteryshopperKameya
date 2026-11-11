@@ -524,4 +524,156 @@ router.patch('/loans/:id/force-cancel', adminOnly, async (req: AuthRequest, res:
   }
 });
 
+// GET /api/library/stats — admin: library dashboard statistics for a year
+router.get('/stats', adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const year  = parseInt((req.query.year as string) || String(new Date().getFullYear()), 10);
+    const start = new Date(year, 0, 1);
+    const end   = new Date(year + 1, 0, 1);
+    const now   = new Date();
+
+    // Load all returned loans in the year (populated)
+    const returnedLoans = await BookLoan.find({
+      status: 'returned',
+      returnedAt: { $gte: start, $lt: end },
+    })
+      .populate('bookId', 'title')
+      .populate('userId', 'name division group')
+      .lean();
+
+    const turnover = returnedLoans.length;
+
+    // Currently on hands (all time, not filtered by year)
+    const onHands = await BookLoan.countDocuments({ status: { $in: ['active', 'return_pending'] } });
+
+    // Overdue (active past dueDate)
+    const overdueCount = await BookLoan.countDocuments({ status: 'active', dueDate: { $lt: now } });
+
+    // New readers: users whose first ever loan was in this year
+    const newReadersAgg = await BookLoan.aggregate([
+      { $group: { _id: '$userId', firstLoan: { $min: '$requestedAt' } } },
+      { $match: { firstLoan: { $gte: start, $lt: end } } },
+      { $count: 'count' },
+    ]);
+    const newReaders: number = newReadersAgg[0]?.count ?? 0;
+
+    // Monthly turnover (12 months)
+    const monthlyMap = new Array(12).fill(0);
+    for (const loan of returnedLoans) {
+      if (loan.returnedAt) monthlyMap[new Date(loan.returnedAt).getMonth()]++;
+    }
+    const monthlyTurnover = monthlyMap.map((count, i) => ({ month: i + 1, count }));
+
+    // Division ranking (top 5 by group)
+    const divMap = new Map<string, { division: string; group: string; count: number }>();
+    for (const loan of returnedLoans) {
+      const user = loan.userId as any;
+      if (user?.group) {
+        const key = `${user.division}:${user.group}`;
+        if (!divMap.has(key)) divMap.set(key, { division: user.division, group: user.group, count: 0 });
+        divMap.get(key)!.count++;
+      }
+    }
+    const divisionRanking = Array.from(divMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Top 5 books
+    const bookMap = new Map<string, { title: string; count: number }>();
+    for (const loan of returnedLoans) {
+      const book = loan.bookId as any;
+      if (book?._id) {
+        const id = book._id.toString();
+        if (!bookMap.has(id)) bookMap.set(id, { title: book.title ?? '', count: 0 });
+        bookMap.get(id)!.count++;
+      }
+    }
+    const topBooks = Array.from(bookMap.entries())
+      .map(([id, d]) => ({ _id: id, title: d.title, count: d.count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Top 5 readers
+    const readerMap = new Map<string, { name: string; division: string; group: string; count: number }>();
+    for (const loan of returnedLoans) {
+      const user = loan.userId as any;
+      if (user?._id) {
+        const id = user._id.toString();
+        if (!readerMap.has(id)) readerMap.set(id, { name: user.name ?? '', division: user.division ?? '', group: user.group ?? '', count: 0 });
+        readerMap.get(id)!.count++;
+      }
+    }
+    const topReaders = Array.from(readerMap.entries())
+      .map(([id, d]) => ({ _id: id, ...d }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Recent 2 reviews (not filtered by year)
+    const recentReviews = await BookLoan.find({
+      status: 'returned',
+      review: { $exists: true, $ne: '' },
+    })
+      .populate('bookId', 'title')
+      .populate('userId', 'name')
+      .sort({ returnedAt: -1 })
+      .limit(2)
+      .lean();
+
+    // Overdue loans table
+    const overdueLoans = await BookLoan.find({ status: 'active', dueDate: { $lt: now } })
+      .populate('bookId', 'title')
+      .populate('userId', 'name division group')
+      .sort({ dueDate: 1 })
+      .lean();
+
+    const overdueList = overdueLoans.map(loan => {
+      const delivered = loan.deliveredAt ?? loan.requestedAt;
+      const daysOnHands = Math.floor((now.getTime() - new Date(delivered).getTime()) / (1000 * 60 * 60 * 24));
+      return {
+        _id: loan._id,
+        user: loan.userId,
+        book: loan.bookId,
+        deliveredAt: loan.deliveredAt,
+        daysOnHands,
+      };
+    });
+
+    // Average reading days (for returned loans in year that have both deliveredAt and returnedAt)
+    const withTimes = returnedLoans.filter(l => l.returnedAt && l.deliveredAt);
+    let avgReadingDays = 0;
+    if (withTimes.length) {
+      const totalDays = withTimes.reduce((sum, l) => {
+        const days = Math.max(1, Math.round(
+          (new Date(l.returnedAt!).getTime() - new Date(l.deliveredAt!).getTime()) / (1000 * 60 * 60 * 24)
+        ));
+        return sum + days;
+      }, 0);
+      avgReadingDays = Math.max(1, Math.round(totalDays / withTimes.length));
+    }
+
+    return res.json({
+      turnover,
+      onHands,
+      overdueCount,
+      newReaders,
+      monthlyTurnover,
+      divisionRanking,
+      topBooks,
+      topReaders,
+      recentReviews: recentReviews.map(r => ({
+        _id: r._id,
+        bookTitle: (r.bookId as any)?.title ?? '',
+        userName:  (r.userId  as any)?.name  ?? '',
+        returnedAt: r.returnedAt,
+        review: r.review,
+        rating: r.rating,
+      })),
+      overdueLoans: overdueList,
+      avgReadingDays,
+    });
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 export default router;

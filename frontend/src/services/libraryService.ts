@@ -224,6 +224,32 @@ export const adminCreateLoan = async (data: {
   return res.json();
 };
 
+export interface LibraryStats {
+  turnover:        number;
+  onHands:         number;
+  overdueCount:    number;
+  newReaders:      number;
+  monthlyTurnover: { month: number; count: number }[];
+  divisionRanking: { division: string; group: string; count: number }[];
+  topBooks:        { _id: string; title: string; count: number }[];
+  topReaders:      { _id: string; name: string; division: string; group: string; count: number }[];
+  recentReviews:   { _id: string; bookTitle: string; userName: string; returnedAt: string; review: string; rating: number }[];
+  overdueLoans:    {
+    _id: string;
+    user: { name: string; division: string; group: string };
+    book: { title: string };
+    deliveredAt?: string;
+    daysOnHands: number;
+  }[];
+  avgReadingDays: number;
+}
+
+export const getLibraryStats = async (year: number): Promise<LibraryStats> => {
+  const res = await apiFetch(`/api/library/stats?year=${year}`);
+  if (!res.ok) throw new Error('Помилка завантаження статистики');
+  return res.json();
+};
+
 export const reorderGenres = async (ids: string[]): Promise<void> => {
   const res = await apiFetch('/api/library/genres/reorder', {
     method: 'PATCH',

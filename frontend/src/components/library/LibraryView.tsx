@@ -32,13 +32,21 @@ const BookCard: React.FC<{
       onClick={onClick}
       className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col w-[140px] flex-shrink-0 text-left hover:shadow-md hover:border-kameya-burgundy/30 transition-all"
     >
-      {book.coverUrl ? (
-        <img src={book.coverUrl} alt={book.title} className="w-full h-[180px] object-cover" />
-      ) : (
-        <div className="w-full h-[180px] bg-slate-50 flex items-center justify-center">
-          <i className="fas fa-book text-3xl text-slate-200"></i>
-        </div>
-      )}
+      <div className="relative">
+        {book.coverUrl ? (
+          <img src={book.coverUrl} alt={book.title} className="w-full h-[180px] object-cover" />
+        ) : (
+          <div className="w-full h-[180px] bg-slate-50 flex items-center justify-center">
+            <i className="fas fa-book text-3xl text-slate-200"></i>
+          </div>
+        )}
+        {book.ratingsCount > 0 && (
+          <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-sm">
+            <span className="text-yellow-400 text-[9px]">★</span>
+            <span>{book.avgRating.toFixed(1)}</span>
+          </div>
+        )}
+      </div>
       <div className="p-2.5 flex flex-col flex-1 gap-1">
         <p className="text-xs font-semibold text-slate-800 leading-tight line-clamp-2">{book.title}</p>
         <p className="text-[10px] text-slate-500 truncate">{book.author}</p>

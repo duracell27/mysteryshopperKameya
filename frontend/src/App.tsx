@@ -21,6 +21,7 @@ import { LibraryView }             from './components/library/LibraryView';
 import { MyLoansView }             from './components/library/MyLoansView';
 import { AdminLibraryBooksView }   from './components/library/AdminLibraryBooksView';
 import { AdminLibraryLoansView }   from './components/library/AdminLibraryLoansView';
+import { AdminLibraryDashboard }   from './components/library/AdminLibraryDashboard';
 import { AdminShopProductsView } from './components/shop/AdminShopProductsView';
 import { AdminShopOrdersView } from './components/shop/AdminShopOrdersView';
 import { AdminShopPreview } from './components/shop/AdminShopPreview';
@@ -224,6 +225,7 @@ const AppContent: React.FC = () => {
           <Route path="/admin/shop/products"    element={<AdminShopProductsView />} />
           <Route path="/admin/shop/orders"      element={<AdminShopOrdersView />} />
           <Route path="/admin/shop/preview"     element={<AdminShopPreview onPointsUpdate={updatePoints} />} />
+          <Route path="/admin/library/dashboard" element={<AdminLibraryDashboard />} />
           <Route path="/admin/library/books"    element={<AdminLibraryBooksView />} />
           <Route path="/admin/library/loans"    element={<AdminLibraryLoansView onRefresh={refreshUnreadCounts} />} />
           <Route path="*"                       element={<Navigate to="/admin" replace />} />

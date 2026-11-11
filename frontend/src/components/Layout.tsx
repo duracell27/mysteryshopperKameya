@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthUser } from '../types';
 import { getDivisionLabel, getGroupLabel } from '../config/org-structure';
 import { useAccess } from '../context/AccessContext';
+import { useAuth } from '../context/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -126,16 +127,159 @@ const Badge: React.FC<{ count: number }> = ({ count }) => {
   );
 };
 
-const AvatarCircle: React.FC<{ avatarUrl?: string | null; name: string; phone: string; size: 'sm' | 'md' }> = ({ avatarUrl, name, phone, size }) => {
+const MobileAvatarButton: React.FC<{ onDone: () => void }> = ({ onDone }) => {
+  const { token, updateUser } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(null), 3500);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Файл більше 5 МБ');
+      e.target.value = '';
+      return;
+    }
+    setUploading(true);
+    onDone();
+    try {
+      const form = new FormData();
+      form.append('avatar', file);
+      const res = await fetch('/api/auth/avatar', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showError(data.message || 'Помилка завантаження');
+        return;
+      }
+      const { avatarUrl } = await res.json();
+      updateUser({ avatarUrl });
+    } catch {
+      showError('Помилка завантаження');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 whitespace-nowrap"
+      >
+        <i className={`fas ${uploading ? 'fa-spinner fa-spin' : 'fa-camera'} text-xs`}></i>
+        <span>Змінити аватарку</span>
+      </button>
+      {errorMsg && (
+        <p className="px-3 pb-1.5 text-xs text-red-500">{errorMsg}</p>
+      )}
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+    </>
+  );
+};
+
+const AvatarCircle: React.FC<{
+  avatarUrl?: string | null;
+  name: string;
+  phone: string;
+  size: 'sm' | 'md';
+  editable?: boolean;
+}> = ({ avatarUrl, name, phone, size, editable }) => {
   const [imgError, setImgError] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { token, updateUser } = useAuth();
+
+  const [cacheKey, setCacheKey] = useState(() => Date.now());
   const dim = size === 'md' ? 'w-10 h-10 text-sm' : 'w-8 h-8 text-xs';
   const initial = (name || phone).charAt(0).toUpperCase();
-  if (avatarUrl && !imgError) {
-    return <img src={avatarUrl} alt={name} className={`${dim} rounded-full object-cover flex-shrink-0`} onError={() => setImgError(true)} />;
-  }
-  return (
+
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(null), 3500);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Файл більше 5 МБ');
+      e.target.value = '';
+      return;
+    }
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('avatar', file);
+      const res = await fetch('/api/auth/avatar', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showError(data.message || 'Помилка завантаження');
+        return;
+      }
+      const { avatarUrl: newUrl } = await res.json();
+      updateUser({ avatarUrl: newUrl });
+      setImgError(false);
+      setCacheKey(Date.now());
+    } catch {
+      showError('Помилка завантаження');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const inner = uploading ? (
+    <div className={`${dim} rounded-full bg-white/20 flex items-center justify-center flex-shrink-0`}>
+      <i className="fas fa-spinner fa-spin text-xs" />
+    </div>
+  ) : avatarUrl && !imgError ? (
+    <img src={`${avatarUrl}?t=${cacheKey}`} alt={name} className={`${dim} rounded-full object-cover flex-shrink-0`} onError={() => setImgError(true)} />
+  ) : (
     <div className={`${dim} rounded-full bg-white/20 flex items-center justify-center font-bold flex-shrink-0`}>
       {initial}
+    </div>
+  );
+
+  if (!editable) return inner;
+
+  return (
+    <div className="relative flex-shrink-0">
+      <div
+        className="relative group"
+        style={{ width: size === 'md' ? '2.5rem' : '2rem', height: size === 'md' ? '2.5rem' : '2rem' }}
+      >
+        {inner}
+        <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <i className="fas fa-pencil text-white" style={{ fontSize: size === 'md' ? '0.65rem' : '0.55rem' }} />
+        </div>
+        <input
+          type="file"
+          accept="image/*"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer rounded-full"
+          onChange={handleFileChange}
+        />
+      </div>
+      {errorMsg && (
+        <div className="absolute left-12 top-1/2 -translate-y-1/2 bg-red-600 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap z-50">
+          {errorMsg}
+        </div>
+      )}
     </div>
   );
 };
@@ -151,6 +295,7 @@ export const Layout: React.FC<LayoutProps> = ({
   onOpenSystemPanel,
   onChangePassword,
 }) => {
+  const { user: authUser } = useAuth();
   const isAdmin = user.isAdmin;
   const navigate = useNavigate();
   const location = useLocation();
@@ -391,8 +536,9 @@ export const Layout: React.FC<LayoutProps> = ({
                 setOpen: v => setAdminAccordion(v ? 'library' : null),
                 headerBadge: libraryLoansPending,
                 items: [
-                  { path: '/admin/library/books', label: 'Каталог', icon: 'fa-book-open' },
-                  { path: '/admin/library/loans', label: 'Запити',  icon: 'fa-list-check', badge: libraryLoansPending },
+                  { path: '/admin/library/dashboard', label: 'Дашборд', icon: 'fa-chart-bar' },
+                  { path: '/admin/library/books',     label: 'Каталог', icon: 'fa-book-open' },
+                  { path: '/admin/library/loans',     label: 'Запити',  icon: 'fa-list-check', badge: libraryLoansPending },
                 ],
               })}
             </>
@@ -467,13 +613,13 @@ export const Layout: React.FC<LayoutProps> = ({
           )}
 
           <div className="flex items-center space-x-3 mb-3">
-            <AvatarCircle avatarUrl={user.avatarUrl} name={user.name} phone={user.phone} size="md" />
+            <AvatarCircle avatarUrl={authUser?.avatarUrl ?? user.avatarUrl} name={user.name} phone={user.phone} size="md" editable />
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium truncate">{user.name || user.phone}</p>
               <p className="text-xs opacity-60 truncate">
                 {user.isAdmin
-                  ? `Адмін · ${getDivisionLabel(user.division)} / ${getGroupLabel(user.division, user.group)}`
-                  : `${getDivisionLabel(user.division)} / ${getGroupLabel(user.division, user.group)}`}
+                  ? `Адмін · ${getGroupLabel(user.division, user.group)}`
+                  : getGroupLabel(user.division, user.group)}
               </p>
             </div>
           </div>
@@ -560,20 +706,21 @@ export const Layout: React.FC<LayoutProps> = ({
                 onClick={() => setUserMenuOpen((v) => !v)}
                 className="w-8 h-8 rounded-full bg-kameya-burgundy text-white flex items-center justify-center text-xs font-bold overflow-hidden"
               >
-                <AvatarCircle avatarUrl={user.avatarUrl} name={user.name} phone={user.phone} size="sm" />
+                <AvatarCircle avatarUrl={authUser?.avatarUrl ?? user.avatarUrl} name={user.name} phone={user.phone} size="sm" />
               </button>
               {userMenuOpen && (
-                <div className="absolute right-0 top-10 bg-white rounded-xl shadow-lg border border-gray-100 min-w-[140px] py-1 z-50">
+                <div className="absolute right-0 top-10 bg-white rounded-xl shadow-lg border border-gray-100 w-max py-1 z-50">
                   <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs font-medium text-gray-800 truncate">{user.name || user.phone}</p>
-                    <p className="text-[11px] text-gray-400 truncate">
-                      {user.position || user.phone}
+                    <p className="text-xs font-medium text-gray-800 whitespace-nowrap">{user.name || user.phone}</p>
+                    <p className="text-[11px] text-gray-400 whitespace-nowrap">
+                      {getGroupLabel(user.division, user.group) || user.phone}
                     </p>
                   </div>
+                  <MobileAvatarButton onDone={() => setUserMenuOpen(false)} />
                   {onChangePassword && (
                     <button
                       onClick={() => { setUserMenuOpen(false); onChangePassword(); }}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap"
                     >
                       <i className="fas fa-lock text-xs"></i>
                       <span>Змінити пароль</span>
@@ -581,7 +728,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   )}
                   <button
                     onClick={() => { setUserMenuOpen(false); onLogout(); }}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
                   >
                     <i className="fas fa-right-from-bracket text-xs"></i>
                     <span>Вийти</span>

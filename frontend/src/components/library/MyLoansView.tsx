@@ -275,7 +275,7 @@ export const MyLoansView: React.FC = () => {
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Історія</h2>
           {history.map(loan => (
-            <div key={loan._id} className="bg-white rounded-xl border border-slate-100 p-4 flex items-center space-x-4">
+            <div key={loan._id} className="bg-white rounded-xl border border-slate-100 p-4 flex items-start space-x-4">
               {bookOf(loan).coverUrl ? (
                 <img src={bookOf(loan).coverUrl} alt="" className="w-12 h-16 object-cover rounded-lg flex-shrink-0" />
               ) : (
@@ -283,22 +283,49 @@ export const MyLoansView: React.FC = () => {
                   <i className="fas fa-book text-slate-300"></i>
                 </div>
               )}
-              <div className="flex-1">
-                <p className="font-medium text-slate-800 text-sm">{bookOf(loan).title}</p>
-                <p className="text-xs text-slate-500">{bookOf(loan).author}</p>
-                <p className="text-xs text-slate-400 mt-1">{statusLabel[loan.status]}</p>
-                {loan.returnedAt && (
-                  <p className="text-xs text-slate-400">
-                    Повернено: {new Date(loan.returnedAt).toLocaleDateString('uk-UA')}
+              <div className="flex-1 min-w-0">
+                <div className="flex gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-800 text-sm">{bookOf(loan).title}</p>
+                    <p className="text-xs text-slate-500">{bookOf(loan).author}</p>
+                    {(loan.deliveredAt || loan.returnedAt) && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        {loan.deliveredAt && <>Взято: {new Date(loan.deliveredAt).toLocaleDateString('uk-UA')}</>}
+                        {loan.deliveredAt && loan.returnedAt && <span className="mx-1">·</span>}
+                        {loan.returnedAt && <>Повернено: {new Date(loan.returnedAt).toLocaleDateString('uk-UA')}</>}
+                        {loan.deliveredAt && loan.returnedAt && (() => {
+                          const days = Math.max(1, Math.round(
+                            (new Date(loan.returnedAt!).getTime() - new Date(loan.deliveredAt!).getTime()) / (1000 * 60 * 60 * 24)
+                          ));
+                          return <span className="ml-1 text-slate-300">· {days} дн.</span>;
+                        })()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex-shrink-0 flex flex-col items-end justify-between">
+                    {loan.rating && (
+                      <div className="flex items-center gap-0.5 text-base font-bold text-slate-700">
+                        <span className="text-yellow-400">★</span>
+                        <span>{loan.rating}/10</span>
+                      </div>
+                    )}
+                    {loan.status === 'returned' && loan.returnedAt && loan.dueDate ? (
+                      new Date(loan.returnedAt) <= new Date(loan.dueDate) ? (
+                        <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">Вчасно</span>
+                      ) : (
+                        <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">Із запізненням</span>
+                      )
+                    ) : (
+                      <span className="text-[10px] text-slate-400">{statusLabel[loan.status]}</span>
+                    )}
+                  </div>
+                </div>
+                {loan.review && (
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed border-t border-slate-100 pt-2">
+                    {loan.review}
                   </p>
                 )}
               </div>
-              {loan.rating && (
-                <div className="text-right">
-                  <span className="text-yellow-400">★</span>
-                  <span className="text-sm font-medium text-slate-700 ml-1">{loan.rating}/10</span>
-                </div>
-              )}
             </div>
           ))}
         </div>
