@@ -128,7 +128,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           outOfStock ? STATUS_COLORS.unavailable : STATUS_COLORS.available
                         }`}>
-                          {outOfStock ? 'Немає в наявності' : `Залишок: ${product.quantity}`}
+                          {`Залишок: ${product.quantity}`}
                         </span>
                       </div>
                       <button
@@ -139,9 +139,9 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
                             ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                             : 'bg-kameya-burgundy text-white hover:bg-kameya-burgundy/90'
                         }`}
-                        title={outOfStock ? 'Немає в наявності' : noPoints ? 'Недостатньо балів' : ''}
+                        title={outOfStock ? 'Немає в наявності' : alreadyOrdered ? 'Ви вже здійснили покупку цього року' : noPoints ? 'Недостатньо балів' : ''}
                       >
-                        {outOfStock ? 'Немає в наявності' : noPoints ? 'Недостатньо балів' : 'Замовити'}
+                        {outOfStock ? 'Немає в наявності' : alreadyOrdered ? 'Недоступно' : noPoints ? 'Недостатньо балів' : 'Замовити'}
                       </button>
                     </>
                   )}
@@ -158,11 +158,16 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
           <div className="flex min-h-full items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
             <h3 className="text-xl font-bold text-slate-800">Підтвердження замовлення</h3>
+            {confirmProduct.imageUrl && (
+              <div className="w-full h-40 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center">
+                <img src={confirmProduct.imageUrl} alt={confirmProduct.name} className="w-full h-full object-contain" />
+              </div>
+            )}
             <p className="text-slate-600">
               Замовити <strong>{confirmProduct.name}</strong>?<br />
               З вашого рахунку буде списано{' '}
               <strong className="text-kameya-burgundy">{confirmProduct.price} балів</strong>.<br />
-              Залишок: <strong>{displayPoints - confirmProduct.price} балів</strong>.
+              <span className="text-xs text-slate-400">У магазині можна здійснити лише 1 покупку на рік.</span>
             </p>
             <div className="flex gap-3">
               <button
