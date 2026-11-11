@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShopProduct } from '../../types';
 import { getShopProducts, getShopSettings } from '../../services/shopProductsService';
-import { placeOrder } from '../../services/shopOrdersService';
+import { placeOrder, getMyOrders } from '../../services/shopOrdersService';
 import { useAuth } from '../../context/AuthContext';
 
 interface ShopViewProps {
@@ -25,12 +25,18 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [alreadyOrdered, setAlreadyOrdered] = useState(false);
 
   useEffect(() => {
-    Promise.all([getShopProducts(), getShopSettings()])
-      .then(([prods, settings]) => {
+    const currentYear = new Date().getFullYear();
+    Promise.all([getShopProducts(), getShopSettings(), getMyOrders()])
+      .then(([prods, settings, orders]) => {
         setProducts(prods);
         setCatalogOnly(settings.catalogOnly);
+        const hasActiveOrder = orders.some(o =>
+          o.status !== 'cancelled' && new Date(o.createdAt).getFullYear() === currentYear
+        );
+        setAlreadyOrdered(hasActiveOrder);
       })
       .catch(() => setError('Не вдалося завантажити товари'))
       .finally(() => setLoading(false));
@@ -42,6 +48,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
     try {
       const { points } = await placeOrder(confirmProduct._id);
       onPointsUpdate(points);
+      setAlreadyOrdered(true);
       setProducts(prev => prev.map(p =>
         p._id === confirmProduct._id ? { ...p, quantity: p.quantity - 1 } : p
       ));
@@ -94,7 +101,7 @@ export const ShopView: React.FC<ShopViewProps> = ({ onPointsUpdate, pointsOverri
           {products.map(product => {
             const outOfStock = product.quantity === 0;
             const noPoints   = displayPoints < product.price;
-            const disabled   = outOfStock || noPoints;
+            const disabled   = outOfStock || noPoints || alreadyOrdered;
             return (
               <div
                 key={product._id}

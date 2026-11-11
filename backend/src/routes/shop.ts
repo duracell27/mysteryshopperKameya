@@ -199,6 +199,16 @@ router.post('/orders', async (req: AuthRequest, res: Response) => {
     if (!product || !product.isActive) return res.status(404).json({ message: 'Товар не знайдено або недоступний' });
     if (product.quantity <= 0) return res.status(400).json({ message: 'Товар відсутній на складі' });
 
+    const currentYear = new Date().getFullYear();
+    const existingOrder = await ShopOrder.findOne({
+      userId: req.user!.userId,
+      status: { $ne: 'cancelled' },
+      createdAt: { $gte: new Date(`${currentYear}-01-01`), $lt: new Date(`${currentYear + 1}-01-01`) },
+    });
+    if (existingOrder) {
+      return res.status(400).json({ message: 'Ви вже зробили замовлення цього року' });
+    }
+
     const user = await User.findById(req.user!.userId);
     if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
     if (user.points < product.price) return res.status(400).json({ message: 'Недостатньо балів' });

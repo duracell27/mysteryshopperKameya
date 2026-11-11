@@ -568,9 +568,14 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
       ];
     }
 
-    const periodReports = await Report.find(filter)
-      .populate('userId', 'name store')
+    const allPeriodReports = await Report.find(filter)
+      .populate('userId', 'name store division')
       .lean();
+
+    const periodReports = allPeriodReports.filter(r =>
+      typeof r.userId === 'object' && r.userId &&
+      (r.userId as { division?: string }).division === 'stores'
+    );
 
     // ── Period avg & count ──
     const periodAvg = periodReports.length
@@ -608,7 +613,7 @@ router.get('/stats/dashboard', async (req: AuthRequest, res: Response) => {
       .sort((a, b) => b.avg - a.avg || b.count - a.count);
 
     const pointsRanking = await User.find(
-      { isAdmin: false },
+      { isAdmin: false, division: 'stores' },
       'name division group points'
     ).sort({ points: -1 }).lean();
 
