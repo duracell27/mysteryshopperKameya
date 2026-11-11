@@ -487,20 +487,24 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
                     <p className="text-xs text-slate-600 mt-1">
                       <i className="fas fa-user text-slate-400 mr-1"></i>
                       {user.name} · {user.phone}
+                      {user.division && user.group && (
+                        <span className="text-slate-400"> · {getGroupLabel(user.division, user.group)}</span>
+                      )}
                     </p>
-                    {user.division && (
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        <i className="fas fa-location-dot mr-1"></i>
-                        {getDivisionLabel(user.division)}
-                        {user.group && ` · ${getGroupLabel(user.division, user.group)}`}
-                      </p>
-                    )}
                     <div className="flex flex-wrap gap-1.5 mt-1 text-xs text-slate-400">
                       <span>Запит: {new Date(loan.requestedAt).toLocaleDateString('uk-UA')}</span>
                       {loan.deliveredAt && <span>· Видано: {new Date(loan.deliveredAt).toLocaleDateString('uk-UA')}</span>}
                       {loan.dueDate     && <span>· До: {new Date(loan.dueDate).toLocaleDateString('uk-UA')}</span>}
-                      {loan.returnedAt  && <span>· Повернено: {new Date(loan.returnedAt).toLocaleDateString('uk-UA')}</span>}
-                      {loan.rating      && <span>· ★ {loan.rating}/10</span>}
+                      {loan.returnedAt  && (
+                        <span>· Повернено: {new Date(loan.returnedAt).toLocaleDateString('uk-UA')}
+                          {loan.deliveredAt && (() => {
+                            const days = Math.max(1, Math.round(
+                              (new Date(loan.returnedAt!).getTime() - new Date(loan.deliveredAt!).getTime()) / (1000*60*60*24)
+                            ));
+                            return <span className="text-slate-300"> · {days} дн.</span>;
+                          })()}
+                        </span>
+                      )}
                     </div>
                     {loan.review && (
                       <div className="mt-1.5 bg-slate-50 rounded-lg px-2.5 py-2 text-xs text-slate-600 leading-relaxed border-l-2 border-kameya-burgundy/30">
@@ -510,21 +514,38 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
                   </div>
                   {/* Дії */}
                   <div className="flex flex-col items-end justify-between flex-shrink-0 self-stretch">
-                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLOR[loan.status]}`}>
-                        {STATUS_LABEL[loan.status]}
-                      </span>
-                      {loan.status === 'active' && <DueBadge dueDate={loan.dueDate} />}
-                      {loan.status === 'active' && loan.warningDay27Sent && (
-                        <span title="СМС за 3 дні до закінчення надіслано" className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-600 flex items-center gap-0.5">
-                          <i className="fas fa-comment-sms text-[9px]"></i> 27д
-                        </span>
+                    <div className="flex flex-col items-end gap-1.5">
+                      {loan.rating && (
+                        <div className="flex items-center gap-0.5 text-base font-bold text-slate-700">
+                          <span className="text-yellow-400">★</span>
+                          <span>{loan.rating}/10</span>
+                        </div>
                       )}
-                      {loan.status === 'active' && loan.warningDay31Sent && (
-                        <span title="СМС про прострочення надіслано" className="text-[10px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 flex items-center gap-0.5">
-                          <i className="fas fa-comment-sms text-[9px]"></i> 31д
-                        </span>
-                      )}
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLOR[loan.status]}`}>
+                            {STATUS_LABEL[loan.status]}
+                          </span>
+                          {loan.status === 'active' && <DueBadge dueDate={loan.dueDate} />}
+                          {loan.status === 'active' && loan.warningDay27Sent && (
+                            <span title="СМС за 3 дні до закінчення надіслано" className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-600 flex items-center gap-0.5">
+                              <i className="fas fa-comment-sms text-[9px]"></i> 27д
+                            </span>
+                          )}
+                          {loan.status === 'active' && loan.warningDay31Sent && (
+                            <span title="СМС про прострочення надіслано" className="text-[10px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 flex items-center gap-0.5">
+                              <i className="fas fa-comment-sms text-[9px]"></i> 31д
+                            </span>
+                          )}
+                        </div>
+                        {loan.status === 'returned' && loan.returnedAt && loan.dueDate && (
+                          new Date(loan.returnedAt) <= new Date(loan.dueDate) ? (
+                            <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">Вчасно</span>
+                          ) : (
+                            <span className="text-[10px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">Із запізненням</span>
+                          )
+                        )}
+                      </div>
                     </div>
                     {loan.status === 'pending' && (
                       <div className="flex flex-col gap-1.5 w-full">
