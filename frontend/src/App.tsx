@@ -223,7 +223,7 @@ const AppContent: React.FC = () => {
           <Route path="/admin/onboarding/trainees" element={<AdminOnboardingView tab="trainees" />} />
           <Route path="/admin/onboarding/dayplans" element={<AdminOnboardingView tab="dayplans" />} />
           <Route path="/admin/shop/products"    element={<AdminShopProductsView />} />
-          <Route path="/admin/shop/orders"      element={<AdminShopOrdersView />} />
+          <Route path="/admin/shop/orders"      element={<AdminShopOrdersView onRefresh={refreshUnreadCounts} />} />
           <Route path="/admin/shop/preview"     element={<AdminShopPreview onPointsUpdate={updatePoints} />} />
           <Route path="/admin/library/dashboard" element={<AdminLibraryDashboard />} />
           <Route path="/admin/library/books"    element={<AdminLibraryBooksView />} />

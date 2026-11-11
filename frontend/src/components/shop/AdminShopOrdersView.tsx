@@ -34,7 +34,7 @@ const FILTER_TABS: { key: string; label: string }[] = [
   { key: 'cancelled',   label: 'Скасовано' },
 ];
 
-export const AdminShopOrdersView: React.FC = () => {
+export const AdminShopOrdersView: React.FC<{ onRefresh?: () => void }> = ({ onRefresh }) => {
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -49,6 +49,7 @@ export const AdminShopOrdersView: React.FC = () => {
   const [createProducts, setCreateProducts] = useState<ShopProduct[]>([]);
   const [createLoading, setCreateLoading]   = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createError, setCreateError]       = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
     userId: '', productId: '', userSearch: '', productSearch: '',
   });
@@ -74,6 +75,7 @@ export const AdminShopOrdersView: React.FC = () => {
       setOrders(prev => prev.map(o =>
         o._id === order._id ? { ...o, status: updated.status, adminNote: updated.adminNote } : o
       ));
+      if (newStatus === 'cancelled') onRefresh?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Помилка зміни статусу');
     } finally {
@@ -85,25 +87,28 @@ export const AdminShopOrdersView: React.FC = () => {
     setCreateModal(true);
     setCreateSubmitting(false);
     setCreateForm({ userId: '', productId: '', userSearch: '', productSearch: '' });
+    setCreateError(null);
     setCreateLoading(true);
     try {
       const [usersData, productsData] = await Promise.all([fetchUsers(), getAllShopProducts()]);
       setCreateUsers(usersData);
-      setCreateProducts(productsData.filter(p => p.isActive && p.quantity > 0));
-    } catch { setError('Помилка завантаження даних'); }
+      setCreateProducts(productsData.filter(p => p.isActive));
+    } catch { setCreateError('Помилка завантаження даних'); }
     finally { setCreateLoading(false); }
   };
 
   const handleCreateSubmit = async () => {
-    if (!createForm.userId)    { setError('Оберіть користувача'); return; }
-    if (!createForm.productId) { setError('Оберіть товар'); return; }
+    if (!createForm.userId)    { setCreateError('Оберіть користувача'); return; }
+    if (!createForm.productId) { setCreateError('Оберіть товар'); return; }
+    setCreateError(null);
     setCreateSubmitting(true);
     try {
       await adminCreateOrder({ userId: createForm.userId, productId: createForm.productId });
       setCreateModal(false);
       load();
+      onRefresh?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Помилка створення замовлення');
+      setCreateError(e instanceof Error ? e.message : 'Помилка створення замовлення');
     } finally {
       setCreateSubmitting(false);
     }
@@ -130,6 +135,12 @@ export const AdminShopOrdersView: React.FC = () => {
               <div className="flex justify-center py-10"><i className="fas fa-spinner fa-spin text-xl text-kameya-burgundy"></i></div>
             ) : (
               <div className="p-5 space-y-4">
+                {createError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg flex items-center gap-2">
+                    <i className="fas fa-circle-exclamation flex-shrink-0"></i>
+                    {createError}
+                  </div>
+                )}
                 {/* User search */}
                 <div>
                   <label className="text-xs font-medium text-slate-500 block mb-1.5">Користувач</label>
@@ -204,18 +215,24 @@ export const AdminShopOrdersView: React.FC = () => {
                         const filtered = createProducts.filter(p => p.name.toLowerCase().includes(q)).slice(0, 6);
                         return filtered.length > 0 ? (
                           <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100 max-h-52 overflow-y-auto">
-                            {filtered.map(p => (
-                              <button key={p._id} onClick={() => setCreateForm(f => ({ ...f, productId: p._id, productSearch: p.name }))}
-                                className="w-full text-left px-2 py-2 text-sm hover:bg-slate-50 flex items-center gap-2">
+                            {filtered.map(p => {
+                              const outOfStock = p.quantity <= 0;
+                              return (
+                              <button key={p._id}
+                                onClick={() => !outOfStock && setCreateForm(f => ({ ...f, productId: p._id, productSearch: p.name }))}
+                                className={`w-full text-left px-2 py-2 text-sm flex items-center gap-2 ${outOfStock ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'}`}>
                                 {p.imageUrl
                                   ? <img src={p.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
                                   : <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><i className="fas fa-image text-slate-300 text-xs"></i></div>}
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-slate-800 truncate">{p.name}</p>
-                                  <p className="text-xs text-kameya-burgundy font-semibold">{p.price} балів · залишок: {p.quantity}</p>
+                                  <p className={`text-xs font-semibold ${outOfStock ? 'text-slate-400' : 'text-kameya-burgundy'}`}>
+                                    {p.price} балів · {outOfStock ? 'Немає в наявності' : `залишок: ${p.quantity}`}
+                                  </p>
                                 </div>
                               </button>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : <p className="text-xs text-slate-400 px-1">Не знайдено</p>;
                       })()}
