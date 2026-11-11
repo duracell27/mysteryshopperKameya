@@ -40,6 +40,22 @@ export const getAllOrders = async (params: {
   return res.json();
 };
 
+export const adminCreateOrder = async (params: {
+  userId: string;
+  productId: string;
+}): Promise<{ order: ShopOrder; points: number }> => {
+  const res = await apiFetch('/api/shop/orders/admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Помилка створення замовлення');
+  }
+  return res.json();
+};
+
 export const updateOrderStatus = async (
   id: string, status: OrderStatus, adminNote?: string
 ): Promise<ShopOrder> => {

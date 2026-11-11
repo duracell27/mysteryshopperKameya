@@ -299,6 +299,49 @@ router.get('/orders', adminOnly, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// POST /api/shop/orders/admin — admin: create order on behalf of user
+router.post('/orders/admin', adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId, productId } = req.body as { userId: string; productId: string };
+    if (!userId || !/^[a-f\d]{24}$/i.test(userId))   return res.status(400).json({ message: 'Невалідний userId' });
+    if (!productId || !/^[a-f\d]{24}$/i.test(productId)) return res.status(400).json({ message: 'Невалідний productId' });
+
+    const product = await ShopProduct.findById(productId);
+    if (!product || !product.isActive) return res.status(404).json({ message: 'Товар не знайдено або недоступний' });
+    if (product.quantity <= 0) return res.status(400).json({ message: 'Товар відсутній на складі' });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'Користувача не знайдено' });
+    if (user.points < product.price) return res.status(400).json({ message: 'Недостатньо балів у користувача' });
+
+    user.points -= product.price;
+    await user.save();
+    product.quantity -= 1;
+    await product.save();
+
+    const order = await ShopOrder.create({
+      userId: user._id,
+      productId: product._id,
+      productSnapshot: { name: product.name, price: product.price, imageUrl: product.imageUrl },
+      pointsSpent: product.price,
+      status: 'pending',
+    });
+
+    await PointsTransaction.create({
+      userId: user._id,
+      year: new Date().getFullYear(),
+      scorePercent: 0,
+      pointsAwarded: -product.price,
+      reason: 'shop_purchase',
+      note: `Покупка (адмін): ${product.name}`,
+    });
+
+    return res.status(201).json({ order, points: user.points });
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 // PUT /api/shop/orders/:id/status — admin: change status
 router.put('/orders/:id/status', adminOnly, async (req: AuthRequest, res: Response) => {
   try {

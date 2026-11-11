@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShopOrder, OrderStatus } from '../../types';
-import { getAllOrders, updateOrderStatus } from '../../services/shopOrdersService';
+import { ShopOrder, OrderStatus, UserListItem, ShopProduct } from '../../types';
+import { getAllOrders, updateOrderStatus, adminCreateOrder } from '../../services/shopOrdersService';
+import { getAllShopProducts } from '../../services/shopProductsService';
+import { fetchUsers } from '../../services/usersService';
 import { formatDate } from '../../utils/dateFormatter';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -42,6 +44,15 @@ export const AdminShopOrdersView: React.FC = () => {
   const [changingId, setChangingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [createModal, setCreateModal]       = useState(false);
+  const [createUsers, setCreateUsers]       = useState<UserListItem[]>([]);
+  const [createProducts, setCreateProducts] = useState<ShopProduct[]>([]);
+  const [createLoading, setCreateLoading]   = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    userId: '', productId: '', userSearch: '', productSearch: '',
+  });
+
   const load = useCallback(() => {
     setLoading(true);
     getAllOrders({ status: statusFilter, search, page, limit: 20 })
@@ -70,6 +81,34 @@ export const AdminShopOrdersView: React.FC = () => {
     }
   };
 
+  const openCreateModal = async () => {
+    setCreateModal(true);
+    setCreateSubmitting(false);
+    setCreateForm({ userId: '', productId: '', userSearch: '', productSearch: '' });
+    setCreateLoading(true);
+    try {
+      const [usersData, productsData] = await Promise.all([fetchUsers(), getAllShopProducts()]);
+      setCreateUsers(usersData);
+      setCreateProducts(productsData.filter(p => p.isActive && p.quantity > 0));
+    } catch { setError('Помилка завантаження даних'); }
+    finally { setCreateLoading(false); }
+  };
+
+  const handleCreateSubmit = async () => {
+    if (!createForm.userId)    { setError('Оберіть користувача'); return; }
+    if (!createForm.productId) { setError('Оберіть товар'); return; }
+    setCreateSubmitting(true);
+    try {
+      await adminCreateOrder({ userId: createForm.userId, productId: createForm.productId });
+      setCreateModal(false);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Помилка створення замовлення');
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
   const getUserName = (order: ShopOrder): string => {
     if (typeof order.userId === 'object' && order.userId !== null) {
       return (order.userId as { name: string }).name || (order.userId as { phone: string }).phone;
@@ -79,9 +118,135 @@ export const AdminShopOrdersView: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Create order modal */}
+      {createModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setCreateModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-kameya-burgundy px-5 py-4">
+              <h3 className="text-base font-bold text-white">Оформити замовлення</h3>
+              <p className="text-sm text-white/70 mt-0.5">Адмін створює замовлення за користувача</p>
+            </div>
+            {createLoading ? (
+              <div className="flex justify-center py-10"><i className="fas fa-spinner fa-spin text-xl text-kameya-burgundy"></i></div>
+            ) : (
+              <div className="p-5 space-y-4">
+                {/* User search */}
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-1.5">Користувач</label>
+                  {createForm.userId ? (() => {
+                    const u = createUsers.find(x => x._id === createForm.userId);
+                    return u ? (
+                      <div className="flex items-center gap-2 bg-kameya-burgundy/5 border border-kameya-burgundy/20 rounded-lg px-3 py-2 text-sm">
+                        {u.avatarUrl
+                          ? <img src={u.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                          : <div className="w-7 h-7 rounded-full bg-kameya-burgundy/20 flex items-center justify-center flex-shrink-0 text-kameya-burgundy text-xs font-bold">{u.name.charAt(0)}</div>}
+                        <span className="font-medium text-slate-800 flex-1">{u.name} · {u.phone}</span>
+                        <button onClick={() => setCreateForm(f => ({ ...f, userId: '', userSearch: '' }))} className="text-slate-400 hover:text-slate-600"><i className="fas fa-xmark"></i></button>
+                      </div>
+                    ) : null;
+                  })() : (
+                    <>
+                      <input
+                        type="text" placeholder="Пошук за іменем або телефоном..."
+                        value={createForm.userSearch}
+                        onChange={e => setCreateForm(f => ({ ...f, userSearch: e.target.value }))}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50 mb-1"
+                      />
+                      {createForm.userSearch.trim().length >= 1 && (() => {
+                        const q = createForm.userSearch.trim().toLowerCase();
+                        const filtered = createUsers.filter(u => u.name.toLowerCase().includes(q) || u.phone.includes(q)).slice(0, 6);
+                        return filtered.length > 0 ? (
+                          <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100 max-h-44 overflow-y-auto">
+                            {filtered.map(u => (
+                              <button key={u._id} onClick={() => setCreateForm(f => ({ ...f, userId: u._id, userSearch: u.name }))}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex items-center gap-2">
+                                {u.avatarUrl
+                                  ? <img src={u.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                                  : <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 text-slate-500 text-xs font-bold">{u.name.charAt(0)}</div>}
+                                <span className="font-medium text-slate-800">{u.name}</span>
+                                <span className="text-slate-400">{u.phone}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : <p className="text-xs text-slate-400 px-1">Не знайдено</p>;
+                      })()}
+                    </>
+                  )}
+                </div>
+
+                {/* Product search */}
+                <div>
+                  <label className="text-xs font-medium text-slate-500 block mb-1.5">Товар</label>
+                  {createForm.productId ? (() => {
+                    const p = createProducts.find(x => x._id === createForm.productId);
+                    return p ? (
+                      <div className="flex items-center gap-2 bg-kameya-burgundy/5 border border-kameya-burgundy/20 rounded-lg px-2 py-2 text-sm">
+                        {p.imageUrl
+                          ? <img src={p.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                          : <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><i className="fas fa-image text-slate-300 text-xs"></i></div>}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-800 truncate">{p.name}</p>
+                          <p className="text-xs text-kameya-burgundy font-semibold">{p.price} балів · залишок: {p.quantity}</p>
+                        </div>
+                        <button onClick={() => setCreateForm(f => ({ ...f, productId: '', productSearch: '' }))} className="text-slate-400 hover:text-slate-600 flex-shrink-0"><i className="fas fa-xmark"></i></button>
+                      </div>
+                    ) : null;
+                  })() : (
+                    <>
+                      <input
+                        type="text" placeholder="Пошук за назвою товару..."
+                        value={createForm.productSearch}
+                        onChange={e => setCreateForm(f => ({ ...f, productSearch: e.target.value }))}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/50 mb-1"
+                      />
+                      {createForm.productSearch.trim().length >= 1 && (() => {
+                        const q = createForm.productSearch.trim().toLowerCase();
+                        const filtered = createProducts.filter(p => p.name.toLowerCase().includes(q)).slice(0, 6);
+                        return filtered.length > 0 ? (
+                          <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100 max-h-52 overflow-y-auto">
+                            {filtered.map(p => (
+                              <button key={p._id} onClick={() => setCreateForm(f => ({ ...f, productId: p._id, productSearch: p.name }))}
+                                className="w-full text-left px-2 py-2 text-sm hover:bg-slate-50 flex items-center gap-2">
+                                {p.imageUrl
+                                  ? <img src={p.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                                  : <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0"><i className="fas fa-image text-slate-300 text-xs"></i></div>}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-slate-800 truncate">{p.name}</p>
+                                  <p className="text-xs text-kameya-burgundy font-semibold">{p.price} балів · залишок: {p.quantity}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        ) : <p className="text-xs text-slate-400 px-1">Не знайдено</p>;
+                      })()}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="px-5 pb-5 flex gap-3">
+              <button onClick={() => setCreateModal(false)} className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm hover:bg-slate-50">
+                Скасувати
+              </button>
+              <button onClick={handleCreateSubmit} disabled={createLoading || createSubmitting}
+                className="flex-1 bg-kameya-burgundy text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-kameya-burgundy/90 disabled:opacity-50">
+                {createSubmitting ? <i className="fas fa-spinner fa-spin"></i> : 'Створити'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header>
-        <h2 className="text-3xl font-bold text-slate-800">Замовлення</h2>
-        <p className="text-slate-500 mt-1">Управління замовленнями магазину</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-800">Замовлення</h2>
+            <p className="text-slate-500 mt-1">Управління замовленнями магазину</p>
+          </div>
+          <button onClick={openCreateModal} className="flex items-center gap-2 bg-kameya-burgundy text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-kameya-burgundy/90">
+            <i className="fas fa-plus"></i> Оформити замовлення
+          </button>
+        </div>
       </header>
 
       {error && (
