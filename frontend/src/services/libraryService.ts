@@ -209,6 +209,14 @@ export const cancelLoan = async (id: string): Promise<BookLoan> => {
   return res.json();
 };
 
+export const deleteLoan = async (id: string): Promise<void> => {
+  const res = await apiFetch(`/api/library/loans/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Помилка видалення');
+  }
+};
+
 export const adminCreateLoan = async (data: {
   bookId: string; userId: string; deliveredAt?: string; dueDate?: string;
 }): Promise<BookLoan> => {

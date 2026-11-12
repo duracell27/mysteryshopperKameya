@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { BookLoan, Book, UserListItem } from '../../types';
-import { getAllLoans, deliverLoan, extendLoan, confirmReturn, cancelLoan, forceCancelLoan, adminCreateLoan, getBooks } from '../../services/libraryService';
+import { getAllLoans, deliverLoan, extendLoan, confirmReturn, cancelLoan, forceCancelLoan, adminCreateLoan, deleteLoan, getBooks } from '../../services/libraryService';
 import { fetchUsers } from '../../services/usersService';
 import { getDivisionLabel, getGroupLabel } from '../../config/org-structure';
 
@@ -30,6 +30,7 @@ function loanPriority(loan: { status: string; dueDate?: string }): number {
   if (isOverdue(loan))                  return 2;
   if (loan.status === 'active')         return 3;
   if (loan.status === 'returned')       return 4;
+  if (loan.status === 'cancelled')      return 6;
   return 5;
 }
 
@@ -37,14 +38,16 @@ function loanGroup(loan: { status: string; dueDate?: string }): string {
   if (loan.status === 'pending' || loan.status === 'return_pending') return 'action';
   if (isOverdue(loan))   return 'overdue';
   if (loan.status === 'active') return 'active';
+  if (loan.status === 'cancelled') return 'cancelled';
   return 'done';
 }
 
 const GROUP_LABEL: Record<string, string> = {
-  action:  'Потребують дії',
-  overdue: 'Прострочені',
-  active:  'На руках',
-  done:    'Завершені',
+  action:    'Потребують дії',
+  overdue:   'Прострочені',
+  active:    'На руках',
+  done:      'Завершені',
+  cancelled: 'Скасовані',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -575,6 +578,12 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
                       <button disabled={!!acting} onClick={() => act(loan._id, () => confirmReturn(loan._id), 'Повернення підтверджено!')}
                         className="bg-kameya-burgundy text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-kameya-burgundy/90 disabled:opacity-50">
                         {acting === loan._id ? <i className="fas fa-spinner fa-spin"></i> : 'Отримана'}
+                      </button>
+                    )}
+                    {loan.status === 'cancelled' && (
+                      <button disabled={!!acting} onClick={() => act(loan._id, () => deleteLoan(loan._id), 'Запис видалено')}
+                        className="w-full border border-red-200 text-red-500 px-3 py-1.5 rounded-lg text-xs hover:bg-red-50 disabled:opacity-50">
+                        {acting === loan._id ? <i className="fas fa-spinner fa-spin"></i> : 'Видалити'}
                       </button>
                     )}
                   </div>

@@ -676,4 +676,19 @@ router.get('/stats', adminOnly, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// DELETE /api/library/loans/:id — admin: delete cancelled loan
+router.delete('/loans/:id', adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const loan = await BookLoan.findById(req.params.id);
+    if (!loan) return res.status(404).json({ message: 'Позику не знайдено' });
+    if (loan.status !== 'cancelled') {
+      return res.status(400).json({ message: 'Можна видаляти лише скасовані позики' });
+    }
+    await loan.deleteOne();
+    return res.json({ deleted: true });
+  } catch {
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 export default router;
