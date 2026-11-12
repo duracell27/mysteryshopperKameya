@@ -53,6 +53,18 @@ export const updateUser = async (id: string, data: UpdateUserPayload): Promise<U
   return res.json();
 };
 
+export interface DeletePreview {
+  reportsCount: number;
+  activeLoansCount: number;
+  activeOrdersCount: number;
+}
+
+export const getDeletePreview = async (id: string): Promise<DeletePreview> => {
+  const res = await apiFetch(`/api/users/${id}/delete-preview`);
+  if (!res.ok) throw new Error('Помилка перевірки');
+  return res.json();
+};
+
 export const deleteUser = async (id: string): Promise<void> => {
   const res = await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Помилка видалення');

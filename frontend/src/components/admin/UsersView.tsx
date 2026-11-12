@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import ReactDOM from 'react-dom';
 import { UserListItem, PointsTransaction } from '../../types';
-import { fetchUsers, createUser, updateUser, deleteUser, CreateUserPayload, UpdateUserPayload, getUserPointsHistory, uploadAvatar } from '../../services/usersService';
+import { fetchUsers, createUser, updateUser, deleteUser, getDeletePreview, DeletePreview, CreateUserPayload, UpdateUserPayload, getUserPointsHistory, uploadAvatar } from '../../services/usersService';
 import { ORG_STRUCTURE, getDivisionLabel, getGroupLabel } from '../../config/org-structure';
 import { BadgesModal } from './BadgesModal';
 import { formatDate } from '../../utils/dateFormatter';
@@ -63,6 +63,12 @@ export const UsersView: React.FC = () => {
   const [editError, setEditError]   = useState('');
 
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<UserListItem | null>(null);
+  const [deletePreview, setDeletePreview] = useState<DeletePreview | null>(null);
+  const [deletePreviewLoading, setDeletePreviewLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Badges
   const [badgesUser, setBadgesUser] = useState<UserListItem | null>(null);
@@ -177,12 +183,33 @@ export const UsersView: React.FC = () => {
   };
 
   // ── Видалення ──
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Видалити користувача "${name || toDisplay(id)}"?`)) return;
+  const openDeleteConfirm = async (u: UserListItem) => {
+    setDeleteTarget(u);
+    setDeletePreview(null);
+    setDeletePreviewLoading(true);
     try {
-      await deleteUser(id);
-      setUsers((prev) => prev.filter((u) => u._id !== id));
-    } catch { alert('Помилка видалення'); }
+      const preview = await getDeletePreview(u._id);
+      setDeletePreview(preview);
+    } catch {
+      setDeleteTarget(null);
+    } finally {
+      setDeletePreviewLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteUser(deleteTarget._id);
+      setUsers((prev) => prev.filter((u) => u._id !== deleteTarget._id));
+      setDeleteTarget(null);
+      setDeletePreview(null);
+    } catch {
+      alert('Помилка видалення');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // ── Історія балів ──
@@ -346,7 +373,7 @@ export const UsersView: React.FC = () => {
                         <button onClick={() => openEdit(u)} className="text-slate-400 hover:text-kameya-burgundy transition-colors" title="Редагувати">
                           <i className="fas fa-pen"></i>
                         </button>
-                        <button onClick={() => handleDelete(u._id, u.name)} className="text-slate-300 hover:text-red-500 transition-colors" title="Видалити">
+                        <button onClick={() => openDeleteConfirm(u)} className="text-slate-300 hover:text-red-500 transition-colors" title="Видалити">
                           <i className="fas fa-trash-can"></i>
                         </button>
                       </div>
@@ -358,6 +385,89 @@ export const UsersView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ── Модалка ВИДАЛЕННЯ ── */}
+      {deleteTarget && (
+        <Modal onClose={() => { setDeleteTarget(null); setDeletePreview(null); }}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800">Видалення користувача</h3>
+              <button onClick={() => { setDeleteTarget(null); setDeletePreview(null); }} className="text-slate-400 hover:text-slate-600">
+                <i className="fas fa-xmark text-xl"></i>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-700">
+                <span className="font-semibold">{deleteTarget.name || toDisplay(deleteTarget.phone)}</span>
+              </p>
+
+              {deletePreviewLoading && (
+                <div className="flex justify-center py-4">
+                  <i className="fas fa-spinner fa-spin text-xl text-slate-300"></i>
+                </div>
+              )}
+
+              {deletePreview && (
+                <>
+                  {(deletePreview.activeLoansCount > 0 || deletePreview.activeOrdersCount > 0) ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-1">
+                      <p className="text-sm font-semibold text-red-700 flex items-center gap-2">
+                        <i className="fas fa-circle-exclamation"></i>
+                        Неможливо видалити
+                      </p>
+                      {deletePreview.activeLoansCount > 0 && (
+                        <p className="text-sm text-red-600">
+                          • Є активна оренда книги ({deletePreview.activeLoansCount} шт.)
+                        </p>
+                      )}
+                      {deletePreview.activeOrdersCount > 0 && (
+                        <p className="text-sm text-red-600">
+                          • Є незавершена покупка в магазині ({deletePreview.activeOrdersCount} шт.)
+                        </p>
+                      )}
+                      <p className="text-xs text-red-500 pt-1">Спочатку завершіть або скасуйте ці записи.</p>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <p className="text-sm text-amber-800">
+                        Буде безповоротно видалено:
+                      </p>
+                      <ul className="text-sm text-amber-700 mt-1 space-y-0.5">
+                        <li>• {deletePreview.reportsCount} {deletePreview.reportsCount === 1 ? 'анкету' : deletePreview.reportsCount < 5 ? 'анкети' : 'анкет'}</li>
+                        <li>• всі бали та транзакції</li>
+                        <li>• всі дані про оренди та покупки</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex space-x-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteTarget(null); setDeletePreview(null); }}
+                      className={cancelBtn}
+                    >
+                      Скасувати
+                    </button>
+                    {deletePreview.activeLoansCount === 0 && deletePreview.activeOrdersCount === 0 && (
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:opacity-90 transition-all disabled:opacity-60 flex items-center justify-center space-x-2"
+                      >
+                        {isDeleting
+                          ? <><i className="fas fa-spinner fa-spin"></i><span>Видалення...</span></>
+                          : <><i className="fas fa-trash-can"></i><span>Погоджую</span></>
+                        }
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* ── Модалка СТВОРЕННЯ ── */}
       {showCreate && (

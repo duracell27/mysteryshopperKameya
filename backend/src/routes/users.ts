@@ -10,6 +10,9 @@ import { sendSms } from '../services/sms';
 import { PointsTransaction } from '../models/PointsTransaction';
 import { evaluateStudentOfYear } from '../services/badgeService';
 import { isValidOrg } from '../config/org-structure';
+import { BookLoan, ACTIVE_LOAN_STATUSES } from '../models/BookLoan';
+import { ShopOrder } from '../models/ShopOrder';
+import { Report } from '../models/Report';
 
 const AVATAR_DIR = path.join(process.cwd(), 'uploads', 'avatars');
 
@@ -220,10 +223,34 @@ router.post('/:id/avatar', (req: AuthRequest, res: Response) => {
   });
 });
 
+// GET /api/users/:id/delete-preview — check blockers and counts before deletion
+router.get('/:id/delete-preview', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    const [reportsCount, activeLoansCount, activeOrdersCount] = await Promise.all([
+      Report.countDocuments({ userId }),
+      BookLoan.countDocuments({ userId, status: { $in: ACTIVE_LOAN_STATUSES } }),
+      ShopOrder.countDocuments({ userId, status: { $in: ['pending', 'in_progress'] } }),
+    ]);
+    return res.json({ reportsCount, activeLoansCount, activeOrdersCount });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Помилка сервера' });
+  }
+});
+
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const deleted = await User.findByIdAndDelete(req.params.id);
+    const userId = req.params.id;
+    const deleted = await User.findByIdAndDelete(userId);
     if (!deleted) return res.status(404).json({ message: 'Користувача не знайдено' });
+    await Promise.all([
+      Report.deleteMany({ userId }),
+      PointsTransaction.deleteMany({ userId }),
+      BookLoan.deleteMany({ userId }),
+      ShopOrder.deleteMany({ userId }),
+      Trainee.deleteMany({ user: userId }),
+    ]);
     return res.json({ message: 'Видалено' });
   } catch (error) {
     console.error(error);
