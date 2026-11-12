@@ -580,10 +580,10 @@ export const AdminLibraryLoansView: React.FC<{ onRefresh?: () => void }> = ({ on
                         {acting === loan._id ? <i className="fas fa-spinner fa-spin"></i> : 'Отримана'}
                       </button>
                     )}
-                    {loan.status === 'cancelled' && (
-                      <button disabled={!!acting} onClick={() => act(loan._id, () => deleteLoan(loan._id), 'Запис видалено')}
-                        className="w-full border border-red-200 text-red-500 px-3 py-1.5 rounded-lg text-xs hover:bg-red-50 disabled:opacity-50">
-                        {acting === loan._id ? <i className="fas fa-spinner fa-spin"></i> : 'Видалити'}
+                    {(loan.status === 'cancelled' || loan.status === 'returned') && (
+                      <button disabled={!!acting} onClick={() => { if (window.confirm('Видалити цей запис? Дію не можна скасувати.')) act(loan._id, () => deleteLoan(loan._id), 'Запис видалено'); }}
+                        className="w-7 h-7 flex items-center justify-center rounded-full text-slate-300 hover:text-red-400 hover:bg-red-50 disabled:opacity-50 transition-colors">
+                        {acting === loan._id ? <i className="fas fa-spinner fa-spin text-xs"></i> : <i className="fas fa-trash text-xs"></i>}
                       </button>
                     )}
                   </div>
