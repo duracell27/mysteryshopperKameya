@@ -11,8 +11,11 @@ export interface AccessRule {
     learning:    boolean;
     shop:        boolean;
     library:     boolean;
-    secretSanta: boolean;
   };
+}
+
+export interface GlobalFeatures {
+  secretSanta: boolean;
 }
 
 export interface LearningRule {
@@ -45,37 +48,41 @@ function matchLearningRule(rules: LearningRule[], division: string, group: strin
 }
 
 interface AccessContextType {
-  canMysteryShop: boolean;
-  canOnboarding:  boolean;
-  canLearning:    boolean;
-  canShop:        boolean;
-  canLibrary:     boolean;
-  canSecretSanta: boolean;
-  learningAccess: LearningAccess;
-  isLoading:      boolean;
-  matrix:         AccessRule[]    | null;
-  learningMatrix: LearningRule[]  | null;
-  refreshMatrix:  () => Promise<void>;
+  canMysteryShop:  boolean;
+  canOnboarding:   boolean;
+  canLearning:     boolean;
+  canShop:         boolean;
+  canLibrary:      boolean;
+  canSecretSanta:  boolean;
+  learningAccess:  LearningAccess;
+  isLoading:       boolean;
+  matrix:          AccessRule[]    | null;
+  learningMatrix:  LearningRule[]  | null;
+  globalFeatures:  GlobalFeatures  | null;
+  refreshMatrix:   () => Promise<void>;
 }
 
 const AccessContext = createContext<AccessContextType | null>(null);
 
 export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [matrix, setMatrix]               = useState<AccessRule[]   | null>(null);
-  const [learningMatrix, setLearningMatrix] = useState<LearningRule[] | null>(null);
-  const [isLoading, setIsLoading]         = useState(false);
+  const [matrix, setMatrix]                   = useState<AccessRule[]    | null>(null);
+  const [learningMatrix, setLearningMatrix]   = useState<LearningRule[]  | null>(null);
+  const [globalFeatures, setGlobalFeatures]   = useState<GlobalFeatures  | null>(null);
+  const [isLoading, setIsLoading]             = useState(false);
 
   const fetchMatrix = useCallback(async () => {
     setIsLoading(true);
     try {
       const res  = await apiFetch('/api/access-matrix');
-      const data = await res.json() as { rules: AccessRule[]; learningRules: LearningRule[] };
+      const data = await res.json() as { rules: AccessRule[]; learningRules: LearningRule[]; globalFeatures?: GlobalFeatures };
       setMatrix(data.rules);
       setLearningMatrix(data.learningRules ?? []);
+      setGlobalFeatures(data.globalFeatures ?? { secretSanta: false });
     } catch {
       setMatrix([]);
       setLearningMatrix([]);
+      setGlobalFeatures({ secretSanta: false });
     } finally {
       setIsLoading(false);
     }
@@ -94,8 +101,8 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const canOnboarding  = user?.isAdmin ? true : (rule?.modules.onboarding  ?? false);
   const canLearning    = user?.isAdmin ? true : (rule?.modules.learning    ?? false);
   const canShop        = user?.isAdmin ? true : (rule?.modules.shop        ?? false);
-  const canLibrary     = user?.isAdmin ? true : (rule?.modules.library     ?? false);
-  const canSecretSanta = user?.isAdmin ? true : (rule?.modules.secretSanta ?? false);
+  const canLibrary     = user?.isAdmin ? true : (rule?.modules.library ?? false);
+  const canSecretSanta = user?.isAdmin ? true : (globalFeatures?.secretSanta ?? false);
 
   const learningAccess: LearningAccess = user?.isAdmin
     ? { general: true, start: true, consultant: true, managers: true, marketing: true }
@@ -107,7 +114,7 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     <AccessContext.Provider value={{
       canMysteryShop, canOnboarding, canLearning, canShop, canLibrary, canSecretSanta,
       learningAccess, isLoading,
-      matrix, learningMatrix,
+      matrix, learningMatrix, globalFeatures,
       refreshMatrix: fetchMatrix,
     }}>
       {children}
