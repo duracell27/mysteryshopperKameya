@@ -17,6 +17,7 @@ import traineeRoutes from './routes/trainee';
 import onboardingAiRoutes from './routes/onboardingAi';
 import shopRoutes from './routes/shop';
 import libraryRoutes from './routes/library';
+import secretSantaRoutes from './routes/secretSanta';
 import { scheduleLoanReminders } from './services/libraryReminderService';
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/trainees', traineeRoutes);
 app.use('/api/onboarding-ai', onboardingAiRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/library', libraryRoutes);
+app.use('/api/secret-santa', secretSantaRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
