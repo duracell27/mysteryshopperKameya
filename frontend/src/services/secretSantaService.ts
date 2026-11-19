@@ -20,3 +20,10 @@ export const getMyEntry = async (): Promise<SantaEntry> => {
   const data = await res.json();
   return data.entry as SantaEntry;
 };
+
+export const getAllEntries = async (): Promise<SantaEntry[]> => {
+  const res = await apiFetch('/api/secret-santa/all');
+  if (!res.ok) throw new Error('Помилка завантаження');
+  const data = await res.json();
+  return data.entries as SantaEntry[];
+};
