@@ -14,7 +14,7 @@ const MODULE_ROW_LABELS: { division: string; position: string; label: string }[]
   { division: 'security', position: 'Керівник',                label: 'Охорона / Керівник' },
 ];
 
-type ModuleField = 'mysteryShop' | 'onboarding' | 'learning' | 'shop' | 'library';
+type ModuleField = 'mysteryShop' | 'onboarding' | 'learning' | 'shop' | 'library' | 'secretSanta';
 
 const MODULE_COLS: { key: ModuleField; label: string }[] = [
   { key: 'mysteryShop', label: 'Таємний покупець' },
@@ -22,6 +22,7 @@ const MODULE_COLS: { key: ModuleField; label: string }[] = [
   { key: 'learning',    label: 'Навчання' },
   { key: 'shop',        label: 'Магазин' },
   { key: 'library',     label: 'Бібліотека' },
+  { key: 'secretSanta', label: 'Таємний Миколай' },
 ];
 
 // ─── Learning section matrix ──────────────────────────────────────────────────
