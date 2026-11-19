@@ -9,8 +9,9 @@ router.get('/', async (_req: Request, res: Response) => {
   try {
     const matrix = await AccessMatrix.findOne().lean();
     return res.json({
-      rules:         matrix?.rules         ?? DEFAULT_RULES,
-      learningRules: matrix?.learningRules ?? DEFAULT_LEARNING_RULES,
+      rules:          matrix?.rules          ?? DEFAULT_RULES,
+      learningRules:  matrix?.learningRules  ?? DEFAULT_LEARNING_RULES,
+      globalFeatures: matrix?.globalFeatures ?? { secretSanta: false },
     });
   } catch {
     return res.status(500).json({ message: 'Помилка сервера' });
@@ -23,7 +24,7 @@ router.put('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   if (!req.user?.isAdmin) {
     return res.status(403).json({ message: 'Доступ заборонено' });
   }
-  const body = req.body as { rules?: unknown; learningRules?: unknown };
+  const body = req.body as { rules?: unknown; learningRules?: unknown; globalFeatures?: unknown };
   const update: Record<string, unknown> = {};
 
   if (body.rules !== undefined) {
@@ -38,8 +39,11 @@ router.put('/', authMiddleware, async (req: AuthRequest, res: Response) => {
     }
     update.learningRules = body.learningRules;
   }
+  if (body.globalFeatures !== undefined) {
+    update.globalFeatures = body.globalFeatures;
+  }
   if (Object.keys(update).length === 0) {
-    return res.status(400).json({ message: 'Потрібно передати rules або learningRules' });
+    return res.status(400).json({ message: 'Потрібно передати rules, learningRules або globalFeatures' });
   }
 
   try {
@@ -49,8 +53,9 @@ router.put('/', authMiddleware, async (req: AuthRequest, res: Response) => {
       { new: true, upsert: true }
     ).lean();
     return res.json({
-      rules:         matrix!.rules,
-      learningRules: matrix!.learningRules ?? [],
+      rules:          matrix!.rules,
+      learningRules:  matrix!.learningRules  ?? [],
+      globalFeatures: matrix!.globalFeatures ?? { secretSanta: false },
     });
   } catch {
     return res.status(500).json({ message: 'Помилка сервера' });

@@ -9,8 +9,11 @@ export interface IAccessRule {
     learning:    boolean;
     shop:        boolean;
     library:     boolean;
-    secretSanta: boolean;
   };
+}
+
+export interface IGlobalFeatures {
+  secretSanta: boolean;
 }
 
 export interface ILearningRule {
@@ -27,8 +30,9 @@ export interface ILearningRule {
 }
 
 export interface IAccessMatrix extends Document {
-  rules:         IAccessRule[];
-  learningRules: ILearningRule[];
+  rules:          IAccessRule[];
+  learningRules:  ILearningRule[];
+  globalFeatures: IGlobalFeatures;
 }
 
 const AccessRuleSchema = new Schema<IAccessRule>({
@@ -40,7 +44,6 @@ const AccessRuleSchema = new Schema<IAccessRule>({
     learning:    { type: Boolean, default: true  },
     shop:        { type: Boolean, default: false },
     library:     { type: Boolean, default: false },
-    secretSanta: { type: Boolean, default: false },
   },
 }, { _id: false });
 
@@ -60,18 +63,21 @@ const LearningRuleSchema = new Schema<ILearningRule>({
 const AccessMatrixSchema = new Schema<IAccessMatrix>({
   rules:         [AccessRuleSchema],
   learningRules: [LearningRuleSchema],
+  globalFeatures: {
+    secretSanta: { type: Boolean, default: false },
+  },
 });
 
 export const AccessMatrix = mongoose.model<IAccessMatrix>('AccessMatrix', AccessMatrixSchema);
 
 export const DEFAULT_RULES: IAccessRule[] = [
-  { division: 'stores',   position: 'Початківець консультант', modules: { mysteryShop: false, onboarding: true,  learning: true, shop: false, library: false, secretSanta: false } },
-  { division: 'stores',   position: 'Консультант',             modules: { mysteryShop: true,  onboarding: false, learning: true, shop: false, library: false, secretSanta: false } },
-  { division: 'stores',   position: 'Керівник',                modules: { mysteryShop: true,  onboarding: false, learning: true, shop: false, library: false, secretSanta: false } },
-  { division: 'office',   position: 'Співробітник',            modules: { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false, secretSanta: false } },
-  { division: 'office',   position: 'Керівник',                modules: { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false, secretSanta: false } },
-  { division: 'security', position: 'Охоронець',               modules: { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false, secretSanta: false } },
-  { division: 'security', position: 'Керівник',                modules: { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false, secretSanta: false } },
+  { division: 'stores',   position: 'Початківець консультант', modules: { mysteryShop: false, onboarding: true,  learning: true, shop: false, library: false } },
+  { division: 'stores',   position: 'Консультант',             modules: { mysteryShop: true,  onboarding: false, learning: true, shop: false, library: false } },
+  { division: 'stores',   position: 'Керівник',                modules: { mysteryShop: true,  onboarding: false, learning: true, shop: false, library: false } },
+  { division: 'office',   position: 'Співробітник',            modules: { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false } },
+  { division: 'office',   position: 'Керівник',                modules: { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false } },
+  { division: 'security', position: 'Охоронець',               modules: { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false } },
+  { division: 'security', position: 'Керівник',                modules: { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false } },
 ];
 
 // group: 'other' means all office groups except 'marketing'

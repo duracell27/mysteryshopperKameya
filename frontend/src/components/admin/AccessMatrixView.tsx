@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAccess, AccessRule, LearningRule } from '../../context/AccessContext';
+import { useAccess, AccessRule, LearningRule, GlobalFeatures } from '../../context/AccessContext';
 import { apiFetch } from '../../services/apiFetch';
 
 // ─── Module access matrix ─────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ const MODULE_ROW_LABELS: { division: string; position: string; label: string }[]
   { division: 'security', position: 'Керівник',                label: 'Охорона / Керівник' },
 ];
 
-type ModuleField = 'mysteryShop' | 'onboarding' | 'learning' | 'shop' | 'library' | 'secretSanta';
+type ModuleField = 'mysteryShop' | 'onboarding' | 'learning' | 'shop' | 'library';
 
 const MODULE_COLS: { key: ModuleField; label: string }[] = [
   { key: 'mysteryShop', label: 'Таємний покупець' },
@@ -22,7 +22,6 @@ const MODULE_COLS: { key: ModuleField; label: string }[] = [
   { key: 'learning',    label: 'Навчання' },
   { key: 'shop',        label: 'Магазин' },
   { key: 'library',     label: 'Бібліотека' },
-  { key: 'secretSanta', label: 'Таємний Миколай' },
 ];
 
 // ─── Learning section matrix ──────────────────────────────────────────────────
@@ -65,8 +64,26 @@ const Toggle: React.FC<{ on: boolean; busy: boolean; onToggle: () => void }> = (
 // ─── AccessMatrixView ─────────────────────────────────────────────────────────
 
 export const AccessMatrixView: React.FC = () => {
-  const { matrix, learningMatrix, refreshMatrix } = useAccess();
+  const { matrix, learningMatrix, globalFeatures, refreshMatrix } = useAccess();
   const [saving, setSaving] = useState<string | null>(null);
+
+  const handleGlobalFeatureToggle = async (key: keyof GlobalFeatures, value: boolean) => {
+    setSaving(`global-${key}`);
+    try {
+      await apiFetch('/api/access-matrix', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ globalFeatures: { ...(globalFeatures ?? {}), [key]: value } }),
+      });
+      await refreshMatrix();
+    } catch (err) {
+      console.error('Failed to save global feature:', err);
+      alert('Помилка збереження. Спробуйте ще раз.');
+      await refreshMatrix();
+    } finally {
+      setSaving(null);
+    }
+  };
 
   if (!matrix || !learningMatrix) {
     return (
@@ -85,7 +102,7 @@ export const AccessMatrixView: React.FC = () => {
     setSaving(key);
     const updated: AccessRule[] = MODULE_ROW_LABELS.map(row => {
       const existing = getModuleRule(row.division, row.position);
-      const modules  = existing?.modules ?? { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false, secretSanta: false };
+      const modules  = existing?.modules ?? { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false };
       if (row.division === division && row.position === position) {
         return { division: row.division, position: row.position, modules: { ...modules, [field]: value } };
       }
@@ -226,6 +243,27 @@ export const AccessMatrixView: React.FC = () => {
               })}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="h-0.5 bg-kameya-burgundy opacity-40 rounded-full" />
+
+      {/* Seasonal (global) features */}
+      <div>
+        <h2 className="text-base font-semibold text-slate-700 mb-1">Сезонні функції</h2>
+        <p className="text-xs text-slate-400 mb-3">Вмикаються глобально для всіх співробітників одночасно.</p>
+        <div className="bg-white rounded-2xl shadow-sm px-6 py-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-slate-700">🎅 Таємний Миколай</div>
+              <div className="text-xs text-slate-400 mt-0.5">Показує вкладку "Таємний Миколай" всім співробітникам</div>
+            </div>
+            <Toggle
+              on={globalFeatures?.secretSanta ?? false}
+              busy={saving === 'global-secretSanta'}
+              onToggle={() => handleGlobalFeatureToggle('secretSanta', !(globalFeatures?.secretSanta ?? false))}
+            />
+          </div>
         </div>
       </div>
 
