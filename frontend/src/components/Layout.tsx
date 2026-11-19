@@ -114,6 +114,16 @@ const MODULE_NAV = [
       { path: '/library/my-loans', label: 'Мої книги',    icon: 'fa-bookmark',  learningKey: null },
     ],
   },
+  {
+    key: 'secretSanta' as const,
+    label: 'Таємний Миколай',
+    icon: 'fa-gift',
+    paths: ['/secret-santa'],
+    defaultPath: '/secret-santa',
+    items: [
+      { path: '/secret-santa', label: 'Мій подарунок', icon: 'fa-gift', learningKey: null },
+    ],
+  },
 ] as const;
 
 type ModuleKey = typeof MODULE_NAV[number]['key'];
@@ -301,7 +311,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const { canMysteryShop, canOnboarding, canLearning, canShop, canLibrary, learningAccess } = useAccess();
+  const { canMysteryShop, canOnboarding, canLearning, canShop, canLibrary, canSecretSanta, learningAccess } = useAccess();
 
   const accessMap: Record<ModuleKey, boolean> = {
     mysteryShop: canMysteryShop,
@@ -309,6 +319,7 @@ export const Layout: React.FC<LayoutProps> = ({
     learning:    canLearning,
     shop:        canShop,
     library:     canLibrary,
+    secretSanta: canSecretSanta,
   };
 
   const visibleModules = MODULE_NAV.filter(m => accessMap[m.key]);
@@ -345,7 +356,7 @@ export const Layout: React.FC<LayoutProps> = ({
     const active = getActiveModule();
     if (active) setOpenModule(active);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, canMysteryShop, canOnboarding, canLearning, canShop, canLibrary]);
+  }, [location.pathname, canMysteryShop, canOnboarding, canLearning, canShop, canLibrary, canSecretSanta]);
 
   useEffect(() => {
     const active = getActiveAdminAccordion();
@@ -541,6 +552,17 @@ export const Layout: React.FC<LayoutProps> = ({
                   { path: '/admin/library/loans',     label: 'Запити',  icon: 'fa-list-check', badge: libraryLoansPending },
                 ],
               })}
+
+              {/* Таємний Миколай */}
+              <button
+                onClick={() => navigate('/admin/secret-santa')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive('/admin/secret-santa') ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                }`}
+              >
+                <i className="fas fa-gift w-4 text-center"></i>
+                <span>Таємний Миколай</span>
+              </button>
             </>
           ) : (
             // Employee accordion nav
@@ -651,6 +673,7 @@ export const Layout: React.FC<LayoutProps> = ({
             { path: '/admin/reports',        icon: 'fa-chart-bar',      active: isAdminReportsActive },
             { path: '/admin/notifications',  icon: 'fa-bell',           active: isActive('/admin/notifications'), badge: notificationsUnread },
             { path: '/admin/onboarding/trainees', icon: 'fa-user-clock', active: isAdminOnboardingActive },
+            { path: '/admin/secret-santa',        icon: 'fa-gift',       active: isActive('/admin/secret-santa') },
           ].map((item) => (
             <button
               key={item.path}

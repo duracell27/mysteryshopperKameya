@@ -30,6 +30,8 @@ import { AccessMatrixView } from './components/admin/AccessMatrixView';
 import { SystemNotificationsPanel } from './components/admin/SystemNotificationsPanel';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { MyReportsView } from './components/employee/MyReportsView';
+import { SecretSantaView } from './components/SecretSantaView';
+import { AdminSecretSantaView } from './components/admin/AdminSecretSantaView';
 import { LoginPage } from './pages/LoginPage';
 import { Screen, SCREEN_PATHS, AIAnalysisResult, QuizQuestion } from './types';
 import { generateQuizQuestions } from './services/geminiService';
@@ -42,10 +44,11 @@ const ONBOARDING_PATHS   = new Set(['/onboarding/14', '/onboarding/30', '/onboar
 const LEARNING_PATHS     = new Set(['/learning', '/learning/start', '/learning/consultant', '/learning/managers', '/learning/marketing']);
 const SHOP_PATHS         = new Set(['/shop', '/orders']);
 const LIBRARY_PATHS      = new Set(['/library', '/library/my-loans']);
+const SANTA_PATHS        = new Set(['/secret-santa']);
 
 const AppContent: React.FC = () => {
   const { user, isLoading, logout, updatePoints } = useAuth();
-  const { canMysteryShop, canOnboarding, canLearning, canShop, canLibrary, isLoading: accessLoading } = useAccess();
+  const { canMysteryShop, canOnboarding, canLearning, canShop, canLibrary, canSecretSanta, isLoading: accessLoading } = useAccess();
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = user?.isAdmin ?? false;
@@ -167,6 +170,10 @@ const AppContent: React.FC = () => {
       if (canMysteryShop) return <Navigate to="/" replace />;
       if (canOnboarding)  return <Navigate to="/onboarding/14" replace />;
       if (canLearning)    return <Navigate to="/learning" replace />;
+    } else if (SANTA_PATHS.has(pathname) && !canSecretSanta) {
+      if (canMysteryShop) return <Navigate to="/" replace />;
+      if (canOnboarding)  return <Navigate to="/onboarding/14" replace />;
+      if (canLearning)    return <Navigate to="/learning" replace />;
     }
   }
 
@@ -228,6 +235,7 @@ const AppContent: React.FC = () => {
           <Route path="/admin/library/dashboard" element={<AdminLibraryDashboard />} />
           <Route path="/admin/library/books"    element={<AdminLibraryBooksView />} />
           <Route path="/admin/library/loans"    element={<AdminLibraryLoansView onRefresh={refreshUnreadCounts} />} />
+          <Route path="/admin/secret-santa"     element={<AdminSecretSantaView />} />
           <Route path="*"                       element={<Navigate to="/admin" replace />} />
         </Routes>
       ) : (
@@ -257,6 +265,7 @@ const AppContent: React.FC = () => {
           <Route path="/orders"            element={<MyOrdersView />} />
           <Route path="/library"           element={<LibraryView onRefresh={refreshUnreadCounts} />} />
           <Route path="/library/my-loans"  element={<MyLoansView />} />
+          <Route path="/secret-santa"      element={<SecretSantaView />} />
           <Route path="*"                  element={<Navigate to="/" replace />} />
         </Routes>
       )}
