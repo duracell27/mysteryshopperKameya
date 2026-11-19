@@ -84,7 +84,7 @@ export const AccessMatrixView: React.FC = () => {
     setSaving(key);
     const updated: AccessRule[] = MODULE_ROW_LABELS.map(row => {
       const existing = getModuleRule(row.division, row.position);
-      const modules  = existing?.modules ?? { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false };
+      const modules  = existing?.modules ?? { mysteryShop: false, onboarding: false, learning: true, shop: false, library: false, secretSanta: false };
       if (row.division === division && row.position === position) {
         return { division: row.division, position: row.position, modules: { ...modules, [field]: value } };
       }

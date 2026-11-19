@@ -11,6 +11,7 @@ export interface AccessRule {
     learning:    boolean;
     shop:        boolean;
     library:     boolean;
+    secretSanta: boolean;
   };
 }
 
@@ -49,6 +50,7 @@ interface AccessContextType {
   canLearning:    boolean;
   canShop:        boolean;
   canLibrary:     boolean;
+  canSecretSanta: boolean;
   learningAccess: LearningAccess;
   isLoading:      boolean;
   matrix:         AccessRule[]    | null;
@@ -93,6 +95,7 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const canLearning    = user?.isAdmin ? true : (rule?.modules.learning    ?? false);
   const canShop        = user?.isAdmin ? true : (rule?.modules.shop        ?? false);
   const canLibrary     = user?.isAdmin ? true : (rule?.modules.library     ?? false);
+  const canSecretSanta = user?.isAdmin ? true : (rule?.modules.secretSanta ?? false);
 
   const learningAccess: LearningAccess = user?.isAdmin
     ? { general: true, start: true, consultant: true, managers: true, marketing: true }
@@ -102,7 +105,7 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   return (
     <AccessContext.Provider value={{
-      canMysteryShop, canOnboarding, canLearning, canShop, canLibrary,
+      canMysteryShop, canOnboarding, canLearning, canShop, canLibrary, canSecretSanta,
       learningAccess, isLoading,
       matrix, learningMatrix,
       refreshMatrix: fetchMatrix,
