@@ -134,17 +134,17 @@ export const AdminSecretSantaView: React.FC = () => {
 
       {/* Table */}
       {!loading && !error && (
-        <div className="bg-white rounded-2xl shadow-sm overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-slate-100">
-                <th className="px-5 py-4 text-left font-semibold text-slate-600">#</th>
-                <th className="px-5 py-4 text-left font-semibold text-slate-600">Учасник</th>
-                <th className="px-5 py-4 text-left font-semibold text-slate-600">Відділ</th>
-                <th className="px-5 py-4 text-left font-semibold text-slate-600">Захоплення / про себе</th>
-                <th className="px-5 py-4 text-left font-semibold text-slate-600">Що хоче</th>
-                <th className="px-5 py-4 text-left font-semibold text-slate-600">Що не хоче</th>
-                <th className="px-5 py-4 text-left font-semibold text-slate-600">Дарує</th>
+                <th className="w-8 px-2 py-4 text-left font-semibold text-slate-600">#</th>
+                <th className="w-40 px-3 py-4 text-left font-semibold text-slate-600">Учасник</th>
+                <th className="w-24 px-3 py-4 text-left font-semibold text-slate-600">Відділ</th>
+                <th className="px-3 py-4 text-left font-semibold text-slate-600">Захоплення / про себе</th>
+                <th className="px-3 py-4 text-left font-semibold text-slate-600">Що хоче</th>
+                <th className="px-3 py-4 text-left font-semibold text-slate-600">Що не хоче</th>
+                <th className="w-40 px-3 py-4 text-left font-semibold text-slate-600">Дарує</th>
               </tr>
             </thead>
             <tbody>
@@ -153,19 +153,19 @@ export const AdminSecretSantaView: React.FC = () => {
                 const hobbyFact = [entry.hobbies, entry.interestingFacts].filter(Boolean).join(' · ');
                 return (
                   <tr key={entry._id} className={idx % 2 === 0 ? 'bg-kameya-burgundy/5' : ''}>
-                    <td className="px-5 py-3 text-slate-400 text-xs">{idx + 1}</td>
-                    <td className="px-5 py-3 font-medium text-slate-700">{entry.fullName}</td>
-                    <td className="px-5 py-3 text-slate-500">{entry.department ?? '—'}</td>
-                    <td className="px-5 py-3 text-slate-500 max-w-[200px] truncate" title={hobbyFact || undefined}>
+                    <td className="px-2 py-3 text-slate-400 text-xs">{idx + 1}</td>
+                    <td className="px-3 py-3 font-medium text-slate-700 truncate" title={entry.fullName}>{entry.fullName}</td>
+                    <td className="px-3 py-3 text-slate-500 truncate" title={entry.department ?? ''}>{entry.department ?? '—'}</td>
+                    <td className="px-3 py-3 text-slate-500 truncate" title={hobbyFact || undefined}>
                       {hobbyFact || <span className="text-slate-300 italic text-xs">—</span>}
                     </td>
-                    <td className="px-5 py-3 text-slate-500 max-w-[180px] truncate" title={entry.wantsToReceive ?? ''}>
+                    <td className="px-3 py-3 text-slate-500 truncate" title={entry.wantsToReceive ?? ''}>
                       {entry.wantsToReceive ?? '—'}
                     </td>
-                    <td className="px-5 py-3 text-slate-500 max-w-[180px] truncate" title={entry.doesntWantToReceive ?? ''}>
+                    <td className="px-3 py-3 text-slate-500 truncate" title={entry.doesntWantToReceive ?? ''}>
                       {entry.doesntWantToReceive ?? '—'}
                     </td>
-                    <td className="px-5 py-3 text-slate-700">
+                    <td className="px-3 py-3 text-slate-700 truncate" title={recipient?.fullName ?? ''}>
                       {recipient?.fullName
                         ? <span className="inline-flex items-center gap-1"><span className="text-kameya-burgundy">→</span> {recipient.fullName}</span>
                         : <span className="text-slate-300 italic text-xs">не призначено</span>}
