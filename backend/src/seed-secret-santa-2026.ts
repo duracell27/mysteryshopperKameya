@@ -754,6 +754,7 @@ async function run() {
   const NAME_OVERRIDES: Record<string, string> = {
     'Власійчук Антон Сергійович': 'Антон Власійчук',
     'Дмитрів Наталія Петрівна':   'Дмитрів Наталя',
+    'Коваль Адріана':             'Литвинюк Адріана',
   };
 
   const allUsers = await User.find({}, 'name _id');
