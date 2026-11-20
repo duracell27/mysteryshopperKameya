@@ -751,14 +751,19 @@ async function run() {
   await SecretSantaEntry.deleteMany({ season: SEASON });
   console.log('🗑  Cleared existing entries for season', SEASON);
 
+  const NAME_OVERRIDES: Record<string, string> = {
+    'Власійчук Антон Сергійович': 'Антон Власійчук',
+    'Дмитрів Наталія Петрівна':   'Дмитрів Наталя',
+  };
+
   const allUsers = await User.find({}, 'name _id');
   const usedUserIds = new Set<string>();
   function findUser(fullName: string) {
-    const n = fullName.trim().toLowerCase();
+    const lookup = (NAME_OVERRIDES[fullName] ?? fullName).trim().toLowerCase();
     const match = allUsers.find(u => {
       if (usedUserIds.has(String(u._id))) return false;
       const un = (u.name ?? '').toLowerCase();
-      return un === n || un.includes(n) || n.includes(un);
+      return un === lookup || un.includes(lookup) || lookup.includes(un);
     }) ?? null;
     if (match) usedUserIds.add(String(match._id));
     return match;
