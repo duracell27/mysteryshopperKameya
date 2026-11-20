@@ -15,7 +15,8 @@ export interface AccessRule {
 }
 
 export interface GlobalFeatures {
-  secretSanta: boolean;
+  secretSanta:      boolean;
+  secretSantaAdmin: boolean;
 }
 
 export interface LearningRule {
@@ -78,11 +79,11 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const data = await res.json() as { rules: AccessRule[]; learningRules: LearningRule[]; globalFeatures?: GlobalFeatures };
       setMatrix(data.rules);
       setLearningMatrix(data.learningRules ?? []);
-      setGlobalFeatures(data.globalFeatures ?? { secretSanta: false });
+      setGlobalFeatures(data.globalFeatures ?? { secretSanta: false, secretSantaAdmin: false });
     } catch {
       setMatrix([]);
       setLearningMatrix([]);
-      setGlobalFeatures({ secretSanta: false });
+      setGlobalFeatures({ secretSanta: false, secretSantaAdmin: false });
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +103,9 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const canLearning    = user?.isAdmin ? true : (rule?.modules.learning    ?? false);
   const canShop        = user?.isAdmin ? true : (rule?.modules.shop        ?? false);
   const canLibrary     = user?.isAdmin ? true : (rule?.modules.library ?? false);
-  const canSecretSanta = globalFeatures?.secretSanta ?? false;
+  const canSecretSanta = user?.isAdmin
+    ? (globalFeatures?.secretSantaAdmin ?? false)
+    : (globalFeatures?.secretSanta ?? false);
 
   const learningAccess: LearningAccess = user?.isAdmin
     ? { general: true, start: true, consultant: true, managers: true, marketing: true }

@@ -252,16 +252,28 @@ export const AccessMatrixView: React.FC = () => {
       <div>
         <h2 className="text-base font-semibold text-slate-700 mb-1">Сезонні функції</h2>
         <p className="text-xs text-slate-400 mb-3">Вмикаються глобально для всіх співробітників одночасно.</p>
-        <div className="bg-white rounded-2xl shadow-sm px-6 py-5">
+        <div className="bg-white rounded-2xl shadow-sm px-6 py-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-slate-700">🎅 Таємний Миколай</div>
+              <div className="text-sm font-medium text-slate-700">🎅 Таємний Миколай — співробітники</div>
               <div className="text-xs text-slate-400 mt-0.5">Показує вкладку "Таємний Миколай" всім співробітникам</div>
             </div>
             <Toggle
               on={globalFeatures?.secretSanta ?? false}
               busy={saving === 'global-secretSanta'}
               onToggle={() => handleGlobalFeatureToggle('secretSanta', !(globalFeatures?.secretSanta ?? false))}
+            />
+          </div>
+          <div className="border-t border-slate-100" />
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-slate-700">🎅 Таємний Миколай — адміни</div>
+              <div className="text-xs text-slate-400 mt-0.5">Показує вкладку "Таємний Миколай" адміністраторам</div>
+            </div>
+            <Toggle
+              on={globalFeatures?.secretSantaAdmin ?? false}
+              busy={saving === 'global-secretSantaAdmin'}
+              onToggle={() => handleGlobalFeatureToggle('secretSantaAdmin', !(globalFeatures?.secretSantaAdmin ?? false))}
             />
           </div>
         </div>

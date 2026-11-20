@@ -13,7 +13,8 @@ export interface IAccessRule {
 }
 
 export interface IGlobalFeatures {
-  secretSanta: boolean;
+  secretSanta:      boolean;
+  secretSantaAdmin: boolean;
 }
 
 export interface ILearningRule {
@@ -64,7 +65,8 @@ const AccessMatrixSchema = new Schema<IAccessMatrix>({
   rules:         [AccessRuleSchema],
   learningRules: [LearningRuleSchema],
   globalFeatures: {
-    secretSanta: { type: Boolean, default: false },
+    secretSanta:      { type: Boolean, default: false },
+    secretSantaAdmin: { type: Boolean, default: false },
   },
 });
 
