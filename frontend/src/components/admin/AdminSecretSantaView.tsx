@@ -27,6 +27,7 @@ export const AdminSecretSantaView: React.FC = () => {
   const [entries, setEntries] = useState<SantaEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     getAllEntries()
@@ -117,6 +118,20 @@ export const AdminSecretSantaView: React.FC = () => {
         </div>
       )}
 
+      {/* Search */}
+      {!loading && !error && (
+        <div className="mb-4 relative">
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Пошук за іменем…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-kameya-burgundy/30 focus:border-kameya-burgundy"
+          />
+        </div>
+      )}
+
       {/* Table */}
       {!loading && !error && (
         <div className="bg-white rounded-2xl shadow-sm overflow-x-auto">
@@ -126,29 +141,34 @@ export const AdminSecretSantaView: React.FC = () => {
                 <th className="px-5 py-4 text-left font-semibold text-slate-600">#</th>
                 <th className="px-5 py-4 text-left font-semibold text-slate-600">Учасник</th>
                 <th className="px-5 py-4 text-left font-semibold text-slate-600">Відділ</th>
-                <th className="px-5 py-4 text-left font-semibold text-slate-600">Дарує</th>
+                <th className="px-5 py-4 text-left font-semibold text-slate-600">Захоплення / про себе</th>
                 <th className="px-5 py-4 text-left font-semibold text-slate-600">Що хоче</th>
                 <th className="px-5 py-4 text-left font-semibold text-slate-600">Що не хоче</th>
+                <th className="px-5 py-4 text-left font-semibold text-slate-600">Дарує</th>
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry, idx) => {
+              {entries.filter(e => e.fullName.toLowerCase().includes(search.toLowerCase())).map((entry, idx) => {
                 const recipient = entry.recipientId as SantaEntry | null;
+                const hobbyFact = [entry.hobbies, entry.interestingFacts].filter(Boolean).join(' · ');
                 return (
                   <tr key={entry._id} className={idx % 2 === 0 ? 'bg-kameya-burgundy/5' : ''}>
                     <td className="px-5 py-3 text-slate-400 text-xs">{idx + 1}</td>
                     <td className="px-5 py-3 font-medium text-slate-700">{entry.fullName}</td>
                     <td className="px-5 py-3 text-slate-500">{entry.department ?? '—'}</td>
+                    <td className="px-5 py-3 text-slate-500 max-w-[200px] truncate" title={hobbyFact || undefined}>
+                      {hobbyFact || <span className="text-slate-300 italic text-xs">—</span>}
+                    </td>
+                    <td className="px-5 py-3 text-slate-500 max-w-[180px] truncate" title={entry.wantsToReceive ?? ''}>
+                      {entry.wantsToReceive ?? '—'}
+                    </td>
+                    <td className="px-5 py-3 text-slate-500 max-w-[180px] truncate" title={entry.doesntWantToReceive ?? ''}>
+                      {entry.doesntWantToReceive ?? '—'}
+                    </td>
                     <td className="px-5 py-3 text-slate-700">
                       {recipient?.fullName
                         ? <span className="inline-flex items-center gap-1"><span className="text-kameya-burgundy">→</span> {recipient.fullName}</span>
                         : <span className="text-slate-300 italic text-xs">не призначено</span>}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500 max-w-[180px] truncate" title={recipient?.wantsToReceive ?? ''}>
-                      {recipient?.wantsToReceive ?? '—'}
-                    </td>
-                    <td className="px-5 py-3 text-slate-500 max-w-[180px] truncate" title={recipient?.doesntWantToReceive ?? ''}>
-                      {recipient?.doesntWantToReceive ?? '—'}
                     </td>
                   </tr>
                 );

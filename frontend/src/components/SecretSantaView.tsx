@@ -11,18 +11,70 @@ interface Snowflake {
   imgIdx: number;
 }
 
-const keyframeStyles = `
+interface FallingGift {
+  left:     string;
+  size:     string;
+  imgIdx:   number;
+  rotation: number;
+  cycle:    number;
+  delay:    string;
+}
+
+interface SleighPass {
+  key:      number;
+  fromY:    number;
+  toY:      number;
+  duration: number;
+  delay:    number; // negative = already mid-flight on mount
+}
+
+function randomSleighPass(prevKey = 0, initialDelay = 0): SleighPass {
+  const maxY = typeof window !== 'undefined' ? window.innerHeight * 0.5 : 300;
+  return {
+    key:      prevKey + 1,
+    fromY:    15 + Math.random() * maxY,
+    toY:      15 + Math.random() * maxY,
+    duration: 6 + Math.random() * 9,
+    delay:    initialDelay,
+  };
+}
+
+function buildGifts(): FallingGift[] {
+  return Array.from({ length: 10 }, () => {
+    const cycle = 7 + Math.random() * 8; // 7–15s total cycle
+    return {
+      left:     `${5 + Math.random() * 85}%`,
+      size:     `${24 + Math.floor(Math.random() * 22)}px`,
+      imgIdx:   Math.floor(Math.random() * 3),
+      rotation: (Math.random() > 0.5 ? 1 : -1) * (8 + Math.floor(Math.random() * 25)),
+      cycle,
+      delay:    `-${(Math.random() * cycle).toFixed(1)}s`,
+    };
+  });
+}
+
+function buildGiftKeyframes(gifts: FallingGift[]): string {
+  return gifts.map((g, i) => {
+    const rot = `${g.rotation}deg`;
+    return `
+      @keyframes giftfall${i} {
+        0%   { opacity:0; transform:translateY(-60px) rotate(0deg); }
+        8%   { opacity:1; transform:translateY(-60px) rotate(0deg); }
+        70%  { opacity:1; transform:translateY(calc(100vh - 30px)) rotate(${rot}); }
+        85%  { opacity:0; transform:translateY(calc(100vh - 30px)) rotate(${rot}); }
+        100% { opacity:0; transform:translateY(-60px) rotate(0deg); }
+      }
+    `;
+  }).join('\n');
+}
+
+const BASE_KEYFRAMES = `
   @keyframes snowfall {
     0%   { transform: translateY(-30px) translateX(0) rotate(0deg); opacity: 1; }
     50%  { transform: translateY(50vh) translateX(15px) rotate(180deg); opacity: 0.8; }
     100% { transform: translateY(100vh) translateX(-10px) rotate(360deg); opacity: 0.2; }
   }
-  @keyframes sleigh {
-    0%   { left: -260px; }
-    100% { left: calc(100% + 260px); }
-  }
   .snowflake-anim { animation: snowfall linear infinite; }
-  .sleigh-anim    { animation: sleigh linear infinite; position: absolute; top: 20px; }
 `;
 
 const LoadingState: React.FC = () => (
@@ -82,7 +134,7 @@ const RecipientCard: React.FC<{ entry: SantaEntry }> = ({ entry }) => {
         <img
           src="/secret-santa/santa.png"
           alt="Миколай"
-          className="h-24 w-auto drop-shadow-lg"
+          className="h-40 w-auto drop-shadow-lg"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
       </div>
@@ -129,9 +181,11 @@ const RecipientCard: React.FC<{ entry: SantaEntry }> = ({ entry }) => {
 };
 
 export const SecretSantaView: React.FC = () => {
-  const [entry, setEntry]       = useState<SantaEntry | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const [entry, setEntry]         = useState<SantaEntry | null>(null);
+  const [loading, setLoading]     = useState(true);
   const [errorType, setErrorType] = useState<ErrorType | null>(null);
+  const [sleigh, setSleigh]   = useState<SleighPass>(() => randomSleighPass(0));
+  const [sleighR, setSleighR] = useState<SleighPass>(() => randomSleighPass(100, -(4 + Math.random() * 4)));
 
   useEffect(() => {
     getMyEntry()
@@ -148,6 +202,21 @@ export const SecretSantaView: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const fallingGifts = useMemo(() => buildGifts(), []);
+  const keyframeStyles = useMemo(
+    () => BASE_KEYFRAMES + buildGiftKeyframes(fallingGifts) + `
+      @keyframes sleigh${sleigh.key} {
+        from { left: -260px; top: ${sleigh.fromY.toFixed(0)}px; }
+        to   { left: calc(100% + 260px); top: ${sleigh.toY.toFixed(0)}px; }
+      }
+      @keyframes sleighR${sleighR.key} {
+        from { left: calc(100% + 260px); top: ${sleighR.fromY.toFixed(0)}px; }
+        to   { left: -260px; top: ${sleighR.toY.toFixed(0)}px; }
+      }
+    `,
+    [fallingGifts, sleigh, sleighR],
+  );
+
   const snowflakes = useMemo<Snowflake[]>(
     () =>
       Array.from({ length: 20 }, (_, i) => ({
@@ -161,28 +230,52 @@ export const SecretSantaView: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-8 px-4">
+    <div className="relative bg-[#0a1628] min-h-screen">
       <style>{keyframeStyles}</style>
 
-      <div className="relative overflow-hidden max-w-lg w-full bg-[#0a1628] border border-[#1e3a5f] rounded-2xl shadow-2xl p-8">
-
-        {/* Santa sleigh flying across */}
+      {/* Decoration layer — behind content */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        {/* Santa sleigh — random path each pass */}
         <img
+          key={sleigh.key}
           src="/secret-santa/santa-sleigh.png"
           alt=""
-          className="sleigh-anim pointer-events-none select-none"
-          style={{ height: '70px', width: 'auto', animationDuration: '12s' }}
-          onError={(e) => {
-            const el = e.currentTarget as HTMLImageElement;
-            el.style.display = 'none';
-            // fallback: show emoji span
-            const span = document.createElement('span');
-            span.className = 'sleigh-anim pointer-events-none select-none';
-            span.style.fontSize = '2.5rem';
-            span.style.animationDuration = '12s';
-            span.textContent = '🎅🛷';
-            el.parentElement?.appendChild(span);
+          className="select-none"
+          style={{
+            position:                'absolute',
+            height:                  '70px',
+            width:                   'auto',
+            animationName:           `sleigh${sleigh.key}`,
+            animationDuration:       `${sleigh.duration.toFixed(1)}s`,
+            animationDelay:          `${sleigh.delay.toFixed(1)}s`,
+            animationTimingFunction: 'linear',
+            animationIterationCount: 1,
+            animationFillMode:       'both',
           }}
+          onAnimationEnd={() => setSleigh(prev => randomSleighPass(prev.key, 0))}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+
+        {/* Santa sleigh — right to left, flipped */}
+        <img
+          key={`r${sleighR.key}`}
+          src="/secret-santa/santa-sleigh.png"
+          alt=""
+          className="select-none"
+          style={{
+            position:                'absolute',
+            height:                  '70px',
+            width:                   'auto',
+            transform:               'scaleX(-1)',
+            animationName:           `sleighR${sleighR.key}`,
+            animationDuration:       `${sleighR.duration.toFixed(1)}s`,
+            animationDelay:          `${sleighR.delay.toFixed(1)}s`,
+            animationTimingFunction: 'linear',
+            animationIterationCount: 1,
+            animationFillMode:       'both',
+          }}
+          onAnimationEnd={() => setSleighR(prev => randomSleighPass(prev.key, 0))}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
 
         {/* Snowflakes */}
@@ -191,45 +284,60 @@ export const SecretSantaView: React.FC = () => {
             key={i}
             src={`/secret-santa/snowflake${s.imgIdx + 1}.png`}
             alt=""
-            className="snowflake-anim absolute pointer-events-none select-none opacity-70"
+            className="snowflake-anim absolute select-none opacity-70"
             style={{
-              left:            s.left,
-              top:             '-30px',
-              width:           s.size,
-              height:          'auto',
+              left: s.left, top: '-30px',
+              width: s.size, height: 'auto',
               animationDuration: s.duration,
-              animationDelay:  s.delay,
+              animationDelay:    s.delay,
             }}
-            onError={(e) => {
-              const el = e.currentTarget as HTMLImageElement;
-              el.style.display = 'none';
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+        ))}
+
+        {/* Falling gifts */}
+        {fallingGifts.map((g, i) => (
+          <img
+            key={i}
+            src={`/secret-santa/gift${g.imgIdx + 1}.png`}
+            alt=""
+            className="select-none"
+            style={{
+              position: 'absolute', top: 0, left: g.left,
+              width: g.size, height: 'auto',
+              animationName:           `giftfall${i}`,
+              animationDuration:       `${g.cycle.toFixed(1)}s`,
+              animationDelay:          g.delay,
+              animationTimingFunction: 'ease-in',
+              animationIterationCount: 'infinite',
+              animationFillMode:       'both',
             }}
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
         ))}
 
         {/* Christmas trees */}
         <img
-          src="/secret-santa/tree.png"
-          alt=""
-          className="absolute bottom-2 left-2 pointer-events-none select-none opacity-90"
-          style={{ height: '90px', width: 'auto' }}
+          src="/secret-santa/tree.png" alt=""
+          className="absolute bottom-0 left-4 select-none opacity-90"
+          style={{ height: '220px', width: 'auto' }}
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
         <img
-          src="/secret-santa/tree2.png"
-          alt=""
-          className="absolute bottom-2 right-2 pointer-events-none select-none opacity-90"
-          style={{ height: '90px', width: 'auto' }}
+          src="/secret-santa/tree2.png" alt=""
+          className="absolute bottom-0 right-4 select-none opacity-90"
+          style={{ height: '300px', width: 'auto' }}
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
+      </div>
 
-        {/* Content */}
-        <div className="relative z-10 mt-10">
-          {loading                           && <LoadingState />}
-          {!loading && errorType             && <ErrorState type={errorType} />}
-          {!loading && !errorType && entry   && <RecipientCard entry={entry} />}
+      {/* Content layer — above decorations */}
+      <div className="relative z-20 flex items-center justify-center px-4 py-12 min-h-screen">
+        <div className="w-full max-w-md">
+          {loading                         && <LoadingState />}
+          {!loading && errorType           && <ErrorState type={errorType} />}
+          {!loading && !errorType && entry && <RecipientCard entry={entry} />}
         </div>
-
       </div>
     </div>
   );

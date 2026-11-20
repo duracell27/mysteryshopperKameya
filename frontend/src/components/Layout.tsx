@@ -554,26 +554,36 @@ export const Layout: React.FC<LayoutProps> = ({
               })}
 
               {/* Таємний Миколай */}
-              <button
-                onClick={() => navigate('/admin/secret-santa')}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive('/admin/secret-santa') ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
-                }`}
-              >
-                <i className="fas fa-gift w-4 text-center"></i>
-                <span>Таємний Миколай</span>
-              </button>
+              {canSecretSanta && (
+                <button
+                  onClick={() => navigate('/admin/secret-santa')}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                    isActive('/admin/secret-santa') ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
+                  }`}
+                >
+                  <i className="fas fa-gift w-4 text-center"></i>
+                  <span>Таємний Миколай</span>
+                </button>
+              )}
             </>
           ) : (
             // Employee accordion nav
             visibleModules.map((module) => {
               const isOpen    = openModule === module.key;
               const hasActive = (module.paths as readonly string[]).includes(location.pathname);
+              const visibleItems = module.items.filter(item => {
+                if (module.key !== 'learning') return true;
+                const sec = item.learningKey;
+                return !sec || learningAccess[sec];
+              });
+              const isSingle = visibleItems.length === 1;
               return (
                 <div key={module.key}>
                   <button
                     onClick={() => {
-                      if (!isOpen) {
+                      if (isSingle) {
+                        navigate(module.defaultPath);
+                      } else if (!isOpen) {
                         setOpenModule(module.key);
                         navigate(module.defaultPath);
                       } else {
@@ -588,15 +598,11 @@ export const Layout: React.FC<LayoutProps> = ({
                       <i className={`fas ${module.icon} w-4 text-center`}></i>
                       <span>{module.label}</span>
                     </div>
-                    <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-xs opacity-50`}></i>
+                    {!isSingle && <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-xs opacity-50`}></i>}
                   </button>
-                  {isOpen && (
+                  {!isSingle && isOpen && (
                     <div className="ml-3 mt-1 space-y-0.5 border-l border-white/20 pl-3">
-                      {module.items.filter(item => {
-                        if (module.key !== 'learning') return true;
-                        const sec = item.learningKey;
-                        return !sec || learningAccess[sec];
-                      }).map((item) => (
+                      {visibleItems.map((item) => (
                         <button
                           key={item.path}
                           onClick={() => navigate(item.path)}
@@ -673,7 +679,7 @@ export const Layout: React.FC<LayoutProps> = ({
             { path: '/admin/reports',        icon: 'fa-chart-bar',      active: isAdminReportsActive },
             { path: '/admin/notifications',  icon: 'fa-bell',           active: isActive('/admin/notifications'), badge: notificationsUnread },
             { path: '/admin/onboarding/trainees', icon: 'fa-user-clock', active: isAdminOnboardingActive },
-            { path: '/admin/secret-santa',        icon: 'fa-gift',       active: isActive('/admin/secret-santa') },
+            ...(canSecretSanta ? [{ path: '/admin/secret-santa', icon: 'fa-gift', active: isActive('/admin/secret-santa') }] : []),
           ].map((item) => (
             <button
               key={item.path}
@@ -761,7 +767,7 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
           </div>
         </header>
-        <div className="max-w-6xl mx-auto p-4 md:p-8">{children}</div>
+        <div className={location.pathname === '/secret-santa' ? 'h-full' : 'max-w-6xl mx-auto p-4 md:p-8'}>{children}</div>
       </main>
     </div>
   );

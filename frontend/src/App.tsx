@@ -235,7 +235,7 @@ const AppContent: React.FC = () => {
           <Route path="/admin/library/dashboard" element={<AdminLibraryDashboard />} />
           <Route path="/admin/library/books"    element={<AdminLibraryBooksView />} />
           <Route path="/admin/library/loans"    element={<AdminLibraryLoansView onRefresh={refreshUnreadCounts} />} />
-          <Route path="/admin/secret-santa"     element={<AdminSecretSantaView />} />
+          {canSecretSanta && <Route path="/admin/secret-santa" element={<AdminSecretSantaView />} />}
           <Route path="*"                       element={<Navigate to="/admin" replace />} />
         </Routes>
       ) : (
