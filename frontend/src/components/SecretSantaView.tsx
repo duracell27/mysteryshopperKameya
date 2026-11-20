@@ -230,7 +230,7 @@ export const SecretSantaView: React.FC = () => {
   );
 
   return (
-    <div className="relative bg-[#0a1628] min-h-screen">
+    <div className="relative bg-[#0a1628] h-screen overflow-hidden">
       <style>{keyframeStyles}</style>
 
       {/* Decoration layer — behind content */}
@@ -331,12 +331,14 @@ export const SecretSantaView: React.FC = () => {
         />
       </div>
 
-      {/* Content layer — above decorations */}
-      <div className="relative z-20 flex items-center justify-center px-4 py-12 min-h-screen">
+      {/* Content layer — above decorations, scrollable */}
+      <div className="relative z-20 h-screen overflow-y-auto">
+        <div className="flex items-center justify-center px-4 py-12 min-h-full">
         <div className="w-full max-w-md">
           {loading                         && <LoadingState />}
           {!loading && errorType           && <ErrorState type={errorType} />}
           {!loading && !errorType && entry && <RecipientCard entry={entry} />}
+        </div>
         </div>
       </div>
     </div>
