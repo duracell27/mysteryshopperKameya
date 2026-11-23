@@ -756,9 +756,23 @@ async function run() {
     'Коваль Адріана':             'Литвинюк Адріана',
   };
 
-  const allUsers = await User.find({}, 'name _id');
+  // Phone-based overrides for users who share the same name in DB
+  const PHONE_OVERRIDES: Record<string, string> = {
+    'Грицяк Вікторія Олександрівна': '0669832666',
+  };
+
+  const allUsers = await User.find({}, 'name _id phone');
   const usedUserIds = new Set<string>();
+  function normalizePhone(p: string) { return p.replace(/\D/g, ''); }
   function findUser(fullName: string) {
+    const phone = PHONE_OVERRIDES[fullName];
+    if (phone) {
+      const match = allUsers.find(u => {
+        if (usedUserIds.has(String(u._id))) return false;
+        return normalizePhone((u as any).phone ?? '') === normalizePhone(phone);
+      }) ?? null;
+      if (match) { usedUserIds.add(String(match._id)); return match; }
+    }
     const lookup = (NAME_OVERRIDES[fullName] ?? fullName).trim().toLowerCase();
     const match = allUsers.find(u => {
       if (usedUserIds.has(String(u._id))) return false;
