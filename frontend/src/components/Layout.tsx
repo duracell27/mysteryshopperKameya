@@ -329,6 +329,7 @@ export const Layout: React.FC<LayoutProps> = ({
   const isAdminTeamActive       = ['/admin/users', '/admin/structure'].some(p => location.pathname.startsWith(p));
   const isAdminReportsActive    = ['/admin/reports'].some(p => location.pathname.startsWith(p));
   const isAdminLibraryActive    = location.pathname.startsWith('/admin/library');
+  const isAdminSantaActive      = location.pathname.startsWith('/admin/secret-santa');
 
   const getActiveModule = (): ModuleKey | null => {
     const found = visibleModules.find(m =>
@@ -337,7 +338,7 @@ export const Layout: React.FC<LayoutProps> = ({
     return found?.key ?? null;
   };
 
-  type AdminAccordion = 'team' | 'reports' | 'onboarding' | 'shop' | 'library' | null;
+  type AdminAccordion = 'team' | 'reports' | 'onboarding' | 'shop' | 'library' | 'santa' | null;
 
   const getActiveAdminAccordion = (): AdminAccordion => {
     if (isAdminTeamActive)       return 'team';
@@ -345,6 +346,7 @@ export const Layout: React.FC<LayoutProps> = ({
     if (isAdminOnboardingActive) return 'onboarding';
     if (isAdminShopActive)       return 'shop';
     if (isAdminLibraryActive)    return 'library';
+    if (isAdminSantaActive)      return 'santa';
     return null;
   };
 
@@ -553,18 +555,16 @@ export const Layout: React.FC<LayoutProps> = ({
                 ],
               })}
 
-              {/* Таємний Миколай */}
-              {canSecretSanta && (
-                <button
-                  onClick={() => navigate('/admin/secret-santa')}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive('/admin/secret-santa') ? 'bg-white/20 font-semibold' : 'hover:bg-white/10'
-                  }`}
-                >
-                  <i className="fas fa-gift w-4 text-center"></i>
-                  <span>Таємний Миколай</span>
-                </button>
-              )}
+              {/* Таємний Миколай — accordion */}
+              {canSecretSanta && renderAccordion({
+                label: 'Таємний Миколай', icon: 'fa-gift',
+                isActive: isAdminSantaActive, isOpen: adminAccordion === 'santa',
+                setOpen: v => setAdminAccordion(v ? 'santa' : null),
+                items: [
+                  { path: '/admin/secret-santa',          label: 'Всі учасники',  icon: 'fa-list' },
+                  { path: '/admin/secret-santa/my-gift',  label: 'Мій подарунок', icon: 'fa-gift' },
+                ],
+              })}
             </>
           ) : (
             // Employee accordion nav
@@ -679,7 +679,7 @@ export const Layout: React.FC<LayoutProps> = ({
             { path: '/admin/reports',        icon: 'fa-chart-bar',      active: isAdminReportsActive },
             { path: '/admin/notifications',  icon: 'fa-bell',           active: isActive('/admin/notifications'), badge: notificationsUnread },
             { path: '/admin/onboarding/trainees', icon: 'fa-user-clock', active: isAdminOnboardingActive },
-            ...(canSecretSanta ? [{ path: '/admin/secret-santa', icon: 'fa-gift', active: isActive('/admin/secret-santa') }] : []),
+            ...(canSecretSanta ? [{ path: '/admin/secret-santa', icon: 'fa-gift', active: isAdminSantaActive }] : []),
           ].map((item) => (
             <button
               key={item.path}
@@ -767,7 +767,7 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
           </div>
         </header>
-        <div className={location.pathname === '/secret-santa' ? 'h-full' : 'max-w-6xl mx-auto p-4 md:p-8'}>{children}</div>
+        <div className={['/secret-santa', '/admin/secret-santa/my-gift'].includes(location.pathname) ? 'h-full' : 'max-w-6xl mx-auto p-4 md:p-8'}>{children}</div>
       </main>
     </div>
   );
