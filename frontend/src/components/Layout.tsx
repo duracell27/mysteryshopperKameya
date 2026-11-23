@@ -378,6 +378,35 @@ export const Layout: React.FC<LayoutProps> = ({
 
   const isActive = (path: string) => location.pathname === path;
 
+  const mobileSubNavItems: { path: string; label: string; icon: string }[] | null = (() => {
+    if (isAdmin) {
+      if (isAdminTeamActive)       return ADMIN_TEAM_ITEMS;
+      if (isAdminReportsActive)    return ADMIN_REPORTS_ITEMS;
+      if (isAdminOnboardingActive) return ADMIN_ONBOARDING_ITEMS;
+      if (isAdminShopActive)       return ADMIN_SHOP_ITEMS;
+      if (isAdminLibraryActive)    return [
+        { path: '/admin/library/dashboard', label: 'Дашборд', icon: 'fa-chart-bar'  },
+        { path: '/admin/library/books',     label: 'Каталог',  icon: 'fa-book-open'  },
+        { path: '/admin/library/loans',     label: 'Запити',   icon: 'fa-list-check' },
+      ];
+      if (isAdminSantaActive && canSecretSanta) return [
+        { path: '/admin/secret-santa',          label: 'Всі учасники',  icon: 'fa-list' },
+        { path: '/admin/secret-santa/my-gift',  label: 'Мій подарунок', icon: 'fa-gift' },
+      ];
+      return null;
+    }
+    const activeModule = visibleModules.find(m =>
+      (m.paths as readonly string[]).some(p => location.pathname === p)
+    );
+    if (!activeModule) return null;
+    const items = activeModule.items.filter(item => {
+      if (activeModule.key !== 'learning') return true;
+      const sec = item.learningKey;
+      return !sec || learningAccess[sec];
+    });
+    return items.length > 1 ? items : null;
+  })();
+
   const renderAccordion = ({
     label, icon, isActive: active, isOpen, setOpen,
     items, headerBadge,
@@ -767,6 +796,29 @@ export const Layout: React.FC<LayoutProps> = ({
             </div>
           </div>
         </header>
+
+        {/* Mobile secondary sub-navigation for accordion sections */}
+        {mobileSubNavItems && (
+          <nav className="md:hidden bg-white border-b border-gray-200 overflow-x-auto sticky top-[65px] z-10">
+            <div className="flex">
+              {mobileSubNavItems.map(item => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={`flex items-center gap-1.5 px-4 py-2.5 text-sm whitespace-nowrap border-b-2 transition-colors ${
+                    isActive(item.path)
+                      ? 'border-kameya-burgundy text-kameya-burgundy font-medium'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <i className={`fas ${item.icon} text-xs`}></i>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+        )}
+
         <div className={['/secret-santa', '/admin/secret-santa/my-gift'].includes(location.pathname) ? 'h-full' : 'max-w-6xl mx-auto p-4 md:p-8'}>{children}</div>
       </main>
     </div>
