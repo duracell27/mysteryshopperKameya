@@ -333,7 +333,7 @@ export const SecretSantaView: React.FC = () => {
 
       {/* Content layer — above decorations, scrollable */}
       <div className="relative z-20 h-[100dvh] overflow-y-auto overscroll-y-none">
-        <div className="flex items-center justify-center px-4 py-12 pb-[250px] min-h-full">
+        <div className="flex items-center justify-center px-4 py-12 pb-[250px] md:pb-12 min-h-full">
         <div className="w-full max-w-md">
           {loading                         && <LoadingState />}
           {!loading && errorType           && <ErrorState type={errorType} />}
