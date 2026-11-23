@@ -136,7 +136,7 @@ export const AdminSecretSantaView: React.FC = () => {
       {!loading && !error && (
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px] md:min-w-0">
+          <table className="w-full text-sm table-fixed min-w-[700px] md:min-w-0">
             <thead>
               <tr className="border-b border-slate-100">
                 <th className="w-8 px-2 py-4 text-left font-semibold text-slate-600">#</th>
