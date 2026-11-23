@@ -763,7 +763,7 @@ async function run() {
 
   const allUsers = await User.find({}, 'name _id phone');
   const usedUserIds = new Set<string>();
-  function normalizePhone(p: string) { return p.replace(/\D/g, ''); }
+  function normalizePhone(p: string) { return p.replace(/\D/g, '').slice(-9); }
   function findUser(fullName: string) {
     const phone = PHONE_OVERRIDES[fullName];
     if (phone) {
