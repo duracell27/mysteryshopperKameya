@@ -70,7 +70,7 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [matrix, setMatrix]                   = useState<AccessRule[]    | null>(null);
   const [learningMatrix, setLearningMatrix]   = useState<LearningRule[]  | null>(null);
   const [globalFeatures, setGlobalFeatures]   = useState<GlobalFeatures  | null>(null);
-  const [isLoading, setIsLoading]             = useState(false);
+  const [isLoading, setIsLoading]             = useState(true);
 
   const fetchMatrix = useCallback(async () => {
     setIsLoading(true);
