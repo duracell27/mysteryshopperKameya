@@ -46,19 +46,19 @@ async function run() {
     console.log('✅ Шевченко Ольга — дані оновлено');
   }
 
-  // ── 2. Приймак Христина — змінити одержувача на Шевченко Ольга ───────────
-  const khrEntry  = findEntry('Приймак Христина');
-  const olhaEntry2 = findEntry('Шевченко Ольга');   // re-fetch after potential update
+  // ── 2. Приймак Христина — прив'язати userId + змінити одержувача ─────────
+  const khrEntry   = findEntry('Приймак Христина');
+  const khrUser    = findUser('Приймак Христина');
+  const olhaEntry2 = findEntry('Шевченко Ольга');
   if (!khrEntry) {
     console.error('❌ SantaEntry для Приймак Христина не знайдено');
   } else if (!olhaEntry2) {
     console.error('❌ SantaEntry для Шевченко Ольга не знайдено');
   } else {
-    await SecretSantaEntry.updateOne(
-      { _id: khrEntry._id },
-      { $set: { recipientId: olhaEntry2._id } },
-    );
-    console.log('✅ Приймак Христина → Шевченко Ольга');
+    const upd: Record<string, unknown> = { recipientId: olhaEntry2._id };
+    if (khrUser) upd.userId = khrUser._id;
+    await SecretSantaEntry.updateOne({ _id: khrEntry._id }, { $set: upd });
+    console.log(`✅ Приймак Христина → Шевченко Ольга${khrUser ? ` (userId прив'язано)` : ' ⚠️ User не знайдено'}`);
   }
 
   // ── 3. Василишин Лідія — створити/оновити запис, одержувач Федоришин Уляна
